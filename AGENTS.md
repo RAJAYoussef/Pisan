@@ -28,3 +28,9 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## PiSan architecture
+- Anonymous learning sessions use a high-entropy browser capability, hashed server-side; all private reads and writes require it, avoiding personal email collection and anonymous Auth signups.
+- Store learning progress and daily quotas in Cloud; consume quotas transactionally to prevent parallel requests bypassing limits.
+- Pedagogical modules are in-app workspace tabs; keep the shared session and language state in the workspace, with focused components for each teaching activity.
+- Use browser speech synthesis for statement playback, with language selection and visible unsupported-browser errors; no paid AI narration is required.
