@@ -188,12 +188,12 @@ export const COUNTRIES: Country[] = [
 ];
 
 export function getCountry(id: string): Country {
-  return COUNTRIES.find((c) => c.id === id) ?? COUNTRIES[0];
+  return (COUNTRIES.find((c) => c.id === id) ?? COUNTRIES[0])!;
 }
 
 export function getLevel(countryId: string, gradeIndex: number): number {
   const c = getCountry(countryId);
-  return (c.grades[gradeIndex] ?? c.grades[0]).level;
+  return (c.grades[gradeIndex] ?? c.grades[0])!.level;
 }
 
 // ---------- Notions (chapters) ----------

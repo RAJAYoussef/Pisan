@@ -30,13 +30,13 @@ export type Exercise = {
 
 type Rng = () => number;
 const int = (rng: Rng, min: number, max: number) => min + Math.floor(rng() * (max - min + 1));
-const pick = <T,>(rng: Rng, arr: readonly T[]) => arr[Math.floor(rng() * arr.length)];
+const pick = <T,>(rng: Rng, arr: readonly T[]): T => arr[Math.floor(rng() * arr.length)] as T;
 
 function shuffled<T>(rng: Rng, arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+    [a[i], a[j]] = [a[j] as T, a[i] as T];
   }
   return a;
 }
@@ -64,10 +64,22 @@ export function seeded(seed: number): Rng {
   };
 }
 
+type Params = {
+  a?: number;
+  b?: number;
+  k?: number;
+  x?: number;
+  d?: number;
+  den?: number;
+  num?: number;
+  u?: number;
+  pct?: number;
+};
+
 type Template = {
   id: string;
   minLevel: number;
-  build: (rng: Rng, p?: Record<string, number>) => Exercise;
+  build: (rng: Rng, p?: Params) => Exercise;
 };
 
 const TEMPLATES: Template[] = [
@@ -237,7 +249,7 @@ const TEMPLATES: Template[] = [
     id: "fraction",
     minLevel: 0,
     build: (rng, p) => {
-      const den = p?.den ?? pick(rng, [3, 4, 5] as const);
+      const den: number = p?.den ?? pick(rng, [3, 4, 5]);
       const num = p?.num ?? (den === 3 ? 2 : den === 4 ? 3 : 2);
       const u = p?.u ?? int(rng, 8, 30);
       const P = den * u;
@@ -318,7 +330,7 @@ const TEMPLATES: Template[] = [
     id: "percent",
     minLevel: 1,
     build: (rng, p) => {
-      const pct = p?.pct ?? pick(rng, [25, 20, 10] as const);
+      const pct: number = p?.pct ?? pick(rng, [25, 20, 10]);
       const n = 100 / pct;
       const u = p?.u ?? int(rng, 3, 15);
       const P = n * u;
@@ -394,15 +406,15 @@ const TEMPLATES: Template[] = [
     id: "ratio",
     minLevel: 1,
     build: (rng, p) => {
-      const pair = pick(rng, [
+      const pair: readonly [number, number] = pick(rng, [
         [3, 2],
         [2, 1],
         [3, 1],
         [4, 3],
         [5, 2],
-      ] as const);
-      const a = p?.a ?? pair[0];
-      const b = p?.b ?? pair[1];
+      ] as const) as readonly [number, number];
+      const a = p?.a ?? pair![0];
+      const b = p?.b ?? pair![1];
       const u = p?.u ?? int(rng, 2, 8) * 10;
       const T = (a + b) * u;
       return {
@@ -564,7 +576,7 @@ const TEMPLATES: Template[] = [
   },
 ];
 
-const SAMPLE_PARAMS: Array<[string, Record<string, number>]> = [
+const SAMPLE_PARAMS: Array<[string, Params]> = [
   ["multiple", { a: 12, k: 3 }],
   ["fraction", { den: 5, num: 2, u: 24 }],
   ["difference", { x: 35, d: 15 }],
@@ -590,7 +602,7 @@ export async function generateAdaptedExercise(ctx: GenerateContext): Promise<Exe
   const rng = seeded(Date.now() % 1_000_000);
   const pool = TEMPLATES.filter((t) => t.minLevel <= ctx.level);
   const tpl = pick(rng, pool.length ? pool : TEMPLATES);
-  const ex = tpl.build(rng);
+  const ex = tpl!.build(rng);
   return { ...ex, id: `gen-${Date.now()}` };
 }
 
