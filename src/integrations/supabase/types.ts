@@ -14,13 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      learning_sessions: {
+        Row: {
+          created_at: string
+          partner: boolean
+          profile: Json
+          progress: Json
+          token_hash: string
+          usage_count: number
+          usage_date: string
+        }
+        Insert: {
+          created_at?: string
+          partner?: boolean
+          profile?: Json
+          progress?: Json
+          token_hash: string
+          usage_count?: number
+          usage_date?: string
+        }
+        Update: {
+          created_at?: string
+          partner?: boolean
+          profile?: Json
+          progress?: Json
+          token_hash?: string
+          usage_count?: number
+          usage_date?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      consume_pisan_exercise: { Args: { p_hash: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

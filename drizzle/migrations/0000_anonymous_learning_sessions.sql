@@ -1,0 +1,6 @@
+CREATE TABLE public.learning_sessions (token_hash text PRIMARY KEY, profile jsonb NOT NULL DEFAULT '{}', progress jsonb NOT NULL DEFAULT '{"attempts":[],"unlocked":[]}', partner boolean NOT NULL DEFAULT false, usage_date date NOT NULL DEFAULT CURRENT_DATE, usage_count integer NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now());
+GRANT ALL ON public.learning_sessions TO service_role;
+ALTER TABLE public.learning_sessions ENABLE ROW LEVEL SECURITY;
+CREATE OR REPLACE FUNCTION public.consume_pisan_exercise(p_hash text) RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$ DECLARE s public.learning_sessions; BEGIN SELECT * INTO s FROM public.learning_sessions WHERE token_hash = p_hash FOR UPDATE; IF NOT FOUND THEN RETURN false; END IF; IF s.partner THEN RETURN true; END IF; IF s.usage_date = CURRENT_DATE AND s.usage_count >= 3 THEN RETURN false; END IF; UPDATE public.learning_sessions SET usage_count = CASE WHEN usage_date = CURRENT_DATE THEN usage_count + 1 ELSE 1 END, usage_date = CURRENT_DATE WHERE token_hash = p_hash; RETURN true; END; $$;
+REVOKE ALL ON FUNCTION public.consume_pisan_exercise(text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.consume_pisan_exercise(text) TO service_role;
