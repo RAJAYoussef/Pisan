@@ -35,10 +35,11 @@ export function pickQuestion(
   }
   for (const i of order) {
     const n = path[i];
+    if (!n) continue;
     const q = n.questions.findIndex(
       (_, qi) => !asked.some((a) => a.notion === n.id && a.qIndex === qi),
     );
-    if (q >= 0) return { idx: i, notion: n, qIndex: q, question: n.questions[q] };
+    if (q >= 0) return { idx: i, notion: n, qIndex: q, question: n.questions[q]! };
   }
   return null;
 }
@@ -59,6 +60,6 @@ export function analyze(answers: DiagAnswer[], level: number): DiagAnalysis {
   const byLevel = failed
     .map((id) => NOTIONS.find((n) => n.id === id)!)
     .sort((a, b) => b.minLevel - a.minLevel);
-  const atLevel = byLevel.find((n) => n.minLevel <= level) ?? byLevel[0];
+  const atLevel = (byLevel.find((n) => n.minLevel <= level) ?? byLevel[0])!;
   return { score, failed, target: atLevel.id, lacuna: lacunaFor(atLevel.id) };
 }
