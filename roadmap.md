@@ -1,7 +1,8 @@
 # PiSan
-- [ ] Logo, quatre langues et accueil anonyme
-- [ ] Diagnostic et consolidation
-- [ ] Atelier collège et lycée avec lecture audio
-- [ ] Contrôles sur 20 et parcours personnel
-- [ ] Suivi parent/professeur, sauvegarde et limites
-- [ ] Vérifications des parcours et des règles
+- [x] Logo, quatre langues et accueil anonyme
+- [x] Diagnostic et consolidation
+- [x] Atelier collège et lycée avec lecture audio du navigateur
+- [x] Contrôles sur 20 et parcours personnel
+- [x] Suivi parent/professeur, sauvegarde et limites
+- [x] Vérifications des parcours et des règles
+- [ ] Activer les paiements réels — fournisseur de paiement non connecté
