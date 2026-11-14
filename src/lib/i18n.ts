@@ -14,7 +14,7 @@ export function fmt(s: string, vars: Record<string, string | number>): string {
 }
 
 const fr = {
-  appName: "MathSingapour Global",
+  appName: "PiSan",
   tagline: "Les maths, pas à pas, à ton rythme.",
   setup: {
     title: "Bienvenue !",
@@ -37,13 +37,13 @@ const fr = {
     discovery: "Découverte Gratuite",
     partner: "Accès Illimité Gratuit (Établissement Partenaire)",
     partnerShort: "Établissement Partenaire",
-    premium: "MathSingapour Illimité",
+    premium: "PiSan Illimité",
     left: "{n} exercice(s) restant(s) aujourd'hui",
     unlimited: "Exercices illimités",
   },
   upgrade: {
-    cta: "Passer à MathSingapour Illimité",
-    title: "MathSingapour Illimité",
+    cta: "Passer à PiSan Illimité",
+    title: "PiSan Illimité",
     subtitle: "Progresse sans limite, avec tous les modules et le suivi complet.",
     monthly: "Abonnement Mensuel",
     yearly: "Pass Annuel",
@@ -53,7 +53,7 @@ const fr = {
     best: "Le plus avantageux",
     features: [
       "Exercices illimités chaque jour",
-      "Diagnostics et ateliers de rattrapage",
+      "Diagnostics et consolidation des fondamentaux",
       "Exercices générés selon ton programme",
       "Tableau de bord parent / professeur",
     ],
@@ -107,7 +107,7 @@ const fr = {
     score: "{s} réponse(s) juste(s) sur {n}",
     allGood: "Super, aucune lacune détectée ! Passe à l'atelier pour t'entraîner.",
     lacuna: "Tu as hésité sur « {target} ». Souvent, la vraie racine c'est « {lacuna} ». On la consolide ensemble ?",
-    remedialCta: "Mini-atelier de rattrapage (2 min)",
+    remedialCta: "Consolidation des fondamentaux (2 min)",
     retake: "Refaire le diagnostic",
     goWorkshop: "Aller à l'atelier",
     remedialTitle: "Mini-atelier : {notion}",
@@ -204,7 +204,7 @@ const fr = {
 export type Dict = typeof fr;
 
 const en: Dict = {
-  appName: "MathSingapour Global",
+  appName: "PiSan",
   tagline: "Math, step by step, at your own pace.",
   setup: {
     title: "Welcome!",
@@ -227,13 +227,13 @@ const en: Dict = {
     discovery: "Free Discovery",
     partner: "Free Unlimited Access (Partner School)",
     partnerShort: "Partner School",
-    premium: "MathSingapour Unlimited",
+    premium: "PiSan Unlimited",
     left: "{n} exercise(s) left today",
     unlimited: "Unlimited exercises",
   },
   upgrade: {
-    cta: "Upgrade to MathSingapour Unlimited",
-    title: "MathSingapour Unlimited",
+    cta: "Upgrade to PiSan Unlimited",
+    title: "PiSan Unlimited",
     subtitle: "Learn without limits, with every module and full tracking.",
     monthly: "Monthly Subscription",
     yearly: "Annual Pass",
@@ -297,7 +297,7 @@ const en: Dict = {
     score: "{s} correct answer(s) out of {n}",
     allGood: "Great, no gaps detected! Head to the workshop to practise.",
     lacuna: "You hesitated on “{target}”. The real root is often “{lacuna}”. Shall we strengthen it together?",
-    remedialCta: "2-minute catch-up workshop",
+    remedialCta: "Strengthen your foundations (2 min)",
     retake: "Retake the diagnostic",
     goWorkshop: "Go to the workshop",
     remedialTitle: "Mini-workshop: {notion}",
@@ -392,7 +392,7 @@ const en: Dict = {
 };
 
 const ar: Dict = {
-  appName: "MathSingapour Global",
+  appName: "PiSan",
   tagline: "الرياضيات خطوة بخطوة، وعلى إيقاعك.",
   setup: {
     title: "مرحبًا بك!",
@@ -415,13 +415,13 @@ const ar: Dict = {
     discovery: "الاكتشاف المجاني",
     partner: "وصول مجاني غير محدود (مؤسسة شريكة)",
     partnerShort: "مؤسسة شريكة",
-    premium: "MathSingapour بلا حدود",
+    premium: "PiSan بلا حدود",
     left: "تبقّى {n} تمرين اليوم",
     unlimited: "تمارين غير محدودة",
   },
   upgrade: {
-    cta: "الانتقال إلى MathSingapour بلا حدود",
-    title: "MathSingapour بلا حدود",
+    cta: "الانتقال إلى PiSan بلا حدود",
+    title: "PiSan بلا حدود",
     subtitle: "تقدّم بلا حدود، مع كل الوحدات والمتابعة الكاملة.",
     monthly: "اشتراك شهري",
     yearly: "باقة سنوية",
@@ -580,7 +580,7 @@ const ar: Dict = {
 };
 
 const es: Dict = {
-  appName: "MathSingapour Global",
+  appName: "PiSan",
   tagline: "Las matemáticas, paso a paso, a tu ritmo.",
   setup: {
     title: "¡Bienvenido/a!",
@@ -603,13 +603,13 @@ const es: Dict = {
     discovery: "Descubrimiento Gratuito",
     partner: "Acceso Ilimitado Gratuito (Centro Asociado)",
     partnerShort: "Centro Asociado",
-    premium: "MathSingapour Ilimitado",
+    premium: "PiSan Ilimitado",
     left: "Te quedan {n} ejercicio(s) hoy",
     unlimited: "Ejercicios ilimitados",
   },
   upgrade: {
-    cta: "Pasar a MathSingapour Ilimitado",
-    title: "MathSingapour Ilimitado",
+    cta: "Pasar a PiSan Ilimitado",
+    title: "PiSan Ilimitado",
     subtitle: "Avanza sin límites, con todos los módulos y el seguimiento completo.",
     monthly: "Suscripción Mensual",
     yearly: "Pase Anual",

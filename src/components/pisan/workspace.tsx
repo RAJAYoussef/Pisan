@@ -75,7 +75,7 @@ export function Workspace() {
   </div>;
 }
 
-function Setup({ lang, setLang, onSubmit, initial, compact = false }: { lang: Lang; setLang: (l: Lang) => void; onSubmit: (p: Profile, code: string) => Promise<void>; initial?: Profile; compact?: boolean }) {
+function Setup({ lang, setLang, onSubmit, initial, compact = false }: { lang: Lang; setLang: (l: Lang) => void; onSubmit: (p: Profile, code: string) => Promise<void>; initial?: Profile | undefined; compact?: boolean }) {
   const d = DICTS[lang];
   const [country, setCountry] = useState(initial?.country ?? 'ma');
   const [grade, setGrade] = useState(initial?.grade ?? 0);
