@@ -1,0 +1,607 @@
+import { t4, same, type L, type NotionId } from "./curriculum";
+
+// ---------- Singapore-method exercise model ----------
+
+export type BarColor = 1 | 2 | 3 | 4;
+export type BarSpec = { name: L; units: number; extra?: boolean; color: BarColor };
+/** Slots where a value chip can be placed on the bar model. */
+export type Slot = `unit:${number}` | `extra:${number}` | `total:${number}` | "all";
+export type Requirement = { slots: Slot[]; chip: string };
+export type Choice = { options: L[]; answer: number };
+
+export type Exercise = {
+  id: string;
+  template: string;
+  notion: NotionId;
+  minLevel: number;
+  title: L;
+  story: L;
+  question: L;
+  verbal: { sentence: L; blanks: Choice[] };
+  bars: BarSpec[];
+  chips: string[];
+  required: Requirement[];
+  equations: string[];
+  equationAnswer: number;
+  answer: number;
+  unit: L;
+  hints: { verbal: L; model: L; equation: L; answer: L };
+};
+
+type Rng = () => number;
+const int = (rng: Rng, min: number, max: number) => min + Math.floor(rng() * (max - min + 1));
+const pick = <T,>(rng: Rng, arr: readonly T[]) => arr[Math.floor(rng() * arr.length)];
+
+function shuffled<T>(rng: Rng, arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/** Builds a shuffled multiple-choice; first item is the correct one. */
+function choice(rng: Rng, correct: L, ...wrong: L[]): Choice {
+  const all = shuffled(rng, [correct, ...wrong]);
+  return { options: all, answer: all.indexOf(correct) };
+}
+
+function equationChoice(rng: Rng, correct: string, wrong: string[]) {
+  const all = shuffled(rng, [correct, ...wrong]);
+  return { equations: all, equationAnswer: all.indexOf(correct) };
+}
+
+/** Deterministic PRNG so sample exercises stay stable between renders. */
+export function seeded(seed: number): Rng {
+  let s = seed >>> 0;
+  return () => {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+type Template = {
+  id: string;
+  minLevel: number;
+  build: (rng: Rng, p?: Record<string, number>) => Exercise;
+};
+
+const TEMPLATES: Template[] = [
+  {
+    id: "multiple",
+    minLevel: 0,
+    build: (rng, p) => {
+      const a = p?.a ?? int(rng, 6, 20);
+      const k = p?.k ?? int(rng, 2, 4);
+      const T = a * (k + 1);
+      return {
+        id: "",
+        template: "multiple",
+        notion: "equations",
+        minLevel: 0,
+        title: t4("Les billes", "The marbles", "الكُرات الزجاجية", "Las canicas"),
+        story: t4(
+          `Lina a ${k} fois plus de billes qu'Omar. Ensemble, ils ont ${T} billes.`,
+          `Lina has ${k} times as many marbles as Omar. Together they have ${T} marbles.`,
+          `لدى لينا ${k} أضعاف كرات عمر. معًا لديهما ${T} كرة.`,
+          `Lina tiene ${k} veces más canicas que Omar. Juntos tienen ${T} canicas.`,
+        ),
+        question: t4(
+          "Combien de billes a Omar ?",
+          "How many marbles does Omar have?",
+          "كم كرة لدى عمر؟",
+          "¿Cuántas canicas tiene Omar?",
+        ),
+        verbal: {
+          sentence: t4(
+            "On cherche {0}. Ensemble, ils ont {1} billes.",
+            "We are looking for {0}. Together they have {1} marbles.",
+            "نبحث عن {0}. معًا لديهما {1} كرة.",
+            "Buscamos {0}. Juntos tienen {1} canicas.",
+          ),
+          blanks: [
+            choice(
+              rng,
+              t4("le nombre de billes d'Omar", "Omar's number of marbles", "عدد كرات عمر", "el número de canicas de Omar"),
+              t4("le nombre de billes de Lina", "Lina's number of marbles", "عدد كرات لينا", "el número de canicas de Lina"),
+              t4("le nombre total de billes", "the total number of marbles", "العدد الإجمالي للكرات", "el número total de canicas"),
+            ),
+            choice(rng, same(T), same(k), same(a + k)),
+          ],
+        },
+        bars: [
+          { name: t4("Omar", "Omar", "عمر", "Omar"), units: 1, color: 2 },
+          { name: t4("Lina", "Lina", "لينا", "Lina"), units: k, color: 1 },
+        ],
+        chips: ["x", String(T), String(k)],
+        required: [
+          { slots: ["unit:0", "unit:1"], chip: "x" },
+          { slots: ["all"], chip: String(T) },
+        ],
+        ...equationChoice(rng, `${k + 1}x = ${T}`, [`${k}x = ${T}`, `x + ${k} = ${T}`, `${T}x = ${k + 1}`]),
+        answer: a,
+        unit: t4("billes", "marbles", "كرة", "canicas"),
+        hints: {
+          verbal: t4(
+            "Relis la question : de qui parle-t-on à la fin ?",
+            "Read the question again: who is it asking about?",
+            "أعد قراءة السؤال: عمّن يتحدث في النهاية؟",
+            "Vuelve a leer la pregunta: ¿de quién habla al final?",
+          ),
+          model: t4(
+            `Omar a 1 part, Lina en a ${k}. Coupe la barre de Lina en ${k} parts, mets x sur une part et ${T} sous les deux barres.`,
+            `Omar has 1 part, Lina has ${k}. Split Lina's bar into ${k} parts, put x on one part and ${T} under both bars.`,
+            `لعمر جزء واحد وللينا ${k}. قسّم شريط لينا إلى ${k} أجزاء، ضع x على جزء و${T} تحت الشريطين.`,
+            `Omar tiene 1 parte, Lina ${k}. Divide la barra de Lina en ${k} partes, pon x en una parte y ${T} bajo las dos barras.`,
+          ),
+          equation: t4(
+            `Compte toutes les parts égales : 1 + ${k} = ${k + 1} parts valent ${T}.`,
+            `Count all the equal parts: 1 + ${k} = ${k + 1} parts make ${T}.`,
+            `عُدّ كل الأجزاء المتساوية: 1 + ${k} = ${k + 1} أجزاء تساوي ${T}.`,
+            `Cuenta todas las partes iguales: 1 + ${k} = ${k + 1} partes valen ${T}.`,
+          ),
+          answer: t4(
+            `Partage ${T} en ${k + 1} parts égales.`,
+            `Share ${T} into ${k + 1} equal parts.`,
+            `قسّم ${T} إلى ${k + 1} أجزاء متساوية.`,
+            `Reparte ${T} en ${k + 1} partes iguales.`,
+          ),
+        },
+      };
+    },
+  },
+  {
+    id: "difference",
+    minLevel: 1,
+    build: (rng, p) => {
+      const x = p?.x ?? int(rng, 10, 45);
+      const d = p?.d ?? int(rng, 5, 20);
+      const T = 2 * x + d;
+      return {
+        id: "",
+        template: "difference",
+        notion: "equations",
+        minLevel: 1,
+        title: t4("L'argent de poche", "Pocket money", "مصروف الجيب", "La paga"),
+        story: t4(
+          `Sami a ${d} € de plus que Yasmine. À eux deux, ils ont ${T} €.`,
+          `Sami has €${d} more than Yasmine. Together they have €${T}.`,
+          `لدى سامي ${d} € أكثر من ياسمين. معًا لديهما ${T} €.`,
+          `Sami tiene ${d} € más que Yasmine. Entre los dos tienen ${T} €.`,
+        ),
+        question: t4("Combien a Yasmine ?", "How much does Yasmine have?", "كم لدى ياسمين؟", "¿Cuánto tiene Yasmine?"),
+        verbal: {
+          sentence: t4(
+            "On cherche {0}. Sami a {1} € de plus qu'elle.",
+            "We are looking for {0}. Sami has €{1} more than her.",
+            "نبحث عن {0}. لدى سامي {1} € أكثر منها.",
+            "Buscamos {0}. Sami tiene {1} € más que ella.",
+          ),
+          blanks: [
+            choice(
+              rng,
+              t4("l'argent de Yasmine", "Yasmine's money", "مال ياسمين", "el dinero de Yasmine"),
+              t4("l'argent de Sami", "Sami's money", "مال سامي", "el dinero de Sami"),
+              t4("la différence", "the difference", "الفرق", "la diferencia"),
+            ),
+            choice(rng, same(d), same(T), same(T - d)),
+          ],
+        },
+        bars: [
+          { name: t4("Yasmine", "Yasmine", "ياسمين", "Yasmine"), units: 1, color: 3 },
+          { name: t4("Sami", "Sami", "سامي", "Sami"), units: 1, extra: true, color: 4 },
+        ],
+        chips: ["x", String(d), String(T)],
+        required: [
+          { slots: ["unit:0", "unit:1"], chip: "x" },
+          { slots: ["extra:1"], chip: String(d) },
+          { slots: ["all"], chip: String(T) },
+        ],
+        ...equationChoice(rng, `2x + ${d} = ${T}`, [`x + ${d} = ${T}`, `2x = ${T} + ${d}`, `2x − ${d} = ${T}`]),
+        answer: x,
+        unit: t4("€", "€", "€", "€"),
+        hints: {
+          verbal: t4(
+            "Qui a le moins ? C'est souvent l'inconnue x.",
+            "Who has less? That's usually the unknown x.",
+            "من لديه أقل؟ غالبًا هو المجهول x.",
+            "¿Quién tiene menos? Suele ser la incógnita x.",
+          ),
+          model: t4(
+            `Les deux barres ont la même part x. Sami a en plus un morceau de ${d} € : ajoute-le à sa barre.`,
+            `Both bars share the same part x. Sami has an extra piece of €${d}: add it to his bar.`,
+            `للشريطين نفس الجزء x. لسامي قطعة إضافية بقيمة ${d} €: أضفها إلى شريطه.`,
+            `Ambas barras tienen la misma parte x. Sami tiene un trozo extra de ${d} €: añádelo a su barra.`,
+          ),
+          equation: t4(
+            `Il y a 2 parts x et un morceau de ${d} : le tout fait ${T}.`,
+            `There are 2 parts x plus a piece of ${d}: altogether ${T}.`,
+            `هناك جزءان x وقطعة ${d}: المجموع ${T}.`,
+            `Hay 2 partes x y un trozo de ${d}: en total ${T}.`,
+          ),
+          answer: t4(
+            `Enlève d'abord ${d}, puis partage en 2.`,
+            `First take away ${d}, then split in 2.`,
+            `اطرح أولًا ${d} ثم اقسم على 2.`,
+            `Primero quita ${d} y luego divide entre 2.`,
+          ),
+        },
+      };
+    },
+  },
+  {
+    id: "fraction",
+    minLevel: 0,
+    build: (rng, p) => {
+      const den = p?.den ?? pick(rng, [3, 4, 5] as const);
+      const num = p?.num ?? (den === 3 ? 2 : den === 4 ? 3 : 2);
+      const u = p?.u ?? int(rng, 8, 30);
+      const P = den * u;
+      return {
+        id: "",
+        template: "fraction",
+        notion: "fractions",
+        minLevel: 0,
+        title: t4("Le livre de Nour", "Nour's book", "كتاب نور", "El libro de Nour"),
+        story: t4(
+          `Le livre de Nour a ${P} pages. Elle en a déjà lu les ${num}/${den}.`,
+          `Nour's book has ${P} pages. She has already read ${num}/${den} of it.`,
+          `كتاب نور فيه ${P} صفحة. قرأت منه ${num}/${den}.`,
+          `El libro de Nour tiene ${P} páginas. Ya ha leído ${num}/${den}.`,
+        ),
+        question: t4(
+          "Combien de pages a-t-elle lues ?",
+          "How many pages has she read?",
+          "كم صفحة قرأت؟",
+          "¿Cuántas páginas ha leído?",
+        ),
+        verbal: {
+          sentence: t4(
+            "On coupe le livre en {0} parts égales et on cherche {1}.",
+            "We cut the book into {0} equal parts and look for {1}.",
+            "نقسم الكتاب إلى {0} أجزاء متساوية ونبحث عن {1}.",
+            "Cortamos el libro en {0} partes iguales y buscamos {1}.",
+          ),
+          blanks: [
+            choice(rng, same(den), same(num), same(P)),
+            choice(
+              rng,
+              t4(`la valeur de ${num} parts`, `the value of ${num} parts`, `قيمة ${num} أجزاء`, `el valor de ${num} partes`),
+              t4("le nombre total de pages", "the total number of pages", "العدد الإجمالي للصفحات", "el total de páginas"),
+              t4("les pages restantes", "the pages left", "الصفحات المتبقية", "las páginas restantes"),
+            ),
+          ],
+        },
+        bars: [{ name: t4("Livre", "Book", "الكتاب", "Libro"), units: den, color: 3 }],
+        chips: ["x", String(P), String(num)],
+        required: [
+          { slots: ["unit:0"], chip: "x" },
+          { slots: ["total:0", "all"], chip: String(P) },
+        ],
+        ...equationChoice(rng, `${den}x = ${P}`, [`${num}x = ${P}`, `x = ${P} × ${num}`, `${den}x = ${num}`]),
+        answer: num * u,
+        unit: t4("pages", "pages", "صفحة", "páginas"),
+        hints: {
+          verbal: t4(
+            `Le dénominateur (${den}) dit en combien de parts on coupe.`,
+            `The denominator (${den}) tells how many parts to cut.`,
+            `المقام (${den}) يحدد عدد الأجزاء.`,
+            `El denominador (${den}) indica en cuántas partes cortar.`,
+          ),
+          model: t4(
+            `Coupe la barre en ${den} parts, mets x sur une part et ${P} pour toute la barre.`,
+            `Split the bar into ${den} parts, put x on one part and ${P} on the whole bar.`,
+            `قسّم الشريط إلى ${den} أجزاء، ضع x على جزء و${P} للشريط كله.`,
+            `Divide la barra en ${den} partes, pon x en una parte y ${P} en toda la barra.`,
+          ),
+          equation: t4(
+            `${den} parts égales valent ${P}.`,
+            `${den} equal parts make ${P}.`,
+            `${den} أجزاء متساوية تساوي ${P}.`,
+            `${den} partes iguales valen ${P}.`,
+          ),
+          answer: t4(
+            `Trouve x = ${P} ÷ ${den}, puis prends-en ${num}.`,
+            `Find x = ${P} ÷ ${den}, then take ${num} of them.`,
+            `أوجد x = ${P} ÷ ${den} ثم خذ ${num} منها.`,
+            `Halla x = ${P} ÷ ${den} y luego toma ${num}.`,
+          ),
+        },
+      };
+    },
+  },
+  {
+    id: "percent",
+    minLevel: 1,
+    build: (rng, p) => {
+      const pct = p?.pct ?? pick(rng, [25, 20, 10] as const);
+      const n = 100 / pct;
+      const u = p?.u ?? int(rng, 3, 15);
+      const P = n * u;
+      return {
+        id: "",
+        template: "percent",
+        notion: "proportion",
+        minLevel: 1,
+        title: t4("Les soldes", "The sale", "التخفيضات", "Las rebajas"),
+        story: t4(
+          `Une veste coûte ${P} €. Elle est soldée à −${pct} %.`,
+          `A jacket costs €${P}. It's on sale at ${pct}% off.`,
+          `سعر سترة ${P} €. عليها تخفيض ${pct}%.`,
+          `Una chaqueta cuesta ${P} €. Tiene un descuento del ${pct} %.`,
+        ),
+        question: t4("Combien vas-tu payer ?", "How much will you pay?", "كم ستدفع؟", "¿Cuánto vas a pagar?"),
+        verbal: {
+          sentence: t4(
+            "On cherche {0}. La remise est de {1} % du prix.",
+            "We are looking for {0}. The discount is {1}% of the price.",
+            "نبحث عن {0}. التخفيض {1}% من السعر.",
+            "Buscamos {0}. El descuento es el {1} % del precio.",
+          ),
+          blanks: [
+            choice(
+              rng,
+              t4("le prix à payer", "the price to pay", "الثمن الذي سندفعه", "el precio a pagar"),
+              t4("le montant de la remise", "the discount amount", "قيمة التخفيض", "el importe del descuento"),
+              t4("le prix de départ", "the original price", "الثمن الأصلي", "el precio inicial"),
+            ),
+            choice(rng, same(pct), same(100 - pct), same(P)),
+          ],
+        },
+        bars: [{ name: t4("Prix", "Price", "الثمن", "Precio"), units: n, color: 1 }],
+        chips: ["x", String(P), String(pct)],
+        required: [
+          { slots: ["unit:0"], chip: "x" },
+          { slots: ["total:0", "all"], chip: String(P) },
+        ],
+        ...equationChoice(rng, `${n}x = ${P}`, [`${pct}x = ${P}`, `x = ${P} − ${pct}`, `${P}x = ${n}`]),
+        answer: P - u,
+        unit: t4("€", "€", "€", "€"),
+        hints: {
+          verbal: t4(
+            "La question parle de ce que tu paies, pas de ce que tu économises.",
+            "The question is about what you pay, not what you save.",
+            "السؤال عمّا تدفعه، لا عمّا توفّره.",
+            "La pregunta es lo que pagas, no lo que ahorras.",
+          ),
+          model: t4(
+            `${pct} %, c'est 1 part sur ${n}. Coupe le prix en ${n} parts égales.`,
+            `${pct}% is 1 part out of ${n}. Split the price into ${n} equal parts.`,
+            `${pct}% تعني جزءًا من ${n}. قسّم الثمن إلى ${n} أجزاء متساوية.`,
+            `El ${pct} % es 1 parte de ${n}. Divide el precio en ${n} partes iguales.`,
+          ),
+          equation: t4(
+            `${n} parts valent ${P} €.`,
+            `${n} parts make €${P}.`,
+            `${n} أجزاء تساوي ${P} €.`,
+            `${n} partes valen ${P} €.`,
+          ),
+          answer: t4(
+            `Une part = ${P} ÷ ${n}. Tu paies toutes les parts sauf une.`,
+            `One part = ${P} ÷ ${n}. You pay all the parts except one.`,
+            `جزء واحد = ${P} ÷ ${n}. تدفع كل الأجزاء إلا واحدًا.`,
+            `Una parte = ${P} ÷ ${n}. Pagas todas las partes menos una.`,
+          ),
+        },
+      };
+    },
+  },
+  {
+    id: "ratio",
+    minLevel: 1,
+    build: (rng, p) => {
+      const pair = pick(rng, [
+        [3, 2],
+        [2, 1],
+        [3, 1],
+        [4, 3],
+        [5, 2],
+      ] as const);
+      const a = p?.a ?? pair[0];
+      const b = p?.b ?? pair[1];
+      const u = p?.u ?? int(rng, 2, 8) * 10;
+      const T = (a + b) * u;
+      return {
+        id: "",
+        template: "ratio",
+        notion: "proportion",
+        minLevel: 1,
+        title: t4("La recette de gâteau", "The cake recipe", "وصفة الكعكة", "La receta del pastel"),
+        story: t4(
+          `Pour un gâteau, on mélange farine et sucre dans le rapport ${a} : ${b}. Le mélange pèse ${T} g.`,
+          `For a cake, flour and sugar are mixed in the ratio ${a} : ${b}. The mix weighs ${T} g.`,
+          `لصنع كعكة نخلط الدقيق والسكر بنسبة ${a} : ${b}. يزن الخليط ${T} غ.`,
+          `Para un pastel se mezclan harina y azúcar en la proporción ${a} : ${b}. La mezcla pesa ${T} g.`,
+        ),
+        question: t4(
+          "Quelle masse de farine faut-il ?",
+          "How much flour is needed?",
+          "كم من الدقيق نحتاج؟",
+          "¿Cuánta harina se necesita?",
+        ),
+        verbal: {
+          sentence: t4(
+            "On cherche {0}. Pour {1} parts de farine, il y a {2} parts de sucre.",
+            "We are looking for {0}. For {1} parts of flour there are {2} parts of sugar.",
+            "نبحث عن {0}. مقابل {1} أجزاء دقيق هناك {2} أجزاء سكر.",
+            "Buscamos {0}. Por {1} partes de harina hay {2} partes de azúcar.",
+          ),
+          blanks: [
+            choice(
+              rng,
+              t4("la masse de farine", "the mass of flour", "كتلة الدقيق", "la masa de harina"),
+              t4("la masse de sucre", "the mass of sugar", "كتلة السكر", "la masa de azúcar"),
+              t4("la masse totale", "the total mass", "الكتلة الإجمالية", "la masa total"),
+            ),
+            choice(rng, same(a), same(b), same(a + b)),
+            choice(rng, same(b), same(a), same(a * b)),
+          ],
+        },
+        bars: [
+          { name: t4("Farine", "Flour", "الدقيق", "Harina"), units: a, color: 4 },
+          { name: t4("Sucre", "Sugar", "السكر", "Azúcar"), units: b, color: 2 },
+        ],
+        chips: ["x", String(T), String(a + b)],
+        required: [
+          { slots: ["unit:0", "unit:1"], chip: "x" },
+          { slots: ["all"], chip: String(T) },
+        ],
+        ...equationChoice(rng, `${a + b}x = ${T}`, [`${a}x = ${T}`, `${a}x + ${b} = ${T}`, `${a * b}x = ${T}`]),
+        answer: a * u,
+        unit: t4("g", "g", "غ", "g"),
+        hints: {
+          verbal: t4(
+            `Le premier nombre du rapport (${a}) va avec la farine.`,
+            `The first number of the ratio (${a}) goes with flour.`,
+            `العدد الأول في النسبة (${a}) يخص الدقيق.`,
+            `El primer número (${a}) corresponde a la harina.`,
+          ),
+          model: t4(
+            `Farine : ${a} parts, sucre : ${b} parts, toutes de même taille x. Le total ${T} va sous les deux barres.`,
+            `Flour: ${a} parts, sugar: ${b} parts, all the same size x. The total ${T} goes under both bars.`,
+            `الدقيق: ${a} أجزاء، السكر: ${b} أجزاء، كلها بحجم x. المجموع ${T} تحت الشريطين.`,
+            `Harina: ${a} partes, azúcar: ${b} partes, todas del mismo tamaño x. El total ${T} va bajo las dos barras.`,
+          ),
+          equation: t4(
+            `${a} + ${b} = ${a + b} parts égales valent ${T}.`,
+            `${a} + ${b} = ${a + b} equal parts make ${T}.`,
+            `${a} + ${b} = ${a + b} أجزاء متساوية تساوي ${T}.`,
+            `${a} + ${b} = ${a + b} partes iguales valen ${T}.`,
+          ),
+          answer: t4(
+            `x = ${T} ÷ ${a + b}. La farine, c'est ${a} parts.`,
+            `x = ${T} ÷ ${a + b}. Flour is ${a} parts.`,
+            `x = ${T} ÷ ${a + b}. الدقيق ${a} أجزاء.`,
+            `x = ${T} ÷ ${a + b}. La harina son ${a} partes.`,
+          ),
+        },
+      };
+    },
+  },
+  {
+    id: "perimeter",
+    minLevel: 2,
+    build: (rng, p) => {
+      const x = p?.x ?? int(rng, 4, 15);
+      const d = p?.d ?? int(rng, 2, 8);
+      const half = 2 * x + d;
+      const P = 2 * half;
+      return {
+        id: "",
+        template: "perimeter",
+        notion: "equations",
+        minLevel: 2,
+        title: t4("Le jardin rectangulaire", "The rectangular garden", "الحديقة المستطيلة", "El jardín rectangular"),
+        story: t4(
+          `Un jardin rectangulaire a un périmètre de ${P} m. Sa longueur mesure ${d} m de plus que sa largeur.`,
+          `A rectangular garden has a perimeter of ${P} m. Its length is ${d} m more than its width.`,
+          `حديقة مستطيلة محيطها ${P} م. طولها يزيد عن عرضها بـ ${d} م.`,
+          `Un jardín rectangular tiene un perímetro de ${P} m. Su largo mide ${d} m más que su ancho.`,
+        ),
+        question: t4("Quelle est sa largeur ?", "What is its width?", "ما هو عرضها؟", "¿Cuál es su ancho?"),
+        verbal: {
+          sentence: t4(
+            "On cherche {0}. Largeur + longueur = {1} m (la moitié du périmètre).",
+            "We are looking for {0}. Width + length = {1} m (half the perimeter).",
+            "نبحث عن {0}. العرض + الطول = {1} م (نصف المحيط).",
+            "Buscamos {0}. Ancho + largo = {1} m (la mitad del perímetro).",
+          ),
+          blanks: [
+            choice(
+              rng,
+              t4("la largeur", "the width", "العرض", "el ancho"),
+              t4("la longueur", "the length", "الطول", "el largo"),
+              t4("le périmètre", "the perimeter", "المحيط", "el perímetro"),
+            ),
+            choice(rng, same(half), same(P), same(d)),
+          ],
+        },
+        bars: [
+          { name: t4("Largeur", "Width", "العرض", "Ancho"), units: 1, color: 2 },
+          { name: t4("Longueur", "Length", "الطول", "Largo"), units: 1, extra: true, color: 1 },
+        ],
+        chips: ["x", String(d), String(half), String(P)],
+        required: [
+          { slots: ["unit:0", "unit:1"], chip: "x" },
+          { slots: ["extra:1"], chip: String(d) },
+          { slots: ["all"], chip: String(half) },
+        ],
+        ...equationChoice(rng, `2x + ${d} = ${half}`, [`2x + ${d} = ${P}`, `x + ${d} = ${half}`, `4x = ${P}`]),
+        answer: x,
+        unit: t4("m", "m", "م", "m"),
+        hints: {
+          verbal: t4(
+            "Le périmètre fait le tour complet : 2 largeurs + 2 longueurs.",
+            "The perimeter goes all the way round: 2 widths + 2 lengths.",
+            "المحيط هو الدورة الكاملة: عرضان + طولان.",
+            "El perímetro es la vuelta completa: 2 anchos + 2 largos.",
+          ),
+          model: t4(
+            `Largeur = x. Longueur = x + un morceau de ${d}. Ensemble : ${half} (pas ${P} !).`,
+            `Width = x. Length = x + a piece of ${d}. Together: ${half} (not ${P}!).`,
+            `العرض = x. الطول = x + قطعة ${d}. معًا: ${half} (وليس ${P}!).`,
+            `Ancho = x. Largo = x + un trozo de ${d}. Juntos: ${half} (¡no ${P}!).`,
+          ),
+          equation: t4(
+            `x + x + ${d} = ${half}.`,
+            `x + x + ${d} = ${half}.`,
+            `x + x + ${d} = ${half}.`,
+            `x + x + ${d} = ${half}.`,
+          ),
+          answer: t4(
+            `${half} − ${d}, puis partage en 2.`,
+            `${half} − ${d}, then split in 2.`,
+            `${half} − ${d} ثم اقسم على 2.`,
+            `${half} − ${d} y luego divide entre 2.`,
+          ),
+        },
+      };
+    },
+  },
+];
+
+const SAMPLE_PARAMS: Array<[string, Record<string, number>]> = [
+  ["multiple", { a: 12, k: 3 }],
+  ["fraction", { den: 5, num: 2, u: 24 }],
+  ["difference", { x: 35, d: 15 }],
+  ["percent", { pct: 25, u: 15 }],
+  ["ratio", { a: 3, b: 2, u: 50 }],
+  ["perimeter", { x: 11, d: 6 }],
+];
+
+/** The 6 built-in sample exercises (stable content). */
+export const SAMPLE_EXERCISES: Exercise[] = SAMPLE_PARAMS.map(([id, params], i) => {
+  const tpl = TEMPLATES.find((t) => t.id === id)!;
+  return { ...tpl.build(seeded(100 + i), params), id: `sample-${i + 1}` };
+});
+
+export type GenerateContext = { level: number; countryId: string; lang: string };
+
+/**
+ * Generates a new exercise adapted to the student's programme.
+ * Integration point: replace the body with a call to an AI endpoint that returns an `Exercise`
+ * (same shape). The local fallback re-draws a template suited to the level with fresh numbers.
+ */
+export async function generateAdaptedExercise(ctx: GenerateContext): Promise<Exercise> {
+  const rng = seeded(Date.now() % 1_000_000);
+  const pool = TEMPLATES.filter((t) => t.minLevel <= ctx.level);
+  const tpl = pick(rng, pool.length ? pool : TEMPLATES);
+  const ex = tpl.build(rng);
+  return { ...ex, id: `gen-${Date.now()}` };
+}
+
+/** Returns the chip placed on each requirement check. */
+export function checkModel(
+  ex: Exercise,
+  units: number[],
+  extras: boolean[],
+  placed: Partial<Record<Slot, string>>,
+): { unitsOk: boolean; labelsOk: boolean } {
+  const unitsOk = ex.bars.every((b, i) => units[i] === b.units && !!extras[i] === !!b.extra);
+  const labelsOk = ex.required.every((r) => r.slots.some((s) => placed[s] === r.chip));
+  return { unitsOk, labelsOk };
+}
