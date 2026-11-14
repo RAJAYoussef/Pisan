@@ -34,3 +34,4 @@ use the editor.
 - Store learning progress and daily quotas in Cloud; consume quotas transactionally to prevent parallel requests bypassing limits.
 - Pedagogical modules are in-app workspace tabs; keep the shared session and language state in the workspace, with focused components for each teaching activity.
 - Use browser speech synthesis for statement playback, with language selection and visible unsupported-browser errors; no paid AI narration is required.
+- Keep CPA exercise selection and concrete/calculation validation in the shared exercise module; use normalized school levels for both demos and generated practice so their difficulty stays aligned.

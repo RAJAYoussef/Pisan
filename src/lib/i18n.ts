@@ -121,7 +121,7 @@ const fr = {
   ws: {
     title: "Atelier Méthode de Singapour",
     intro: "Avant de calculer, on comprend et on dessine. Choisis un exercice.",
-    steps: ["Verbalisation", "Modélisation", "Calcul"],
+    steps: ["Verbalisation", "Manipulation concrète", "Modélisation", "Calcul"],
     verbalInstr: "Complète la phrase pour dire ce qu'on cherche.",
     choose: "Choisir…",
     check: "Vérifier",
@@ -311,7 +311,7 @@ const en: Dict = {
   ws: {
     title: "Singapore Method Workshop",
     intro: "Before calculating, we understand and draw. Pick an exercise.",
-    steps: ["Verbalise", "Bar model", "Calculate"],
+    steps: ["Verbalise", "Concrete manipulation", "Bar model", "Calculate"],
     verbalInstr: "Complete the sentence to say what we're looking for.",
     choose: "Choose…",
     check: "Check",
@@ -499,7 +499,7 @@ const ar: Dict = {
   ws: {
     title: "ورشة طريقة سنغافورة",
     intro: "قبل الحساب، نفهم ونرسم. اختر تمرينًا.",
-    steps: ["التعبير", "النمذجة بالأشرطة", "الحساب"],
+    steps: ["التعبير", "التوزيع المحسوس", "النمذجة بالأشرطة", "الحساب"],
     verbalInstr: "أكمل الجملة لتقول ما نبحث عنه.",
     choose: "اختر…",
     check: "تحقّق",
@@ -687,7 +687,7 @@ const es: Dict = {
   ws: {
     title: "Taller Método Singapur",
     intro: "Antes de calcular, entendemos y dibujamos. Elige un ejercicio.",
-    steps: ["Verbalizar", "Modelo de barras", "Calcular"],
+    steps: ["Verbalizar", "Manipulación concreta", "Modelo de barras", "Calcular"],
     verbalInstr: "Completa la frase para decir lo que buscamos.",
     choose: "Elegir…",
     check: "Comprobar",
