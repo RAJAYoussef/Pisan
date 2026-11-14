@@ -413,8 +413,8 @@ const TEMPLATES: Template[] = [
         [4, 3],
         [5, 2],
       ] as const) as readonly [number, number];
-      const a = p?.a ?? pair![0];
-      const b = p?.b ?? pair![1];
+      const a = p?.a ?? pair[0];
+      const b = p?.b ?? pair[1];
       const u = p?.u ?? int(rng, 2, 8) * 10;
       const T = (a + b) * u;
       return {
@@ -593,6 +593,60 @@ export const SAMPLE_EXERCISES: Exercise[] = SAMPLE_PARAMS.map(([id, params], i) 
 
 export type GenerateContext = { level: number; countryId: string; lang: string };
 
+const LEVEL_DEMOS: Array<Array<[string, Params]>> = [
+  [['sharing', { a: 3 }], ['fraction', { den: 4, num: 3, u: 3 }]],
+  [['sharing', { a: 5 }], ['fraction', { den: 5, num: 2, u: 4 }], ['percent', { pct: 25, u: 5 }]],
+  [['difference', { x: 8, d: 4 }], ['ratio', { a: 3, b: 2, u: 10 }], ['perimeter', { x: 6, d: 3 }]],
+  [['difference', { x: 35, d: 15 }], ['ratio', { a: 5, b: 3, u: 20 }], ['percent', { pct: 20, u: 24 }]],
+  [['difference', { x: 42, d: 18 }], ['ratio', { a: 7, b: 3, u: 30 }], ['percent', { pct: 10, u: 18 }]],
+  [['perimeter', { x: 24, d: 12 }], ['ratio', { a: 7, b: 5, u: 40 }], ['percent', { pct: 20, u: 45 }]],
+  [['difference', { x: 75, d: 25 }], ['ratio', { a: 9, b: 7, u: 50 }], ['percent', { pct: 10, u: 35 }]],
+];
+
+function buildDemo(id: string, params: Params, rng: Rng): Exercise {
+  const template = TEMPLATES.find(t => t.id === (id === 'sharing' ? 'multiple' : id));
+  if (!template) throw new Error('Unknown exercise template');
+  const ex = template.build(rng, id === 'sharing' ? { ...params, k: 1 } : params);
+  if (id !== 'sharing') return ex;
+  const total = ex.answer * 2;
+  return { ...ex, template: 'sharing', notion: 'integers',
+    title: t4('Le partage des billes', 'Sharing marbles', 'تقاسم الكرات', 'Repartir canicas'),
+    story: t4(`Omar et Lina se partagent équitablement ${total} billes.`, `Omar and Lina share ${total} marbles equally.`, `يتقاسم عمر ولينا ${total} كرة بالتساوي.`, `Omar y Lina reparten ${total} canicas por igual.`),
+    verbal: { ...ex.verbal, sentence: t4('On cherche {0}. On partage {1} billes en deux groupes égaux.', 'We seek {0}. We share {1} marbles in two equal groups.', 'نبحث عن {0}. نوزع {1} كرة في مجموعتين متساويتين.', 'Buscamos {0}. Repartimos {1} canicas en dos grupos iguales.') },
+  };
+}
+
+export function demonstrationsForLevel(level: number): Exercise[] {
+  const index = Math.max(0, Math.min(6, Math.floor(level)));
+  return (LEVEL_DEMOS[index] ?? LEVEL_DEMOS[0] ?? []).map(([id, params], i) => ({
+    ...buildDemo(id, params, seeded(100 + index * 10 + i)), id: `demo-${index}-${i}`, minLevel: index,
+  }));
+}
+
+/** A concrete tray for each equal part, plus a separate tray for any known excess. */
+export function concreteSpec(ex: Exercise) {
+  const total = Number(ex.required.find(r => r.slots.includes('all'))?.chip);
+  const extras = ex.bars.map((bar, i) => bar.extra ? Number(ex.required.find(r => r.slots.includes(`extra:${i}`))?.chip) : 0);
+  const part = (total - extras.reduce((s, n) => s + n, 0)) / ex.bars.reduce((s, b) => s + b.units, 0);
+  const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+  const value = total > 40 ? extras.reduce((s, n) => n ? gcd(s, n) : s, part) : 1;
+  const groups = ex.bars.flatMap((bar, barIndex) => [
+    ...Array.from({ length: bar.units }, (_, partIndex) => ({ barIndex, partIndex, extra: false, target: part / value })),
+    ...(bar.extra ? [{ barIndex, partIndex: bar.units, extra: true, target: (extras[barIndex] ?? 0) / value }] : []),
+  ]);
+  return { total, part, value, groups, tokenCount: total / value };
+}
+
+export function checkConcrete(ex: Exercise, counts: number[]) {
+  const { groups } = concreteSpec(ex);
+  return counts.length === groups.length && groups.every((g, i) => counts[i] === g.target);
+}
+
+export function checkCalculation(ex: Exercise, equation: number | null, part: string, answer: string) {
+  const number = (s: string) => s.trim() === '' ? NaN : Number(s.replace(',', '.'));
+  return equation === ex.equationAnswer && number(part) === concreteSpec(ex).part && number(answer) === ex.answer;
+}
+
 /**
  * Generates a new exercise adapted to the student's programme.
  * Integration point: replace the body with a call to an AI endpoint that returns an `Exercise`
@@ -600,9 +654,9 @@ export type GenerateContext = { level: number; countryId: string; lang: string }
  */
 export async function generateAdaptedExercise(ctx: GenerateContext): Promise<Exercise> {
   const rng = seeded(Date.now() % 1_000_000);
-  const pool = TEMPLATES.filter((t) => t.minLevel <= ctx.level);
-  const tpl = pick(rng, pool.length ? pool : TEMPLATES);
-  const ex = tpl!.build(rng);
+  const index = Math.max(0, Math.min(6, Math.floor(ctx.level)));
+  const [id, params] = pick(rng, LEVEL_DEMOS[index] ?? LEVEL_DEMOS[0] ?? []);
+  const ex = buildDemo(id, { ...params, ...(id === 'sharing' ? { a: int(rng, 3, 8) } : id === 'difference' || id === 'perimeter' ? { x: (params.x ?? 5) + int(rng, 1, 5) } : { u: (params.u ?? 3) + int(rng, 1, 5) }) }, rng);
   return { ...ex, id: `gen-${Date.now()}` };
 }
 

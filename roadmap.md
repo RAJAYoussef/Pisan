@@ -5,4 +5,6 @@
 - [x] Contrôles sur 20 et parcours personnel
 - [x] Suivi parent/professeur, sauvegarde et limites
 - [x] Vérifications des parcours et des règles
+- [ ] Atelier CPA en quatre étapes avec manipulation tactile
+- [ ] Démonstrations différenciées selon la classe et vérification des parcours
 - [ ] Activer les paiements réels — fournisseur de paiement non connecté
