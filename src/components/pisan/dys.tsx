@@ -34,11 +34,18 @@ const DysContext = createContext<DysContextValue>({
   replace: () => {},
 });
 
-export function DysProvider({ children }: { children: ReactNode }) {
+export function DysProvider({ children, defaults, revision }: { children: ReactNode; defaults?: DysPrefs | null; revision?: string | null }) {
   const [prefs, setPrefs] = useState<DysPrefs>(DEFAULT_DYS);
   useEffect(() => {
     setPrefs(loadDys());
   }, []);
+  useEffect(() => {
+    if (!revision || localStorage.getItem('pisan-dys-teacher-revision') === revision) return;
+    const next = defaults ?? DEFAULT_DYS;
+    setPrefs(next);
+    saveDys(next);
+    localStorage.setItem('pisan-dys-teacher-revision', revision);
+  }, [defaults, revision]);
   useEffect(() => {
     applyDys(prefs);
   }, [prefs]);

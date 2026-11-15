@@ -15,7 +15,7 @@ export const openSession = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const hash = await hashToken(data.token);
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
-    const existing = await supabaseAdmin.from('learning_sessions').select('profile, progress, partner, usage_count, usage_date').eq('token_hash', hash).maybeSingle();
+    const existing = await supabaseAdmin.from('learning_sessions').select('profile, progress, partner, usage_count, usage_date, dys_default, dys_updated_at').eq('token_hash', hash).maybeSingle();
     if (existing.error) throw new Error('La sauvegarde est indisponible. Réessayez plus tard.');
     if (!data.profile) return existing.data as LearningSession | null;
     let partner = existing.data?.partner ?? false;
@@ -27,7 +27,7 @@ export const openSession = createServerFn({ method: 'POST' })
       if (match.error) throw new Error('Impossible de vérifier votre accès partenaire.');
       partner = !!match.data;
     }
-    const saved = await supabaseAdmin.from('learning_sessions').upsert({ token_hash: hash, profile: data.profile, partner: !!partner }).select('profile, progress, partner, usage_count, usage_date').single();
+    const saved = await supabaseAdmin.from('learning_sessions').upsert({ token_hash: hash, profile: data.profile, partner: !!partner }).select('profile, progress, partner, usage_count, usage_date, dys_default, dys_updated_at').single();
     if (saved.error) throw new Error('Impossible de sauvegarder votre profil.');
     return saved.data as LearningSession;
   });
@@ -54,7 +54,7 @@ export const saveAttempt = createServerFn({ method: 'POST' })
     const { progress } = current.data as unknown as LearningSession;
     const unlocked = data.attempt.kind === 'consolidation' && data.attempt.correct === data.attempt.total ? Array.from(new Set([...progress.unlocked, data.attempt.notion])) : progress.unlocked;
     const next = { attempts: [...progress.attempts, data.attempt].slice(-500), unlocked };
-    const saved = await supabaseAdmin.from('learning_sessions').update({ progress: next }).eq('token_hash', hash);
+    const saved = await supabaseAdmin.from('learning_sessions').update({ progress: next, last_active_at: new Date().toISOString() }).eq('token_hash', hash);
     if (saved.error) throw new Error('Le résultat n’a pas pu être sauvegardé.');
     return next;
   });
