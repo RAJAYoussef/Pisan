@@ -34,7 +34,7 @@ const DysContext = createContext<DysContextValue>({
   replace: () => {},
 });
 
-export function DysProvider({ children, defaults, revision }: { children: ReactNode; defaults?: DysPrefs | null; revision?: string | null }) {
+export function DysProvider({ children, defaults, revision }: { children: ReactNode; defaults?: DysPrefs | null | undefined; revision?: string | null | undefined }) {
   const [prefs, setPrefs] = useState<DysPrefs>(DEFAULT_DYS);
   useEffect(() => {
     setPrefs(loadDys());
