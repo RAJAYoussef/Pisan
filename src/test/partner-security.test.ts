@@ -35,7 +35,7 @@ beforeEach(() => {
   });
 });
 
-const register = (code?: string) => open({ data: { token: 'a'.repeat(64), profile, code } });
+const register = (code?: string) => open({ data: { token: 'a'.repeat(64), profile, ...(code === undefined ? {} : { code }) } });
 describe('Private partner code verification', () => {
   it('accepts PILOTE2026 without case sensitivity and trims spaces', async () => {
     expect((await register('  pilote2026  ')).partner).toBe(true);
