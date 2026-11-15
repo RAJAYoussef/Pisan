@@ -1,0 +1,55 @@
+feature,area,priority,original,clone,notes
+Connexion élève par email ou compte école,compte,must,yes,no,SSO école en plus (Google Workspace / Microsoft / ENT)
+Onboarding : niveau et objectif,onboarding,must,yes,no,
+Choix du pays et du référentiel à l'onboarding,onboarding,must,no,no,AJOUT : FR / MA / BE-FWB / CH-PER / UK / US
+Interface en FR et EN,langues,must,partial,no,AJOUT : l'original a FR et EN selon le store
+Interface en arabe avec affichage RTL,langues,must,no,no,AJOUT : formules gardées en LTR
+Diagnostic de niveau,parcours,must,yes,no,
+Parcours personnalisé de compétences,parcours,must,yes,no,
+Programme par chapitres et compétences du référentiel,parcours,must,yes,no,un référentiel par pays (AJOUT)
+Fiche cours par compétence,contenu,must,yes,no,contenu écrit par nous
+Fiche méthode par compétence,contenu,must,yes,no,contenu écrit par nous
+Exercices en 3 niveaux (Manipuler / Expliquer / Raisonner),exercices,must,yes,no,
+Correction pas à pas,exercices,must,yes,no,
+Saisie mathématique (nombres expressions fractions),exercices,must,yes,no,accepter « 0.5 » et la virgule décimale
+Suivi de maîtrise par compétence,progression,must,yes,no,
+Coach IA par texte qui guide sans donner la réponse,coach,must,yes,no,garde-fous pour mineurs
+Mode DYS : police adaptée taille interligne espacement fond,dys,must,no,no,AJOUT : OpenDyslexic / Lexend / Andika ; fond crème
+Coach IA par photo d'exercice,coach,should,yes,no,
+Indices progressifs sur les exercices,exercices,should,partial,no,
+Quiz de révision illimités,révision,should,yes,no,
+Révision espacée,révision,should,partial,no,
+Mode DYS : lecture audio des fiches et énoncés y compris formules,dys,should,no,no,AJOUT : Web Speech API + MathML
+Mode DYS : règle de lecture et une consigne à la fois,dys,should,no,no,AJOUT
+Mode DYS : pas de chronomètre et plus de temps,dys,should,no,no,AJOUT
+Mode DYS : réponse à l'oral (dictée),dys,should,no,no,AJOUT : dysgraphie
+Espace enseignant : classes et code d'invitation,enseignant,should,no,no,AJOUT
+Espace enseignant : carte de chaleur des compétences,enseignant,should,no,no,AJOUT
+Espace enseignant : assigner un travail,enseignant,should,no,no,AJOUT
+Enseignant prescrit le mode DYS pour un élève (PAP/PAI),enseignant,should,no,no,AJOUT
+Table de correspondance des notions entre pays,référentiels,should,no,no,AJOUT : NotionPivot pour réutiliser le contenu
+Notifications de rappel,motivation,should,yes,no,
+Mode DYS : coloration syllabique (FR),dys,could,no,no,AJOUT
+Mode DYS dyscalculie : couleurs par rang (unités dizaines) et manipulables,dys,could,no,no,AJOUT
+Notes visuelles,contenu,could,yes,no,
+Mode hors ligne pour les fiches,contenu,could,partial,no,
+Export des résultats (CSV),enseignant,could,no,no,AJOUT
+Programmes anglophones UK et US,référentiels,could,partial,no,à faire après FR et MA
+Contenu de Mathflow (cours et exercices),contenu,must,yes,skip,leur propriété : on écrit le nôtre
+Abonnement et paywall,paiement,should,yes,skip,usage école
+Prépa SAT / AP et parcours adultes,contenu,could,yes,skip,hors du public visé
+Chemin de compétences par chapitre (nœuds) et épreuve de chapitre,parcours,must,yes,no,vu sur capture
+Activités interactives manipulables (graphique ou figure),exercices,must,yes,no,vu sur capture
+Bouton « Pourquoi ? » après chaque réponse,exercices,must,yes,no,vu sur capture
+Flamme (série de jours) avec gel,motivation,should,yes,no,
+Quêtes de la semaine et coffre,motivation,could,yes,no,
+Défi du jour,motivation,should,yes,no,
+Mini-jeux de calcul,motivation,could,yes,no,
+Duels et classement de la semaine,motivation,could,yes,no,désactivable par l'enseignant (anxiété DYS)
+Étoiles et avatars,motivation,could,yes,no,
+Mode parent : semaine de l'enfant et alertes,parents,should,yes,no,
+Conversations avec le coach privées (non visibles par parents et enseignants),coach,must,yes,no,
+Activité d'essai sans compte,onboarding,could,yes,no,
+Niveaux collège 6e à 3e,référentiels,could,yes,no,après le premier jalon
+Énergies limitées et publicité,paiement,could,yes,skip,usage école : rien de bloquant
+Langue espagnole (ES),langues,should,no,no,AJOUT : déjà présente dans la maquette Lovable
