@@ -1,4 +1,9 @@
 # PiSan
+- [ ] Corriger l’inscription avec code faux et ajouter la confidentialité en quatre langues
+- [ ] Retirer ou quitter une classe sans effacer les progrès
+- [ ] Restaurer les réglages personnels après désactivation DYS
+- [ ] Limiter les adhésions à 10 essais par session sur une heure, avec compteur transactionnel
+- [ ] Vérifier ces corrections avec les tests et les parcours disponibles
 - [x] Espace enseignant : connexion par lien magique et profil
 - [x] Classes privées, codes d’adhésion et accès partenaire
 - [x] Suivi de classe, alertes, DYS et export CSV en quatre langues
