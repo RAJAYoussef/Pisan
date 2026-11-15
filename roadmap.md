@@ -1,4 +1,8 @@
 # PiSan
+- [ ] Espace enseignant : connexion par lien magique et profil
+- [ ] Classes privées, codes d’adhésion et accès partenaire
+- [ ] Suivi de classe, alertes, DYS et export CSV en quatre langues
+- [ ] Vérifier les règles et les parcours enseignant et élève
 - [x] Sécuriser les codes partenaires côté serveur et retirer leur simulation
 - [x] Réserver la barre de test au développement et à l’aperçu Lovable
 - [x] Vérifier les accès partenaires et mettre à jour les tests
