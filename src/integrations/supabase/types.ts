@@ -14,9 +14,89 @@ export type Database = {
   }
   public: {
     Tables: {
+      class_members: {
+        Row: {
+          class_id: string
+          id: string
+          joined_at: string
+          token_hash: string
+        }
+        Insert: {
+          class_id: string
+          id?: string
+          joined_at?: string
+          token_hash: string
+        }
+        Update: {
+          class_id?: string
+          id?: string
+          joined_at?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_members_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_members_token_hash_fkey"
+            columns: ["token_hash"]
+            isOneToOne: false
+            referencedRelation: "learning_sessions"
+            referencedColumns: ["token_hash"]
+          },
+        ]
+      }
+      classes: {
+        Row: {
+          country: string
+          created_at: string
+          grade: number
+          id: string
+          join_code: string
+          leaderboard_enabled: boolean
+          name: string
+          teacher_id: string
+        }
+        Insert: {
+          country: string
+          created_at?: string
+          grade: number
+          id?: string
+          join_code: string
+          leaderboard_enabled?: boolean
+          name: string
+          teacher_id: string
+        }
+        Update: {
+          country?: string
+          created_at?: string
+          grade?: number
+          id?: string
+          join_code?: string
+          leaderboard_enabled?: boolean
+          name?: string
+          teacher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classes_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       learning_sessions: {
         Row: {
           created_at: string
+          dys_default: Json | null
+          dys_updated_at: string | null
+          last_active_at: string
           partner: boolean
           profile: Json
           progress: Json
@@ -26,6 +106,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          dys_default?: Json | null
+          dys_updated_at?: string | null
+          last_active_at?: string
           partner?: boolean
           profile?: Json
           progress?: Json
@@ -35,6 +118,9 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          dys_default?: Json | null
+          dys_updated_at?: string | null
+          last_active_at?: string
           partner?: boolean
           profile?: Json
           progress?: Json
@@ -65,12 +151,45 @@ export type Database = {
         }
         Relationships: []
       }
+      teachers: {
+        Row: {
+          display_name: string
+          id: string
+          partner_code: string | null
+          school_name: string
+        }
+        Insert: {
+          display_name: string
+          id: string
+          partner_code?: string | null
+          school_name: string
+        }
+        Update: {
+          display_name?: string
+          id?: string
+          partner_code?: string | null
+          school_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teachers_partner_code_fkey"
+            columns: ["partner_code"]
+            isOneToOne: false
+            referencedRelation: "partner_codes"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       consume_pisan_exercise: { Args: { p_hash: string }; Returns: boolean }
+      join_pisan_class: {
+        Args: { p_code: string; p_hash: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
