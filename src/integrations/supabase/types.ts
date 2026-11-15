@@ -93,6 +93,7 @@ export type Database = {
       }
       learning_sessions: {
         Row: {
+          class_join_attempts: string[]
           created_at: string
           dys_default: Json | null
           dys_updated_at: string | null
@@ -105,6 +106,7 @@ export type Database = {
           usage_date: string
         }
         Insert: {
+          class_join_attempts?: string[]
           created_at?: string
           dys_default?: Json | null
           dys_updated_at?: string | null
@@ -117,6 +119,7 @@ export type Database = {
           usage_date?: string
         }
         Update: {
+          class_join_attempts?: string[]
           created_at?: string
           dys_default?: Json | null
           dys_updated_at?: string | null
@@ -189,6 +192,10 @@ export type Database = {
       join_pisan_class: {
         Args: { p_code: string; p_hash: string }
         Returns: string
+      }
+      join_pisan_class_limited: {
+        Args: { p_code: string; p_hash: string }
+        Returns: Json
       }
     }
     Enums: {
