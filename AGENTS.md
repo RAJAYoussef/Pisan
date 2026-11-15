@@ -39,5 +39,6 @@ use the editor.
 - Keep CPA exercise selection and concrete/calculation validation in the shared exercise module; use normalized school levels for both demos and generated practice so their difficulty stays aligned.
 - Teacher accounts use magic-link Auth and a protected named workspace; anonymous students retain capability sessions so email is never required for learners.
 - Teacher class endpoints authorize ownership through the caller-scoped client before privileged session reads; expose membership UUIDs, never session hashes.
-- Class joining is a service-only transactional function; partner entitlement is verified against the active code registry rather than editable school names.
-- Teacher DYS recommendations have a revision applied once per browser; subsequent learner adjustments persist until a new recommendation.
+- Class joining uses a service-only transaction with a rolling-hour attempt counter locked on the capability session; return refusals rather than throwing so failed attempts commit. Partner entitlement comes from the active registry.
+- Membership departures delete only the authorized membership, never learning progress; teacher deletion uses caller-scoped ownership/RLS and learner deletion requires the capability hash.
+- Teacher DYS revisions apply once per browser, with a private local backup restored on disable; learner adjustments persist between revisions and never reach the teacher.

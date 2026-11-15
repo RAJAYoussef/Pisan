@@ -14,6 +14,7 @@ import {
   LINE_HEIGHTS,
   loadDys,
   saveDys,
+  teacherDysSettings,
   SCALE_MAX,
   SCALE_MIN,
   SCALE_STEP,
@@ -40,11 +41,7 @@ export function DysProvider({ children, defaults, revision }: { children: ReactN
     setPrefs(loadDys());
   }, []);
   useEffect(() => {
-    if (!revision || localStorage.getItem('pisan-dys-teacher-revision') === revision) return;
-    const next = defaults ?? DEFAULT_DYS;
-    setPrefs(next);
-    saveDys(next);
-    localStorage.setItem('pisan-dys-teacher-revision', revision);
+    try { setPrefs(teacherDysSettings(defaults, revision)); } catch { /* Keep current preferences if browser storage is unavailable. */ }
   }, [defaults, revision]);
   useEffect(() => {
     applyDys(prefs);
