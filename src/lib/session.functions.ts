@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { LearningSession } from './pisan';
 
 const credential = z.string().regex(/^[a-f0-9]{64}$/);
+const PARTNER_CODE_FORMAT = /^[A-Za-z0-9-]{4,40}$/;
 const profileSchema = z.object({ nickname: z.string().trim().min(1).max(40), country: z.string().max(10), grade: z.number().int().min(0).max(6), lang: z.enum(['fr', 'en', 'ar', 'es']) });
 async function hashToken(token: string) {
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
@@ -19,10 +20,10 @@ export const openSession = createServerFn({ method: 'POST' })
     if (!data.profile) return existing.data as LearningSession | null;
     let partner = existing.data?.partner ?? false;
     const code = data.code?.trim();
-    if (!partner && code) {
-      // Escape LIKE metacharacters: user input must match one complete code.
-      const literal = code.replace(/[\\%_]/g, '\\$&');
-      const match = await supabaseAdmin.from('partner_codes').select('code').eq('active', true).ilike('code', literal).maybeSingle();
+    // Only letters, digits and hyphens: this also rules out every pattern wildcard
+    // (% and _ in SQL, * in the database API), so ilike can only match one exact code.
+    if (!partner && code && PARTNER_CODE_FORMAT.test(code)) {
+      const match = await supabaseAdmin.from('partner_codes').select('code').eq('active', true).ilike('code', code).maybeSingle();
       if (match.error) throw new Error('Impossible de vérifier votre accès partenaire.');
       partner = !!match.data;
     }
