@@ -44,7 +44,7 @@ describe('Private partner code verification', () => {
   it('rejects an unknown code', async () => { expect((await register('WRONG')).partner).toBe(false); });
   it('rejects an inactive code', async () => { active = false; expect((await register('PILOTE2026')).partner).toBe(false); });
   it('does not allow wildcard code matching', async () => {
-    expect((await register('%_'))).partner.toBe(false);
+    expect((await register('%_')).partner).toBe(false);
     expect(queries.find(q => q.table === 'partner_codes')?.filters['code']).toBe('\\%\\_');
   });
   it('keeps discovery access when no code is supplied', async () => { expect((await register()).partner).toBe(false); expect(queries.some(q => q.table === 'partner_codes')).toBe(false); });
