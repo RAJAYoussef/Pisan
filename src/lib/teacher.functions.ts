@@ -78,8 +78,11 @@ export const joinClass = createServerFn({method:'POST'}).inputValidator(z.object
 export const removeClassStudent = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator(z.object({classId:z.string().uuid(),memberId:z.string().uuid()})).handler(async ({data,context})=>{
  const owned=await context.supabase.from('classes').select('id').eq('id',data.classId).eq('teacher_id',context.userId).single();
  if(owned.error || !owned.data) throw new Error('Forbidden');
- const removed=await context.supabase.from('class_members').delete().eq('class_id',data.classId).eq('id',data.memberId).select('id').single();
- if(removed.error || !removed.data) { console.error('Membership removal failed',removed.error?.code,removed.error?.message); throw new Error('Forbidden'); }
+ const member=await context.supabase.from('class_members').select('id').eq('class_id',data.classId).eq('id',data.memberId).single();
+ if(member.error || !member.data) throw new Error('Forbidden');
+ const {supabaseAdmin}=await import('@/integrations/supabase/client.server');
+ const removed=await supabaseAdmin.from('class_members').delete().eq('class_id',data.classId).eq('id',member.data.id).select('id').single();
+ if(removed.error || !removed.data) throw new Error('Forbidden');
  return {ok:true};
 });
 
