@@ -41,7 +41,8 @@ describe('Class corrections',()=>{
  it('teacher removal deletes only the specified membership and preserves learning progress',async()=>{
   const q={select:()=>q,eq:()=>q,single:async()=>({error:null,data:{id:'own'}})};
   const eq=vi.fn();const del=vi.fn();const m={delete:()=>{del();return m;},eq:(k:string,v:string)=>{eq(k,v);return m;},select:()=>m,single:async()=>({error:null,data:{id:'member'}})};
-  from.mockReturnValueOnce(q).mockReturnValueOnce({...q,single:async()=>({error:null,data:{id:'member'}})});adminFrom.mockReturnValue(m);
+  const membership={select:()=>membership,eq:()=>membership,single:async()=>({error:null,data:{id:'member'}})};
+  from.mockReturnValueOnce(q).mockReturnValueOnce(membership);adminFrom.mockReturnValue(m);
   await remove({data:{classId:'own',memberId:'member'},context});
   expect(from.mock.calls.map(c=>c[0])).toEqual(['classes','class_members']);expect(del).toHaveBeenCalledTimes(1);
   expect(eq).toHaveBeenCalledWith('class_id','own');expect(eq).toHaveBeenCalledWith('id','member');expect(adminFrom).toHaveBeenCalledExactlyOnceWith('class_members');
