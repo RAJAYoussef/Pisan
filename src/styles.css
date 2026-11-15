@@ -5,6 +5,13 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+/* Polices du mode DYS (licence OFL), servies par l'app elle-même : chargées seulement si elles sont utilisées. */
+@import "@fontsource/lexend/400.css";
+@import "@fontsource/lexend/700.css";
+@import "@fontsource/opendyslexic/400.css";
+@import "@fontsource/opendyslexic/700.css";
+@import "@fontsource/andika/400.css";
+@import "@fontsource/andika/700.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -325,3 +332,152 @@
 @media (max-width:1023px) { .app-sidebar { display:none; }.app-sidebar.mobile-open { display:flex; position:absolute; z-index:30; inset-inline-start:0; top:118px; width:245px; min-height:calc(100vh - 118px); box-shadow:var(--shadow-panel); }.workspace-main { padding:28px 24px; }.header-inner { padding-inline:20px; } }
 @media (max-width:640px) { .header-inner { min-height:72px; padding-inline:12px; gap:8px; }.header-logo { width:57px; height:57px; }.workspace-main { padding:25px 16px 36px; }.section-heading h1,.home-greeting h1 { font-size:28px; }.module-grid { grid-template-columns:1fr; }.module-card { padding:20px; }.greeting-mascot { width:92px; }.greeting-mascot img { width:92px; height:105px; }.mascot-star { font-size:17px; }.home-summary { gap:18px; }.home-summary>div:last-child { text-align:start; margin-inline-start:0; width:100%; }.next-step { padding:20px; gap:18px; }.next-step h2 { font-size:22px; }.next-step button { width:100%; }.setup-page { padding:28px 16px 20px; }.setup-intro h1 { font-size:30px; }.setup-intro>p { font-size:14px; }.setup-content { grid-template-columns:1fr; gap:20px; margin:25px 0; }.setup-companion { display:flex; gap:15px; align-items:center; }.setup-mascot { width:90px; height:105px; margin:0; }.setup-quote { margin:0; }.setup-quote>span { font-size:20px; }.setup-quote>p { display:none; }.setup-quote>div { margin-top:8px; font-size:10px; }.setup-form { padding:23px; }.activity-panel { padding:20px; }.stats-row { grid-template-columns:repeat(2,minmax(0,1fr)); gap:25px 0; }.stat-item { padding:0 14px; }.stat-item:nth-child(3) { padding-inline-start:0; }.stat-item:nth-child(2) { border:0; }.probability-tree { gap:14px; padding:12px; }.tree-node { gap:14px; }.tree-leaves { padding-inline-start:12px; font-size:11px; }.bar-board { padding:12px; }.test-strip button { font-size:9px; padding-inline:5px; }.test-strip button svg { width:12px; height:12px; }.activity-panel table td,.activity-panel table th { padding:8px; font-size:12px; } }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none !important; transition:none !important; scroll-behavior:auto !important; } }
+
+/* ───────────── Mode DYS ─────────────
+ * Réglages posés sur <html> par src/lib/dys.ts (attributs data-dys-* et variables --pisan-*).
+ * Ces règles sont hors @layer : elles passent devant les utilitaires Tailwind, sans !important.
+ */
+
+html {
+  font-size: calc(100% * var(--pisan-scale, 1));
+}
+
+/* Polices : l'arabe n'existe pas dans ces polices, il retombe donc sur Tajawal. */
+html[data-dys-font="lexend"] :is(body, h1, h2, h3, .font-display),
+.dys-font-lexend {
+  font-family: "Lexend", "Tajawal", ui-sans-serif, system-ui, sans-serif;
+}
+html[data-dys-font="opendyslexic"] :is(body, h1, h2, h3, .font-display),
+.dys-font-opendyslexic {
+  font-family: "OpenDyslexic", "Tajawal", ui-sans-serif, system-ui, sans-serif;
+}
+html[data-dys-font="andika"] :is(body, h1, h2, h3, .font-display),
+.dys-font-andika {
+  font-family: "Andika", "Tajawal", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Interligne */
+html:not([data-dys-leading="normal"])[data-dys-leading] :is(body, p, li, label, td, th, .text-xs, .text-sm, .text-base, .text-lg, .text-xl) {
+  line-height: var(--pisan-line-height);
+}
+
+/* Espacement des lettres et des mots. Jamais sur les formules (dir="ltr" à l'intérieur de la page),
+ * et jamais d'espacement des lettres en arabe : il casserait la liaison des lettres. */
+html[data-dys-spacing="wide"] body {
+  letter-spacing: var(--pisan-letter-spacing);
+  word-spacing: var(--pisan-word-spacing);
+}
+html[dir="rtl"][data-dys-spacing="wide"] body {
+  letter-spacing: normal;
+}
+html[data-dys-spacing="wide"] body [dir="ltr"]:not(.pisan-root) {
+  letter-spacing: normal;
+  word-spacing: normal;
+}
+
+/* Couleurs de fond (le texte garde un contraste d'au moins 4,5:1) */
+html[data-dys-bg="cream"] {
+  --background: #f8efd9;
+  --card: #fdf8ec;
+  --popover: #fdf8ec;
+  --muted: #f0e5cb;
+  --border: #e2d4b2;
+  --input: #e2d4b2;
+}
+html[data-dys-bg="blue"] {
+  --background: #e6eff9;
+  --card: #f5f9fd;
+  --popover: #f5f9fd;
+  --muted: #d9e6f3;
+  --border: #c3d4e8;
+  --input: #c3d4e8;
+}
+html[data-dys-bg="dark"] {
+  color-scheme: dark;
+  --background: #18212c;
+  --foreground: #eef1f5;
+  --card: #222d3b;
+  --card-foreground: #eef1f5;
+  --popover: #222d3b;
+  --popover-foreground: #eef1f5;
+  --muted: #2b3849;
+  --muted-foreground: #b8c4d2;
+  --border: #3a4a5f;
+  --input: #3a4a5f;
+  --primary-deep: #7fd8cb;
+  --primary-soft: #1d3a39;
+  --secondary: #26364a;
+  --secondary-foreground: #d5e2f2;
+  --accent-deep: #f4a985;
+  --accent-soft: #3d2a22;
+  --sun-deep: #ecc55c;
+  --sun-soft: #3a3320;
+  --sun-foreground: #f3de9e;
+  --sky-soft: #1f3047;
+  --hint: #3a3320;
+  --hint-foreground: #f3de9e;
+  --success-soft: #1e3a2c;
+}
+
+/* Règle de lecture */
+.reading-ruler {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+}
+.reading-ruler-top {
+  height: max(0px, calc(var(--ruler-y) - 1.5rem));
+  background: rgb(15 23 42 / 0.38);
+}
+.reading-ruler-band {
+  height: 3rem;
+  border-block: 2px solid var(--primary);
+}
+.reading-ruler-bottom {
+  flex: 1;
+  background: rgb(15 23 42 / 0.38);
+}
+
+/* Panneau de réglages */
+.dys-field {
+  margin-top: 0.25rem;
+}
+.dys-preview {
+  border-radius: var(--radius);
+  border: 2px dashed var(--border);
+  background: var(--background);
+  color: var(--foreground);
+  padding: 1rem 1.25rem;
+  font-size: 1.05rem;
+}
+.dys-swatch {
+  display: inline-block;
+  height: 0.9rem;
+  width: 0.9rem;
+  border-radius: 999px;
+  border: 1px solid #9aa5b1;
+}
+.dys-swatch-default { background: oklch(0.982 0.013 85); }
+.dys-swatch-cream { background: #f8efd9; }
+.dys-swatch-blue { background: #e6eff9; }
+.dys-swatch-dark { background: #18212c; }
+
+/* Le logo (bleu marine) reste lisible sur le fond sombre */
+html[data-dys-bg="dark"] .header-logo {
+  background: #f8efd9;
+  border-radius: 0.9rem;
+  padding: 0.2rem 0.4rem;
+}
+
+/* Grands textes : rien ne doit déborder de l'écran du téléphone */
+.setup-content > *,
+.workspace-layout > * {
+  min-width: 0;
+}
+html:is([data-dys-spacing="wide"], [data-dys-font="opendyslexic"], [data-dys-font="lexend"], [data-dys-font="andika"]) .pisan-root,
+html[style*="--pisan-scale"] .pisan-root {
+  overflow-wrap: anywhere;
+}

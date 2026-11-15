@@ -6,6 +6,7 @@ import { getNotion, type Notion, type Question } from '@/lib/curriculum';
 import { analyze, diagnosticPath, DIAGNOSTIC_LENGTH, nextIndex, pickQuestion, startIndex, type DiagAnswer } from '@/lib/diagnostic';
 import { say, type Attempt } from '@/lib/pisan';
 import { Speaker, Tutor, Meter } from './shared';
+import { useDys } from './dys';
 
 type Props = { lang: Lang; level: number; onSave: (a: Attempt) => Promise<void>; onWorkshop: () => void };
 export function QuestionChoices({ question, lang, selected, onSelect }: { question: Question; lang: Lang; selected: number | null; onSelect: (i: number) => void }) {
@@ -57,7 +58,8 @@ function Consolidation({ lang, notion, onSave, onDone }: { lang: Lang; notion: N
   const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
   const d = DICTS[lang];
-  useEffect(() => { const id = setInterval(() => setSeconds(s => Math.max(0, s - 1)), 1000); return () => clearInterval(id); }, []);
+  const { prefs } = useDys();
+  useEffect(() => { if (prefs.noTimer) return; const id = setInterval(() => setSeconds(s => Math.max(0, s - 1)), 1000); return () => clearInterval(id); }, [prefs.noTimer]);
   const question = notion.questions[index];
   async function check() {
     if (!question || selected === null) return;
@@ -68,5 +70,5 @@ function Consolidation({ lang, notion, onSave, onDone }: { lang: Lang; notion: N
     catch { setError(say(lang, 'Sauvegarde indisponible. Réessaie.', 'Save unavailable. Try again.', 'الحفظ غير متاح. حاول مجددًا.', 'No se pudo guardar. Reintenta.')); }
     setBusy(false);
   }
-  return <section className="mx-auto max-w-3xl"><div className="section-heading"><span className="eyebrow">{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')}</span><h1>{say(lang, 'Consolidation des fondamentaux', 'Strengthen your foundations', 'تعزيز الأساسيات', 'Consolidación de fundamentos')}</h1><p>{notion.name[lang]}</p></div><div className="activity-panel">{done ? <><CheckCircle2 className="h-12 w-12 text-primary" /><h2 className="my-5 text-2xl">{d.diag.remedialDone}</h2><Button onClick={onDone}>{d.diag.goWorkshop}<ArrowRight /></Button></> : <><Tutor>{notion.lesson[lang]}</Tutor><p className="my-5 rounded-lg bg-muted p-4 text-center text-lg" dir="ltr">{notion.example}</p>{seconds === 0 && <p className="mb-3 text-sm text-muted-foreground">{d.diag.timeUp}</p>}<p className="mb-4 text-sm">{index + 1} / {Math.min(3, notion.questions.length)}</p>{question && <QuestionChoices question={question} lang={lang} selected={selected} onSelect={i => { setSelected(i); setError(''); }} />}<Button onClick={check} disabled={selected === null || busy} className="mt-6 w-full">{d.ws.check}</Button>{error && <p role="alert" className="mt-4 text-destructive">{error}</p>}</>}</div></section>;
+  return <section className="mx-auto max-w-3xl"><div className="section-heading">{!prefs.noTimer && <span className="eyebrow">{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')}</span>}<h1>{say(lang, 'Consolidation des fondamentaux', 'Strengthen your foundations', 'تعزيز الأساسيات', 'Consolidación de fundamentos')}</h1><p>{notion.name[lang]}</p></div><div className="activity-panel">{done ? <><CheckCircle2 className="h-12 w-12 text-primary" /><h2 className="my-5 text-2xl">{d.diag.remedialDone}</h2><Button onClick={onDone}>{d.diag.goWorkshop}<ArrowRight /></Button></> : <><Tutor>{notion.lesson[lang]}</Tutor><p className="my-5 rounded-lg bg-muted p-4 text-center text-lg" dir="ltr">{notion.example}</p>{!prefs.noTimer && seconds === 0 && <p className="mb-3 text-sm text-muted-foreground">{d.diag.timeUp}</p>}<p className="mb-4 text-sm">{index + 1} / {Math.min(3, notion.questions.length)}</p>{question && <QuestionChoices question={question} lang={lang} selected={selected} onSelect={i => { setSelected(i); setError(''); }} />}<Button onClick={check} disabled={selected === null || busy} className="mt-6 w-full">{d.ws.check}</Button>{error && <p role="alert" className="mt-4 text-destructive">{error}</p>}</>}</div></section>;
 }
