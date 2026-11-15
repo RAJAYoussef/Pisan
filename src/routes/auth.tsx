@@ -1,12 +1,14 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, useNavigate, Outlet, useLocation } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { teacherText } from '@/lib/teacher-i18n';
 import { LANGS, dirOf, type Lang } from '@/lib/i18n';
 import logo from '@/assets/pisan-logo.png';
-export const Route=createFileRoute('/auth')({head:()=>({meta:[{title:'PiSan — Connexion enseignant'},{name:'description',content:'Connectez-vous à votre espace enseignant PiSan par lien magique.'},{property:'og:title',content:'PiSan — Connexion enseignant'},{property:'og:description',content:'Accédez à vos classes et au suivi privé de vos élèves.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary_large_image'}]}),component:TeacherAuth});
+export const Route=createFileRoute('/auth')({head:()=>({meta:[{title:'PiSan — Connexion enseignant'},{name:'description',content:'Connectez-vous à votre espace enseignant PiSan par lien magique.'},{property:'og:title',content:'PiSan — Connexion enseignant'},{property:'og:description',content:'Accédez à vos classes et au suivi privé de vos élèves.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary_large_image'}]}),component:AuthLayout});
 function TeacherAuth(){const [lang,setLang]=useState<Lang>('fr');const [email,setEmail]=useState('');const [busy,setBusy]=useState(false);const [sent,setSent]=useState(false);const [error,setError]=useState(false);const d=teacherText(lang);const navigate=useNavigate();
 useEffect(()=>{void supabase.auth.getUser().then(({data})=>{if(data.user) void navigate({to:'/teacher',replace:true});});},[navigate]);
 async function submit(e:React.FormEvent){e.preventDefault();setBusy(true);setError(false);const result=await supabase.auth.signInWithOtp({email:email.trim(),options:{emailRedirectTo:`${window.location.origin}/auth/callback`}});setBusy(false);if(result.error)setError(true);else setSent(true);}
 return <main dir={dirOf(lang)} className="mx-auto max-w-lg px-5 py-12"><img src={logo} alt="PiSan" className="header-logo mb-8"/><div className="mb-6 flex items-center justify-between gap-4"><h1 className="text-3xl">{d.teacher}</h1><select aria-label="Language" className="language-select" value={lang} onChange={e=>setLang(e.target.value as Lang)}>{LANGS.map(l=><option key={l.id}>{l.id}</option>)}</select></div><form onSubmit={submit} className="space-y-6"><label className="field-label">{d.email}<input type="email" className="form-input mt-2" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)}/></label><Button type="submit" disabled={busy} className="w-full">{d.send}</Button>{sent&&<p role="status" className="text-primary-deep">{d.sent}</p>}{error&&<p role="alert" className="text-destructive">{d.error}</p>}</form><Button variant="link" className="mt-6" onClick={()=>navigate({to:'/'})}>{d.student}</Button></main>;}
+
+function AuthLayout(){const location=useLocation();return location.pathname === "/auth" ? <><TeacherAuth/><Outlet/></> : <Outlet/>;}
