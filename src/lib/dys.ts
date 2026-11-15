@@ -141,3 +141,22 @@ export function saveDys(
     // Navigation privée ou stockage plein : les réglages restent actifs pour cette visite.
   }
 }
+
+/** Keep the learner's original settings private on this device across teacher revisions. */
+export function teacherDysSettings(defaults: DysPrefs | null | undefined, revision: string | null | undefined, storage: Storage = globalThis.localStorage): DysPrefs {
+ const current = loadDys(storage);
+ if (!revision || storage.getItem('pisan-dys-teacher-revision') === revision) return current;
+ const backupKey = 'pisan-dys-before-teacher';
+ const backup = storage.getItem(backupKey);
+ let next = current;
+ if (defaults) {
+   if (!backup) storage.setItem(backupKey, JSON.stringify(current));
+   next = sanitizeDys(defaults);
+ } else if (backup) {
+   try { next = sanitizeDys(JSON.parse(backup)); } catch { next = current; }
+   storage.removeItem(backupKey);
+ }
+ saveDys(next, storage);
+ storage.setItem('pisan-dys-teacher-revision', revision);
+ return next;
+}

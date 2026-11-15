@@ -36,6 +36,20 @@
       "when": 1794779145482,
       "tag": "0004_private_membership_hashes",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794779647293,
+      "tag": "0005_class_membership_corrections",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794779836590,
+      "tag": "0006_class_join_clock_fix",
+      "breakpoints": true
     }
   ]
 }

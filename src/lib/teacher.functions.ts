@@ -64,11 +64,42 @@ export const setStudentDys = createServerFn({method:'POST'}).middleware([require
  if(result.error) throw new Error('Unavailable');
  return {ok:true};
 });
-export const joinClass = createServerFn({method:'POST'}).inputValidator(z.object({token:z.string().regex(/^[a-f0-9]{64}$/),code:z.string().trim().regex(/^[A-Za-z0-9]{2}-?[A-Za-z0-9]{4}$/)})).handler(async ({data})=>{
+export const joinClass = createServerFn({method:'POST'}).inputValidator(z.object({token:z.string().regex(/^[a-f0-9]{64}$/),code:z.string().trim().max(100)})).handler(async ({data})=>{
  const {sessionHash}=await import('./classroom.server');
  const {supabaseAdmin}=await import('@/integrations/supabase/client.server');
  const hash=await sessionHash(data.token);
- const {data:name,error}=await supabaseAdmin.rpc('join_pisan_class',{p_hash:hash,p_code:data.code});
- if(error) throw new Error('Invalid class code');
- return {name};
+ const {data:result,error}=await supabaseAdmin.rpc('join_pisan_class_limited',{p_hash:hash,p_code:data.code});
+ if(error || !result || typeof result !== 'object' || Array.isArray(result)) throw new Error('Unavailable');
+ const status=result['status'];
+ if(status !== 'joined' && status !== 'invalid' && status !== 'limited') throw new Error('Unavailable');
+ return {status,name:typeof result['name']==='string' ? result['name'] : ''};
+});
+
+export const removeClassStudent = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator(z.object({classId:z.string().uuid(),memberId:z.string().uuid()})).handler(async ({data,context})=>{
+ const owned=await context.supabase.from('classes').select('id').eq('id',data.classId).eq('teacher_id',context.userId).single();
+ if(owned.error || !owned.data) throw new Error('Forbidden');
+ const member=await context.supabase.from('class_members').select('id').eq('class_id',data.classId).eq('id',data.memberId).single();
+ if(member.error || !member.data) throw new Error('Forbidden');
+ const {supabaseAdmin}=await import('@/integrations/supabase/client.server');
+ const removed=await supabaseAdmin.from('class_members').delete().eq('class_id',data.classId).eq('id',member.data.id).select('id').single();
+ if(removed.error || !removed.data) throw new Error('Forbidden');
+ return {ok:true};
+});
+
+export const studentClasses = createServerFn({method:'POST'}).inputValidator(z.object({token:z.string().regex(/^[a-f0-9]{64}$/)})).handler(async ({data})=>{
+ const {sessionHash}=await import('./classroom.server');
+ const hash=await sessionHash(data.token);
+ const {supabaseAdmin}=await import('@/integrations/supabase/client.server');
+ const members=await supabaseAdmin.from('class_members').select('id,classes(name)').eq('token_hash',hash);
+ if(members.error) throw new Error('Unavailable');
+ return members.data.map(m=>({id:m.id,name:m.classes.name}));
+});
+
+export const leaveClass = createServerFn({method:'POST'}).inputValidator(z.object({token:z.string().regex(/^[a-f0-9]{64}$/),memberId:z.string().uuid()})).handler(async ({data})=>{
+ const {sessionHash}=await import('./classroom.server');
+ const hash=await sessionHash(data.token);
+ const {supabaseAdmin}=await import('@/integrations/supabase/client.server');
+ const removed=await supabaseAdmin.from('class_members').delete().eq('token_hash',hash).eq('id',data.memberId).select('id').single();
+ if(removed.error || !removed.data) throw new Error('Forbidden');
+ return {ok:true};
 });
