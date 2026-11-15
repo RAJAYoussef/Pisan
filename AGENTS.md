@@ -30,10 +30,14 @@ use the editor.
 <!-- LOVABLE:END -->
 
 ## PiSan architecture
-- Verify partner codes only inside the session server handler against the service-role-only code registry; never bundle access codes or client-side validation.
+- Verify partner codes only inside session or authenticated teacher handlers against the service-role-only code registry; never expose codes through client bundles or Data API column grants.
 - Show the test-view bar only in development or on Lovable id-preview hosts; published hosts must not expose test controls.
 - Anonymous learning sessions use a high-entropy browser capability, hashed server-side; all private reads and writes require it, avoiding personal email collection and anonymous Auth signups.
 - Store learning progress and daily quotas in Cloud; consume quotas transactionally to prevent parallel requests bypassing limits.
 - Pedagogical modules are in-app workspace tabs; keep the shared session and language state in the workspace, with focused components for each teaching activity.
 - Use browser speech synthesis for statement playback, with language selection and visible unsupported-browser errors; no paid AI narration is required.
 - Keep CPA exercise selection and concrete/calculation validation in the shared exercise module; use normalized school levels for both demos and generated practice so their difficulty stays aligned.
+- Teacher accounts use magic-link Auth and a protected named workspace; anonymous students retain capability sessions so email is never required for learners.
+- Teacher class endpoints authorize ownership through the caller-scoped client before privileged session reads; expose membership UUIDs, never session hashes.
+- Class joining is a service-only transactional function; partner entitlement is verified against the active code registry rather than editable school names.
+- Teacher DYS recommendations have a revision applied once per browser; subsequent learner adjustments persist until a new recommendation.

@@ -1,0 +1,3 @@
+import { createFileRoute } from '@tanstack/react-router';
+import { TeacherWorkspace } from '@/components/pisan/teacher';
+export const Route=createFileRoute('/_authenticated/teacher')({head:()=>({meta:[{title:'PiSan — Mes classes et élèves'},{name:'description',content:'Suivi des classes PiSan : maîtrise par notion, activité, confort DYS et export CSV.'},{property:'og:title',content:'PiSan — Espace enseignant'},{property:'og:description',content:'Vos classes et les progrès de vos élèves, dans un espace privé.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary_large_image'}]}),component:TeacherWorkspace});

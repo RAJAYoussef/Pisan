@@ -78,6 +78,7 @@
   --color-chart-5: var(--chart-5);
   --color-testbar: var(--testbar);
   --color-testbar-foreground: var(--testbar-foreground);
+  --color-mastery-low: var(--mastery-low);
 
   --shadow-chunk-primary: 0 4px 0 0 var(--primary-deep);
   --shadow-chunk-accent: 0 4px 0 0 var(--accent-deep);
@@ -145,7 +146,15 @@
 
   --testbar: oklch(0.3 0.04 225);
   --testbar-foreground: oklch(0.92 0.02 85);
+  --mastery-low: oklch(0.94 0.04 22);
 }
+
+.teacher-grid { border-collapse: separate; border-spacing: 4px; width: 100%; font-size: 13px; }
+.teacher-grid th { text-align: start; min-width: 125px; padding: 12px 8px; vertical-align: bottom; }
+.teacher-grid td { text-align: center; min-width: 115px; padding: 15px 8px; border-radius: 4px; font-weight: 700; }
+.mastery-low { background: var(--mastery-low); color: var(--foreground); }
+.mastery-medium { background: var(--sun-soft); color: var(--foreground); }
+.mastery-high { background: var(--success-soft); color: var(--foreground); }
 
 @layer base {
   * {

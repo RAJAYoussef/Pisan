@@ -1,0 +1,34 @@
+CREATE TABLE public.teachers (id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE, display_name text NOT NULL, school_name text NOT NULL, partner_code text REFERENCES public.partner_codes(code));
+GRANT SELECT ON public.teachers TO authenticated;
+GRANT INSERT (id, display_name, school_name), UPDATE (display_name, school_name) ON public.teachers TO authenticated;
+GRANT ALL ON public.teachers TO service_role;
+ALTER TABLE public.teachers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY teacher_read ON public.teachers FOR SELECT TO authenticated USING (id = auth.uid());
+CREATE POLICY teacher_insert ON public.teachers FOR INSERT TO authenticated WITH CHECK (id = auth.uid());
+CREATE POLICY teacher_update ON public.teachers FOR UPDATE TO authenticated USING (id = auth.uid()) WITH CHECK (id = auth.uid());
+CREATE TABLE public.classes (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), teacher_id uuid NOT NULL REFERENCES public.teachers(id), name text NOT NULL, country text NOT NULL, grade integer NOT NULL CHECK (grade BETWEEN 0 AND 6), join_code text NOT NULL UNIQUE CHECK (join_code ~ '^[A-Z0-9]{6}$'), leaderboard_enabled boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now());
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.classes TO authenticated;
+GRANT ALL ON public.classes TO service_role;
+ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY class_owner ON public.classes FOR ALL TO authenticated USING (teacher_id = auth.uid()) WITH CHECK (teacher_id = auth.uid());
+CREATE TABLE public.class_members (id uuid NOT NULL UNIQUE DEFAULT gen_random_uuid(), class_id uuid NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE, token_hash text NOT NULL REFERENCES public.learning_sessions(token_hash), joined_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY (class_id, token_hash));
+GRANT SELECT ON public.class_members TO authenticated;
+GRANT ALL ON public.class_members TO service_role;
+ALTER TABLE public.class_members ENABLE ROW LEVEL SECURITY;
+CREATE POLICY member_teacher_read ON public.class_members FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM public.classes c WHERE c.id = class_id AND c.teacher_id = auth.uid()));
+ALTER TABLE public.learning_sessions ADD COLUMN dys_default jsonb, ADD COLUMN dys_updated_at timestamptz, ADD COLUMN last_active_at timestamptz NOT NULL DEFAULT now();
+CREATE INDEX class_teacher_idx ON public.classes(teacher_id);
+CREATE INDEX class_members_session_idx ON public.class_members(token_hash);
+CREATE FUNCTION public.join_pisan_class(p_hash text, p_code text) RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE target public.classes; entitled boolean;
+BEGIN
+ IF NOT EXISTS (SELECT 1 FROM public.learning_sessions WHERE token_hash=p_hash) THEN RAISE EXCEPTION 'Session missing'; END IF;
+ SELECT * INTO target FROM public.classes WHERE join_code=upper(replace(trim(p_code),'-',''));
+ IF target.id IS NULL THEN RAISE EXCEPTION 'Invalid class code'; END IF;
+ INSERT INTO public.class_members(class_id,token_hash) VALUES (target.id,p_hash) ON CONFLICT DO NOTHING;
+ SELECT EXISTS (SELECT 1 FROM public.teachers t JOIN public.partner_codes p ON p.code=t.partner_code WHERE t.id=target.teacher_id AND p.active=true) INTO entitled;
+ UPDATE public.learning_sessions SET partner=partner OR entitled WHERE token_hash=p_hash;
+ RETURN target.name;
+END $$;
+REVOKE ALL ON FUNCTION public.join_pisan_class(text,text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.join_pisan_class(text,text) TO service_role;
