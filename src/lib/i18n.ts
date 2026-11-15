@@ -67,7 +67,6 @@ const fr = {
     label: "Mode test",
     student: "Vue Élève",
     parent: "Vue Parent/Prof",
-    simulate: "Simuler Code Établissement Gratuit",
     reset: "Recommencer",
   },
   home: {
@@ -257,7 +256,6 @@ const en: Dict = {
     label: "Test mode",
     student: "Student View",
     parent: "Parent/Teacher View",
-    simulate: "Simulate Free School Code",
     reset: "Start over",
   },
   home: {
@@ -445,7 +443,6 @@ const ar: Dict = {
     label: "وضع الاختبار",
     student: "واجهة التلميذ",
     parent: "واجهة الولي/الأستاذ",
-    simulate: "محاكاة رمز مؤسسة مجاني",
     reset: "البدء من جديد",
   },
   home: {
@@ -633,7 +630,6 @@ const es: Dict = {
     label: "Modo prueba",
     student: "Vista Alumno",
     parent: "Vista Padre/Profesor",
-    simulate: "Simular Código de Centro Gratuito",
     reset: "Empezar de nuevo",
   },
   home: {

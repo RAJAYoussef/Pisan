@@ -1,4 +1,7 @@
 # PiSan
+- [x] Sécuriser les codes partenaires côté serveur et retirer leur simulation
+- [x] Réserver la barre de test au développement et à l’aperçu Lovable
+- [x] Vérifier les accès partenaires et mettre à jour les tests
 - [x] Logo, quatre langues et accueil anonyme
 - [x] Diagnostic et consolidation
 - [x] Atelier collège et lycée avec lecture audio du navigateur

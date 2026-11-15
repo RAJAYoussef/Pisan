@@ -8,6 +8,13 @@
       "when": 1794691109579,
       "tag": "0000_anonymous_learning_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794770587516,
+      "tag": "0001_private_partner_codes",
+      "breakpoints": true
     }
   ]
 }

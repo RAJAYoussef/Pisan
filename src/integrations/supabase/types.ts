@@ -44,6 +44,27 @@ export type Database = {
         }
         Relationships: []
       }
+      partner_codes: {
+        Row: {
+          active: boolean | null
+          code: string
+          created_at: string | null
+          school_name: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          code: string
+          created_at?: string | null
+          school_name?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          code?: string
+          created_at?: string | null
+          school_name?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -1,6 +1,5 @@
 // Business rules for access plans and pricing. Pure functions — covered by src/test/plan.test.ts.
 
-export const PARTNER_CODE = "PILOTE2026";
 export const DAILY_FREE_LIMIT = 3;
 
 export type Plan = "discovery" | "partner" | "premium";
@@ -18,14 +17,6 @@ export const PAYMENT_LINKS: Record<keyof typeof PRICES, string> = {
   monthly: "",
   yearly: "",
 };
-
-export function isPartnerCode(code: string | undefined | null): boolean {
-  return (code ?? "").trim().toUpperCase() === PARTNER_CODE;
-}
-
-export function planFromCode(code: string | undefined | null): Plan {
-  return isPartnerCode(code) ? "partner" : "discovery";
-}
 
 export function isUnlimited(plan: Plan): boolean {
   return plan === "partner" || plan === "premium";

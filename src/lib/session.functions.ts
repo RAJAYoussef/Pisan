@@ -1,6 +1,5 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
-import { PARTNER_CODE } from './plan';
 import type { LearningSession } from './pisan';
 
 const credential = z.string().regex(/^[a-f0-9]{64}$/);
@@ -18,7 +17,15 @@ export const openSession = createServerFn({ method: 'POST' })
     const existing = await supabaseAdmin.from('learning_sessions').select('profile, progress, partner, usage_count, usage_date').eq('token_hash', hash).maybeSingle();
     if (existing.error) throw new Error('La sauvegarde est indisponible. Réessayez plus tard.');
     if (!data.profile) return existing.data as LearningSession | null;
-    const partner = existing.data?.partner || data.code?.trim().toUpperCase() === PARTNER_CODE;
+    let partner = existing.data?.partner ?? false;
+    const code = data.code?.trim();
+    if (!partner && code) {
+      // Escape LIKE metacharacters: user input must match one complete code.
+      const literal = code.replace(/[\\%_]/g, '\\$&');
+      const match = await supabaseAdmin.from('partner_codes').select('code').eq('active', true).ilike('code', literal).maybeSingle();
+      if (match.error) throw new Error('Impossible de vérifier votre accès partenaire.');
+      partner = !!match.data;
+    }
     const saved = await supabaseAdmin.from('learning_sessions').upsert({ token_hash: hash, profile: data.profile, partner: !!partner }).select('profile, progress, partner, usage_count, usage_date').single();
     if (saved.error) throw new Error('Impossible de sauvegarder votre profil.');
     return saved.data as LearningSession;
