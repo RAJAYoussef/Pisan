@@ -30,6 +30,8 @@ use the editor.
 <!-- LOVABLE:END -->
 
 ## PiSan architecture
+- Verify partner codes only inside the session server handler against the service-role-only code registry; never bundle access codes or client-side validation.
+- Show the test-view bar only in development or on Lovable id-preview hosts; published hosts must not expose test controls.
 - Anonymous learning sessions use a high-entropy browser capability, hashed server-side; all private reads and writes require it, avoiding personal email collection and anonymous Auth signups.
 - Store learning progress and daily quotas in Cloud; consume quotas transactionally to prevent parallel requests bypassing limits.
 - Pedagogical modules are in-app workspace tabs; keep the shared session and language state in the workspace, with focused components for each teaching activity.
