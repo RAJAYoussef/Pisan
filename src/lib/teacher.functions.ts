@@ -79,7 +79,7 @@ export const removeClassStudent = createServerFn({method:'POST'}).middleware([re
  const owned=await context.supabase.from('classes').select('id').eq('id',data.classId).eq('teacher_id',context.userId).single();
  if(owned.error || !owned.data) throw new Error('Forbidden');
  const removed=await context.supabase.from('class_members').delete().eq('class_id',data.classId).eq('id',data.memberId).select('id').single();
- if(removed.error || !removed.data) throw new Error('Forbidden');
+ if(removed.error || !removed.data) { console.error('Membership removal failed',removed.error?.code,removed.error?.message); throw new Error('Forbidden'); }
  return {ok:true};
 });
 
