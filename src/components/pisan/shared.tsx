@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import type { Lang } from '@/lib/i18n';
 import { say } from '@/lib/pisan';
-import avatar from '@/assets/pisan-avatar.jpg.asset.json';
+import avatar from '@/assets/pisan-avatar.png';
 
 export function Speaker({ text, lang }: { text: string; lang: Lang }) {
   const [speaking, setSpeaking] = useState(false);
@@ -22,7 +22,7 @@ export function Speaker({ text, lang }: { text: string; lang: Lang }) {
   return <span><Button size="icon" variant="ghost" onClick={speak} title={say(lang, 'Écouter l’énoncé', 'Listen to the question', 'استمع إلى السؤال', 'Escuchar el enunciado')} aria-label={say(lang, 'Écouter l’énoncé', 'Listen to the question', 'استمع إلى السؤال', 'Escuchar el enunciado')}>{speaking ? <VolumeX /> : <Volume2 />}</Button>{error && <span role="status" className="text-xs text-destructive">{error}</span>}</span>;
 }
 export function Tutor({ children }: { children: React.ReactNode }) {
-  return <div className="flex items-start gap-3 rounded-lg bg-primary-soft p-4"><img src={avatar.url} alt="π" className="h-12 w-12 shrink-0 rounded-full object-cover" /><div><p className="mb-1 text-xs font-bold text-primary-deep">PiSan</p><div className="text-sm leading-relaxed">{children}</div></div></div>;
+  return <div className="flex items-start gap-3 rounded-lg bg-primary-soft p-4"><img src={avatar} alt="π" className="h-12 w-12 shrink-0 object-contain" /><div><p className="mb-1 text-xs font-bold text-primary-deep">PiSan</p><div className="text-sm leading-relaxed">{children}</div></div></div>;
 }
 export function Meter({ value }: { value: number }) {
   return <div className="h-2 overflow-hidden rounded-full bg-muted"><div className={`h-full rounded-full bg-primary meter-${Math.round(value / 10)}`} /></div>;

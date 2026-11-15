@@ -260,7 +260,7 @@
 .pill { display:inline-flex; align-items:center; gap:6px; border-radius:5px; background:var(--muted); padding:6px 9px; font-size:10px; font-weight:700; }
 .home-greeting { display:flex; justify-content:space-between; align-items:center; gap:20px; }
 .greeting-mascot { position:relative; width:180px; flex-shrink:0; }
-.greeting-mascot img { width:165px; height:150px; object-fit:contain; mix-blend-mode:multiply; }
+.greeting-mascot img { width:165px; height:150px; object-fit:contain; }
 .mascot-star { position:absolute; color:var(--sun-deep); font-size:26px; }
 .mascot-star-one { inset-inline-end:0; top:13px; }
 .mascot-star-two { inset-inline-start:-6px; bottom:20px; font-size:18px; color:var(--primary); }
@@ -291,7 +291,7 @@
 .setup-intro h1 { font-size:38px; line-height:1.2; margin:13px 0; }
 .setup-intro > p { font-size:17px; color:var(--muted-foreground); }
 .setup-content { display:grid; grid-template-columns:1fr 1.15fr; gap:65px; align-items:center; margin:40px 20px; }
-.setup-mascot { width:250px; height:235px; margin:0 auto 18px; object-fit:contain; mix-blend-mode:multiply; }
+.setup-mascot { width:250px; height:235px; margin:0 auto 18px; object-fit:contain; }
 .setup-quote { max-width:300px; margin:auto; }
 .setup-form { background:var(--card); padding:30px; border:1px solid var(--border); border-radius:8px; box-shadow:var(--shadow-panel); }
 .setup-footer { border-top:1px solid var(--border); padding-top:20px; display:flex; justify-content:space-between; gap:12px; color:var(--muted-foreground); font-size:11px; }
