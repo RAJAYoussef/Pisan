@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import type { LearningSession } from './pisan';
-import { getNotion, isNotionId, type NotionId } from './curriculum';
+import { isNotionId, type NotionId } from './curriculum';
 import { isTimeZone, localDay } from './plan';
 import { checkChallenge, challengeNotions, dailyChallenge } from './challenge';
 import type { Attempt, StreakResult } from './pisan';
@@ -111,6 +111,5 @@ export const todayChallenge = createServerFn({ method: 'POST' })
     const day = localDay(new Date(), tz);
     const challenge = dailyChallenge(day, challengeNotions(row.profile.country, row.profile.grade, row.profile.track));
     if (!challenge) return null;
-    void getNotion;
     return { day, notion: challenge.notion, index: challenge.index, done: row.challenge_day === day, correct: row.challenge_day === day ? row.challenge_correct ?? null : null };
   });

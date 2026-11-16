@@ -50,9 +50,9 @@ export const classDashboard = createServerFn({method:'POST'}).middleware([requir
  const members=await supabaseAdmin.from('class_members').select('id,token_hash').eq('class_id',data.id);
  if(members.error) throw new Error('Unavailable');
  if(!members.data.length) return { classroom:owned.data, students:[] as ClassStudent[] };
- const sessions=await supabaseAdmin.from('learning_sessions').select('token_hash,profile,progress,last_active_at,dys_default').in('token_hash',members.data.map(m=>m.token_hash));
+ const sessions=await supabaseAdmin.from('learning_sessions').select('token_hash,profile,progress,last_active_at,dys_default,streak_count,streak_last_day,freezes').in('token_hash',members.data.map(m=>m.token_hash));
  if(sessions.error) throw new Error('Unavailable');
- return {classroom:owned.data, students:members.data.flatMap(m=>{const s=sessions.data.find(s=>s.token_hash===m.token_hash); return s ? [{id:m.id,profile:s.profile,progress:s.progress,last_active_at:s.last_active_at,dys_default:s.dys_default} as unknown as ClassStudent] : [];})};
+ return {classroom:owned.data, students:members.data.flatMap(m=>{const s=sessions.data.find(s=>s.token_hash===m.token_hash); return s ? [{id:m.id,profile:s.profile,progress:s.progress,last_active_at:s.last_active_at,dys_default:s.dys_default,streak_count:s.streak_count,streak_last_day:s.streak_last_day,freezes:s.freezes} as unknown as ClassStudent] : [];})};
 });
 export const setStudentDys = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator(z.object({classId:z.string().uuid(),memberId:z.string().uuid(),enabled:z.boolean()})).handler(async ({data,context}) => {
  const owned=await context.supabase.from('classes').select('id').eq('id',data.classId).eq('teacher_id',context.userId).single();
