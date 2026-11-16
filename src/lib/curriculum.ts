@@ -1,4 +1,5 @@
 import type { Lang } from "./i18n";
+import { EXTRA_NOTIONS } from "./notions-extra";
 
 export type L = Record<Lang, string>;
 export const t4 = (fr: string, en: string, ar: string, es: string): L => ({ fr, en, ar, es });
@@ -209,7 +210,34 @@ export type NotionId =
   | "quadratics"
   | "derivatives"
   | "sequences"
-  | "exponential";
+  | "exponential"
+  // Ajoutées pour les programmes de 6e, 3e et Terminale (src/lib/notions-extra.ts)
+  | "decimals"
+  | "geometry"
+  | "symmetry"
+  | "areas"
+  | "statistics"
+  | "square-roots"
+  | "arithmetic"
+  | "inequalities"
+  | "systems"
+  | "pythagoras-thales"
+  | "trigonometry"
+  | "vectors"
+  | "probability"
+  | "solids"
+  | "limits"
+  | "logarithm"
+  | "integrals"
+  | "differential-equations"
+  | "complex-numbers"
+  | "counting"
+  | "probability-laws"
+  | "space-geometry"
+  | "trig-functions"
+  | "congruences"
+  | "algebraic-structures"
+  | "regression";
 
 export type PromptKind = "compute" | "solve" | "simplify" | "expand" | "derive" | "value";
 
@@ -231,7 +259,7 @@ export type Notion = {
   questions: Question[];
 };
 
-export const NOTIONS: Notion[] = [
+const BASE_NOTIONS: Notion[] = [
   {
     id: "integers",
     minLevel: 0,
@@ -466,6 +494,15 @@ export const NOTIONS: Notion[] = [
     ],
   },
 ];
+
+export const NOTIONS: Notion[] = [...BASE_NOTIONS, ...EXTRA_NOTIONS];
+export const NOTION_IDS: NotionId[] = NOTIONS.map((n) => n.id);
+export const isNotionId = (value: string): value is NotionId => (NOTION_IDS as string[]).includes(value);
+
+/** Les nombres à virgule s'écrivent avec un point en anglais : 2,5 → 2.5 (jamais « 2 ; 5 »). */
+export function localizeMath(text: string, lang: Lang): string {
+  return lang === "en" ? text.replace(/(\d),(\d)/g, "$1.$2") : text;
+}
 
 export function getNotion(id: NotionId): Notion {
   return NOTIONS.find((n) => n.id === id)!;

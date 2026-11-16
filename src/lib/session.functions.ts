@@ -1,10 +1,11 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import type { LearningSession } from './pisan';
+import { isNotionId, type NotionId } from './curriculum';
 
 const credential = z.string().regex(/^[a-f0-9]{64}$/);
 const PARTNER_CODE_FORMAT = /^[A-Za-z0-9-]{4,40}$/;
-const profileSchema = z.object({ nickname: z.string().trim().min(1).max(40), country: z.string().max(10), grade: z.number().int().min(0).max(6), lang: z.enum(['fr', 'en', 'ar', 'es']) });
+const profileSchema = z.object({ nickname: z.string().trim().min(1).max(40), country: z.string().max(10), grade: z.number().int().min(0).max(6), lang: z.enum(['fr', 'en', 'ar', 'es']), track: z.string().regex(/^[a-z0-9-]{1,20}$/).optional() });
 async function hashToken(token: string) {
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
   return Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2, '0')).join('');
@@ -42,7 +43,7 @@ export const consumeExercise = createServerFn({ method: 'POST' })
     return !!allowed;
   });
 
-const notion = z.enum(['integers', 'fractions', 'proportion', 'powers', 'algebra', 'equations', 'functions', 'quadratics', 'derivatives', 'sequences', 'exponential']);
+const notion = z.custom<NotionId>((value) => typeof value === 'string' && isNotionId(value), { message: 'Unknown notion' });
 export const saveAttempt = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ token: credential, attempt: z.object({ kind: z.enum(['diagnostic', 'workshop', 'exam', 'consolidation']), notion, correct: z.number().int().min(0).max(20), total: z.number().int().min(1).max(20), date: z.string().max(50), minutes: z.number().min(0).max(120) }) }))
   .handler(async ({ data }) => {

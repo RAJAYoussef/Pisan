@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { ArrowRight, CheckCircle2, ClipboardCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { chaptersForLevel, getNotion, type NotionId } from '@/lib/curriculum';
+import { chaptersForLevel, getNotion, type Notion, type NotionId } from '@/lib/curriculum';
 import { DICTS, type Lang } from '@/lib/i18n';
 import { gradeOn20, say, type Attempt } from '@/lib/pisan';
 import { QuestionChoices } from './diagnostic';
 import { Meter, Tutor } from './shared';
 
-export function Exam({ lang, level, onSave, onStart }: { lang: Lang; level: number; onSave: (a: Attempt) => Promise<void>; onStart: () => Promise<boolean> }) {
-  const chapters = chaptersForLevel(level);
+export function Exam({ lang, level, onSave, onStart, notions }: { lang: Lang; level: number; onSave: (a: Attempt) => Promise<void>; onStart: () => Promise<boolean>; notions?: Notion[] | undefined }) {
+  const chapters = notions ?? chaptersForLevel(level);
   const [chapter, setChapter] = useState<NotionId>(chapters[chapters.length - 1]?.id ?? 'integers');
   const [active, setActive] = useState(false);
   const [answers, setAnswers] = useState<number[]>([]);
