@@ -56,9 +56,9 @@ describe('CPA workshop', () => {
 import { concreteMistake as cm, concreteSpec as cs, demonstrationsForLevel as dl } from '@/lib/exercises';
 describe('concrete feedback', () => {
   it('detects misplaced excess when totals are right', () => {
-    const ex = dl(3).find(e => e.id.includes('difference')) ?? dl(3)[0]!;
+    const ex = dl(3)[0]!;
     const { groups } = cs(ex);
-    if (!groups.some(g => g.extra)) return;
+    expect(groups.some(g => g.extra)).toBe(true);
     const counts = groups.map(g => g.target);
     const e = groups.findIndex(g => g.extra); const p = groups.findIndex(g => g.barIndex === groups[e]!.barIndex && !g.extra);
     counts[p]! += counts[e]!; counts[e] = 0;
