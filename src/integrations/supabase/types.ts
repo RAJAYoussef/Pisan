@@ -108,46 +108,61 @@ export type Database = {
       }
       learning_sessions: {
         Row: {
+          challenge_correct: boolean | null
+          challenge_day: string | null
           class_join_attempts: string[]
           coach_count: number
           coach_date: string
           created_at: string
           dys_default: Json | null
           dys_updated_at: string | null
+          freezes: number
           last_active_at: string
           partner: boolean
           profile: Json
           progress: Json
+          streak_count: number
+          streak_last_day: string | null
           token_hash: string
           usage_count: number
           usage_date: string
         }
         Insert: {
+          challenge_correct?: boolean | null
+          challenge_day?: string | null
           class_join_attempts?: string[]
           coach_count?: number
           coach_date?: string
           created_at?: string
           dys_default?: Json | null
           dys_updated_at?: string | null
+          freezes?: number
           last_active_at?: string
           partner?: boolean
           profile?: Json
           progress?: Json
+          streak_count?: number
+          streak_last_day?: string | null
           token_hash: string
           usage_count?: number
           usage_date?: string
         }
         Update: {
+          challenge_correct?: boolean | null
+          challenge_day?: string | null
           class_join_attempts?: string[]
           coach_count?: number
           coach_date?: string
           created_at?: string
           dys_default?: Json | null
           dys_updated_at?: string | null
+          freezes?: number
           last_active_at?: string
           partner?: boolean
           profile?: Json
           progress?: Json
+          streak_count?: number
+          streak_last_day?: string | null
           token_hash?: string
           usage_count?: number
           usage_date?: string
@@ -209,6 +224,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_pisan_challenge: {
+        Args: { p_correct: boolean; p_day: string; p_hash: string }
+        Returns: boolean
+      }
       consume_pisan_coach: {
         Args: { p_hash: string; p_limit?: number }
         Returns: number
@@ -224,6 +243,10 @@ export type Database = {
       }
       join_pisan_class_limited: {
         Args: { p_code: string; p_hash: string }
+        Returns: Json
+      }
+      record_pisan_streak: {
+        Args: { p_day: string; p_hash: string }
         Returns: Json
       }
     }

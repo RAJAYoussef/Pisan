@@ -64,6 +64,13 @@
       "when": 1794854840815,
       "tag": "0008_coach_access_global_limit",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794858411467,
+      "tag": "0009_streak_and_daily_challenge",
+      "breakpoints": true
     }
   ]
 }
