@@ -71,6 +71,13 @@
       "when": 1794858411467,
       "tag": "0009_streak_and_daily_challenge",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794859288091,
+      "tag": "0010_streak_day_guards_and_atomic_attempts",
+      "breakpoints": true
     }
   ]
 }

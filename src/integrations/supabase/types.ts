@@ -123,6 +123,7 @@ export type Database = {
           progress: Json
           streak_count: number
           streak_last_day: string | null
+          timezone_changed_at: string | null
           token_hash: string
           usage_count: number
           usage_date: string
@@ -143,6 +144,7 @@ export type Database = {
           progress?: Json
           streak_count?: number
           streak_last_day?: string | null
+          timezone_changed_at?: string | null
           token_hash: string
           usage_count?: number
           usage_date?: string
@@ -163,6 +165,7 @@ export type Database = {
           progress?: Json
           streak_count?: number
           streak_last_day?: string | null
+          timezone_changed_at?: string | null
           token_hash?: string
           usage_count?: number
           usage_date?: string
@@ -224,6 +227,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      append_pisan_attempt: {
+        Args: { p_attempt: Json; p_day: string; p_hash: string }
+        Returns: Json
+      }
       claim_pisan_challenge: {
         Args: { p_correct: boolean; p_day: string; p_hash: string }
         Returns: boolean
