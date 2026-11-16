@@ -490,3 +490,47 @@ html:is([data-dys-spacing="wide"], [data-dys-font="opendyslexic"], [data-dys-fon
 html[style*="--pisan-scale"] .pisan-root {
   overflow-wrap: anywhere;
 }
+
+/* ───────────── Navigation en bas (téléphone et tablette) ───────────── */
+.bottom-tabs {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  border-top: 1px solid var(--border);
+  background: var(--card);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.bottom-tab {
+  display: flex;
+  min-height: 3.75rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted-foreground);
+}
+.bottom-tab svg { height: 1.35rem; width: 1.35rem; }
+.bottom-tab-active { color: var(--primary-deep); }
+.bottom-tab-active svg { stroke-width: 2.5; }
+.bottom-tab:focus-visible { outline: 2px solid var(--ring); outline-offset: -4px; }
+@media (min-width: 1024px) { .bottom-tabs { display: none; } }
+@media (max-width: 1023px) { .workspace-main { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)); } }
+
+/* ───────────── Parcours compact ───────────── */
+.chapter-row { border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); }
+.chapter-row-current { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+.chapter-row-head { display: flex; width: 100%; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; }
+.chapter-row-head:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: var(--radius); }
+.chapter-row-body { border-top: 1px solid var(--border); padding: 1rem; }
+
+/* ───────────── Accueil ───────────── */
+.resume-card { border-radius: calc(var(--radius) + 4px); background: var(--primary-soft); padding: 1.25rem; }
+@media (min-width: 640px) { .resume-card { padding: 1.75rem; } }
+
+/* Menu : un vrai espace avant la rubrique « Pour les adultes » */
+nav + .sidebar-label { margin-top: 28px; }

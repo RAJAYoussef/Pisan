@@ -77,7 +77,7 @@ const fr = {
     program: "Programme",
     modules: {
       diagnostic: { title: "Diagnostic", desc: "6 questions pour trouver d'où repartir." },
-      workshop: { title: "Atelier Méthode de Singapour", desc: "Comprendre, dessiner, puis calculer." },
+      workshop: { title: "Atelier visuel", desc: "Comprendre, dessiner, puis calculer." },
       journey: { title: "Parcours Confiance", desc: "Tes chapitres, tes séries, tes récompenses." },
       tracking: { title: "Suivi Parent / Prof", desc: "Progression, prérequis, temps de travail." },
     },
@@ -118,7 +118,7 @@ const fr = {
     timeUp: "Le temps est écoulé, mais tu peux finir tranquillement.",
   },
   ws: {
-    title: "Atelier Méthode de Singapour",
+    title: "Atelier visuel",
     intro: "Avant de calculer, on comprend et on dessine. Choisis un exercice.",
     steps: ["Verbalisation", "Manipulation concrète", "Modélisation", "Calcul"],
     verbalInstr: "Complète la phrase pour dire ce qu'on cherche.",
@@ -179,9 +179,9 @@ const fr = {
     mastery: "Maîtrise par chapitre",
     time: "Temps de travail (7 derniers jours)",
     totalTime: "Temps total",
-    exercises: "Exercices réussis",
+    exercises: "Activités terminées",
     streak: "Série actuelle",
-    prereqs: "Prérequis débloqués",
+    prereqs: "Bases consolidées",
     errors: "Erreurs fréquentes",
     steps: {
       verbal: "Comprendre l'énoncé",
@@ -266,7 +266,7 @@ const en: Dict = {
     program: "Curriculum",
     modules: {
       diagnostic: { title: "Diagnostic", desc: "6 questions to find where to restart." },
-      workshop: { title: "Singapore Method Workshop", desc: "Understand, draw, then calculate." },
+      workshop: { title: "Visual workshop", desc: "Understand, draw, then calculate." },
       journey: { title: "Confidence Journey", desc: "Your chapters, streaks and rewards." },
       tracking: { title: "Parent / Teacher Tracking", desc: "Progress, prerequisites, time spent." },
     },
@@ -307,7 +307,7 @@ const en: Dict = {
     timeUp: "Time's up, but take your time to finish.",
   },
   ws: {
-    title: "Singapore Method Workshop",
+    title: "Visual workshop",
     intro: "Before calculating, we understand and draw. Pick an exercise.",
     steps: ["Verbalise", "Concrete manipulation", "Bar model", "Calculate"],
     verbalInstr: "Complete the sentence to say what we're looking for.",
@@ -368,9 +368,9 @@ const en: Dict = {
     mastery: "Mastery by chapter",
     time: "Time spent (last 7 days)",
     totalTime: "Total time",
-    exercises: "Exercises solved",
+    exercises: "Activities completed",
     streak: "Current streak",
-    prereqs: "Prerequisites unlocked",
+    prereqs: "Foundations strengthened",
     errors: "Frequent mistakes",
     steps: {
       verbal: "Understanding the problem",
@@ -453,7 +453,7 @@ const ar: Dict = {
     program: "المنهاج",
     modules: {
       diagnostic: { title: "التشخيص", desc: "6 أسئلة لنعرف من أين نبدأ." },
-      workshop: { title: "ورشة طريقة سنغافورة", desc: "نفهم، نرسم، ثم نحسب." },
+      workshop: { title: "الورشة البصرية", desc: "نفهم، نرسم، ثم نحسب." },
       journey: { title: "مسار الثقة", desc: "فصولك، سلاسلك ومكافآتك." },
       tracking: { title: "متابعة الولي / الأستاذ", desc: "التقدم، المكتسبات القبلية، وقت العمل." },
     },
@@ -494,7 +494,7 @@ const ar: Dict = {
     timeUp: "انتهى الوقت، لكن يمكنك الإكمال بهدوء.",
   },
   ws: {
-    title: "ورشة طريقة سنغافورة",
+    title: "الورشة البصرية",
     intro: "قبل الحساب، نفهم ونرسم. اختر تمرينًا.",
     steps: ["التعبير", "التوزيع المحسوس", "النمذجة بالأشرطة", "الحساب"],
     verbalInstr: "أكمل الجملة لتقول ما نبحث عنه.",
@@ -555,9 +555,9 @@ const ar: Dict = {
     mastery: "التمكّن حسب الفصل",
     time: "وقت العمل (آخر 7 أيام)",
     totalTime: "الوقت الإجمالي",
-    exercises: "التمارين المحلولة",
+    exercises: "الأنشطة المنجزة",
     streak: "السلسلة الحالية",
-    prereqs: "المكتسبات القبلية المفتوحة",
+    prereqs: "الأساسيات المعزَّزة",
     errors: "الأخطاء المتكررة",
     steps: {
       verbal: "فهم نص المسألة",
@@ -640,7 +640,7 @@ const es: Dict = {
     program: "Programa",
     modules: {
       diagnostic: { title: "Diagnóstico", desc: "6 preguntas para saber desde dónde seguir." },
-      workshop: { title: "Taller Método Singapur", desc: "Entender, dibujar y luego calcular." },
+      workshop: { title: "Taller visual", desc: "Entender, dibujar y luego calcular." },
       journey: { title: "Recorrido Confianza", desc: "Tus capítulos, rachas y recompensas." },
       tracking: { title: "Seguimiento Padres / Profes", desc: "Progreso, requisitos previos, tiempo." },
     },
@@ -681,7 +681,7 @@ const es: Dict = {
     timeUp: "Se acabó el tiempo, pero termina con calma.",
   },
   ws: {
-    title: "Taller Método Singapur",
+    title: "Taller visual",
     intro: "Antes de calcular, entendemos y dibujamos. Elige un ejercicio.",
     steps: ["Verbalizar", "Manipulación concreta", "Modelo de barras", "Calcular"],
     verbalInstr: "Completa la frase para decir lo que buscamos.",
@@ -742,9 +742,9 @@ const es: Dict = {
     mastery: "Dominio por capítulo",
     time: "Tiempo de trabajo (últimos 7 días)",
     totalTime: "Tiempo total",
-    exercises: "Ejercicios resueltos",
+    exercises: "Actividades terminadas",
     streak: "Racha actual",
-    prereqs: "Requisitos previos desbloqueados",
+    prereqs: "Bases reforzadas",
     errors: "Errores frecuentes",
     steps: {
       verbal: "Entender el enunciado",
