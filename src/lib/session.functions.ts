@@ -33,7 +33,7 @@ export const openSession = createServerFn({ method: 'POST' })
       partner = !!match.data;
     }
     const prev = existing.data as unknown as (LearningSession & { timezone_changed_at: string | null }) | null;
-    const zoneChange = resolveTimeZone(prev?.profile.timezone, data.profile.timezone, prev?.timezone_changed_at ?? null, new Date());
+    const zoneChange = resolveTimeZone(prev?.profile?.timezone, data.profile.timezone, prev?.timezone_changed_at ?? null, new Date());
     const profile = { ...data.profile, timezone: zoneChange.timezone };
     if (!profile.timezone) delete profile.timezone;
     const row: Record<string, unknown> = { token_hash: hash, profile, partner: !!partner };
