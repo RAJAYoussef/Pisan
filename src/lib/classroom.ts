@@ -1,7 +1,7 @@
 import { mastery, type Profile, type Progress } from './pisan';
 import { NOTIONS, type Notion, type NotionId } from './curriculum';
 import type { DysPrefs } from './dys';
-export type ClassStudent = { id: string; profile: Profile; progress: Progress; last_active_at: string; dys_default: DysPrefs | null };
+export type ClassStudent = { id: string; profile: Profile; progress: Progress; last_active_at: string; dys_default: DysPrefs | null; streak_count?: number; streak_last_day?: string | null; freezes?: number };
 export const normalizeClassCode = (code: string) => code.trim().replace(/-/g, '').toUpperCase();
 export const displayClassCode = (code: string) => `${code.slice(0, 2)}-${code.slice(2)}`;
 export const masteryBand = (value: number) => value < 40 ? 'low' : value < 80 ? 'medium' : 'high';
