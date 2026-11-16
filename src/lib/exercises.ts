@@ -652,12 +652,25 @@ export function checkCalculation(ex: Exercise, equation: number | null, part: st
  * Integration point: replace the body with a call to an AI endpoint that returns an `Exercise`
  * (same shape). The local fallback re-draws a template suited to the level with fresh numbers.
  */
-export async function generateAdaptedExercise(ctx: GenerateContext): Promise<Exercise> {
-  const rng = seeded(Date.now() % 1_000_000);
-  const index = Math.max(0, Math.min(6, Math.floor(ctx.level)));
+export async function generateAdaptedExercise(ctx: GenerateContext, seed: number = Date.now() % 1_000_000): Promise<Exercise> {
+  return buildGenerated(Math.max(0, Math.min(6, Math.floor(ctx.level))), seed);
+}
+
+/** Deterministic: the server can rebuild the exact same exercise from its id. */
+function buildGenerated(index: number, seed: number): Exercise {
+  const rng = seeded(seed);
   const [id, params] = pick(rng, LEVEL_DEMOS[index] ?? LEVEL_DEMOS[0] ?? []);
   const ex = buildDemo(id, { ...params, ...(id === 'sharing' ? { a: int(rng, 3, 8) } : id === 'difference' || id === 'perimeter' ? { x: (params.x ?? 5) + int(rng, 1, 5) } : { u: (params.u ?? 3) + int(rng, 1, 5) }) }, rng);
-  return { ...ex, id: `gen-${Date.now()}` };
+  return { ...ex, id: `gen-${index}-${seed}` };
+}
+
+/** Rebuilds a workshop exercise from its id (demo, sample or generated). */
+export function exerciseById(id: string): Exercise | null {
+  const demo = /^demo-([0-6])-\d$/.exec(id);
+  if (demo) return demonstrationsForLevel(Number(demo[1])).find(e => e.id === id) ?? null;
+  const gen = /^gen-([0-6])-(\d{1,7})$/.exec(id);
+  if (gen) return buildGenerated(Number(gen[1]), Number(gen[2]));
+  return SAMPLE_EXERCISES.find(e => e.id === id) ?? null;
 }
 
 /** Returns the chip placed on each requirement check. */

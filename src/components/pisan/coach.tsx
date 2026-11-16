@@ -3,30 +3,31 @@ import { MessageCircleQuestion, Send, X } from 'lucide-react';
 import { useServerFn } from '@tanstack/react-start';
 import { Button } from '@/components/ui/button';
 import { askCoach } from '@/lib/coach.functions';
-import type { CoachContext, CoachMessage } from '@/lib/coach';
+import type { CoachContext, CoachRef } from '@/lib/coach';
 import { isDysActive } from '@/lib/dys';
 import type { Lang } from '@/lib/i18n';
 import { say } from '@/lib/pisan';
 import avatar from '@/assets/pisan-avatar.png';
 import { useDys } from './dys';
 
-const TokenContext = createContext('');
-export const CoachTokenProvider = ({ token, children }: { token: string; children: ReactNode }) => <TokenContext.Provider value={token}>{children}</TokenContext.Provider>;
+const TokenContext = createContext({ token: '', eligible: false });
+export const CoachTokenProvider = ({ token, eligible, children }: { token: string; eligible: boolean; children: ReactNode }) => <TokenContext.Provider value={{ token, eligible }}>{children}</TokenContext.Provider>;
 
-type Props = { lang: Lang } & Omit<CoachContext, 'dys'>;
+type Msg = { role: 'user' | 'assistant'; content: string; sig?: string };
+type Props = { lang: Lang; activity: CoachContext['activity']; coachRef: CoachRef; step?: number; label?: string };
 
 /** Bouton « Demander à Pi » et conversation privée, gardée en mémoire seulement pour l'exercice en cours. */
 export function AskPi(props: Props) {
   // Nouvelle question = nouvelle conversation, rien n'est conservé.
-  return <AskPiPanel key={`${props.statement}|${props.step ?? ''}`} {...props} />;
+  return <AskPiPanel key={`${JSON.stringify(props.coachRef)}|${props.step ?? ''}`} {...props} />;
 }
 
-function AskPiPanel({ lang, activity, statement, notion, step }: Props) {
-  const token = useContext(TokenContext);
+function AskPiPanel({ lang, activity, coachRef, step, label }: Props) {
+  const { token, eligible } = useContext(TokenContext);
   const ask = useServerFn(askCoach);
   const { prefs } = useDys();
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<CoachMessage[]>([]);
+  const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -47,6 +48,8 @@ function AskPiPanel({ lang, activity, statement, notion, step }: Props) {
     quota: say(lang, 'Tu as utilisé tes 20 messages à Pi aujourd’hui. Reviens demain !', 'You’ve used your 20 messages to Pi today. Come back tomorrow!', 'استعملت رسائلك العشرين لباي اليوم. عد غدًا!', 'Has usado tus 20 mensajes a Pi hoy. ¡Vuelve mañana!'),
     busy: say(lang, 'Pi est très demandé. Réessaie dans un instant.', 'Pi is very busy. Try again in a moment.', 'باي مشغول جدًا. حاول بعد لحظة.', 'Pi está muy ocupado. Reintenta en un momento.'),
     credits: say(lang, 'Pi est indisponible pour le moment.', 'Pi is unavailable for now.', 'باي غير متاح حاليًا.', 'Pi no está disponible por ahora.'),
+    locked: say(lang, 'Pi est disponible avec le code de ton établissement.', 'Pi is available with your school’s code.', 'باي متاح برمز مؤسستك.', 'Pi está disponible con el código de tu centro.'),
+    resting: say(lang, 'Pi se repose, reviens demain.', 'Pi is resting, come back tomorrow.', 'باي يستريح، عد غدًا.', 'Pi está descansando, vuelve mañana.'),
     err: say(lang, 'Pi n’a pas pu répondre. Réessaie.', 'Pi couldn’t answer. Try again.', 'لم يتمكن باي من الرد. حاول مجددًا.', 'Pi no pudo responder. Reintenta.'),
   };
   function speak(text: string) {
@@ -60,22 +63,23 @@ function AskPiPanel({ lang, activity, statement, notion, step }: Props) {
   async function send() {
     const content = input.trim();
     if (!content || busy) return;
-    const next = [...messages, { role: 'user' as const, content }];
+    const next: Msg[] = [...messages, { role: 'user', content }];
     setMessages(next); setInput(''); setBusy(true); setError('');
     try {
-      const result = await ask({ data: { token, context: { activity, statement, notion, step, dys: isDysActive(prefs) }, messages: next } });
+      const result = await ask({ data: { token, context: { activity, ref: coachRef, step, dys: isDysActive(prefs) }, messages: next } });
       if (result.ok) {
-        setMessages(m => [...m, { role: 'assistant', content: result.reply }]); setRemaining(result.remaining);
+        setMessages(m => [...m, { role: 'assistant', content: result.reply, sig: result.sig }]); setRemaining(result.remaining);
         if (prefs.autoRead) speak(result.reply);
       } else {
         setError(t[result.reason === 'error' ? 'err' : result.reason]);
-        if (result.reason === 'quota') setRemaining(0);
+        if (result.reason === 'quota' || result.reason === 'resting' || result.reason === 'locked') setRemaining(0);
         setMessages(messages); setInput(content);
       }
     } catch { setError(t.err); setMessages(messages); setInput(content); }
     setBusy(false);
   }
-  if (!open) return <Button variant="soft" className="mt-4" onClick={() => setOpen(true)}><MessageCircleQuestion />{t.button}</Button>;
+  if (!eligible) return <p className="mt-4 flex items-center gap-2 text-sm text-muted-foreground"><MessageCircleQuestion className="h-4 w-4" />{t.locked}</p>;
+  if (!open) return <Button variant="soft" className="mt-4" onClick={() => setOpen(true)}><MessageCircleQuestion />{label ?? t.button}</Button>;
   return <div className="mt-5 rounded-lg border border-border bg-card p-4" role="region" aria-label={t.button}>
     <div className="mb-3 flex items-center justify-between gap-3"><div className="flex items-center gap-2"><img src={avatar} alt="π" className="h-9 w-9 object-contain" /><p className="font-bold text-primary-deep">Pi</p></div><Button size="icon" variant="ghost" onClick={() => setOpen(false)} aria-label={t.close}><X /></Button></div>
     <p className="mb-3 text-xs text-muted-foreground">{t.privacy}</p>

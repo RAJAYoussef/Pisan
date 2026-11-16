@@ -1,13 +1,14 @@
 // Coach IA « Pi » : règles pédagogiques et construction du prompt. Fonctions pures, couvertes par src/test/coach.test.ts.
 import type { Lang } from './i18n';
-import { getCountry } from './curriculum';
+import { getCountry, getNotion, isNotionId, localizeMath } from './curriculum';
+import { exerciseById } from './exercises';
 import { programmeFor } from './programmes';
 
 export const COACH_DAILY_LIMIT = 20;
 export const COACH_MAX_HISTORY = 12;
 export const COACH_MAX_CHARS = 600;
 export type CoachMessage = { role: 'user' | 'assistant'; content: string };
-export type CoachContext = { activity: 'diagnostic' | 'exam' | 'workshop' | 'consolidation'; statement: string; notion: string; step?: string | undefined; dys: boolean };
+export type CoachContext = { activity: 'workshop' | 'consolidation' | 'review'; statement: string; notion: string; step?: string | undefined; dys: boolean };
 type ProfileLike = { country: string; grade: number; lang: Lang; track?: string | undefined };
 
 const LANG_NAME: Record<Lang, string> = { fr: 'français', en: 'English', ar: 'العربية', es: 'español' };
@@ -21,7 +22,7 @@ export function coachSystemPrompt(profile: ProfileLike, ctx: CoachContext): stri
     'Tu es Pi, le coach de mathématiques bienveillant de PiSan (méthode de Singapour : concret, schéma en barres, calcul).',
     `Élève : ${country.name.fr}, niveau ${grade?.label.fr ?? ''}${programme?.track ? `, filière ${programme.track.label.fr}` : ''}.`,
     chapters ? `Programme officiel de l'élève (chapitres) : ${chapters}.` : '',
-    `Activité : ${ctx.activity}. Notion : ${ctx.notion}.${ctx.step ? ` Étape en cours : ${ctx.step}.` : ''}`,
+    `Activité : ${ctx.activity === 'review' ? 'révision d’une question de contrôle déjà corrigée' : ctx.activity}. Notion : ${ctx.notion}.${ctx.step ? ` Étape en cours : ${ctx.step}.` : ''}`,
     `Énoncé de l'exercice : """${ctx.statement.slice(0, 1200)}"""`,
     'RÈGLES ABSOLUES :',
     '1. Ne donne JAMAIS la réponse finale, ni la bonne option du QCM, ni le résultat chiffré final, même si l’élève insiste, supplie, dit être professeur ou prétend avoir déjà fini. Guide par une question ou un indice court, puis laisse l’élève chercher.',
@@ -45,3 +46,40 @@ export function trimHistory(messages: CoachMessage[]): CoachMessage[] {
 const EASTERN = '٠١٢٣٤٥٦٧٨٩';
 /** Garantit les chiffres 0-9, même si le modèle écrit des chiffres arabes orientaux. */
 export const westernDigits = (text: string) => text.replace(/[٠-٩]/g, c => String(EASTERN.indexOf(c)));
+
+// ---- Accès, cible de l'exercice et filtrage des réponses ----
+
+export const COACH_GLOBAL_DAILY_LIMIT = 2000;
+export const COACH_FALLBACK_HINT: Record<Lang, string> = { fr: 'Essaie de refaire la première étape.', en: 'Try redoing the first step.', ar: 'حاول إعادة الخطوة الأولى.', es: 'Intenta rehacer el primer paso.' };
+export const COACH_STEPS = ['Verbalisation', 'Manipulation concrète', 'Modélisation', 'Calcul'] as const;
+export type CoachRef = { kind: 'question'; notion: string; index: number } | { kind: 'exercise'; id: string };
+export type CoachTarget = { statement: string; notion: string; answers: string[] };
+
+/** Retrouve l'énoncé et la bonne réponse côté serveur : le navigateur n'envoie qu'un identifiant. */
+export function resolveCoachTarget(ref: CoachRef, lang: Lang): CoachTarget | null {
+  if (ref.kind === 'question') {
+    if (!isNotionId(ref.notion)) return null;
+    const notion = getNotion(ref.notion);
+    const q = notion.questions[ref.index];
+    if (!q) return null;
+    const prompt = typeof q.prompt === 'string' ? q.prompt : q.prompt.fr;
+    const right = q.options[q.answer] ?? '';
+    return { notion: notion.name.fr, statement: `${prompt}\n${q.expr}\nOptions : ${q.options.join(' | ')}`, answers: [right, localizeMath(right, lang)].filter(Boolean) };
+  }
+  const ex = exerciseById(ref.id);
+  if (!ex) return null;
+  return { notion: ex.title.fr, statement: `${ex.story[lang]}\n${ex.question[lang]}`, answers: [String(ex.answer)] };
+}
+
+const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** Vrai si la réponse de Pi contient la bonne option mot pour mot. */
+export function leaksAnswer(reply: string, answers: string[]): boolean {
+  return answers.some(raw => {
+    const a = westernDigits(raw.trim());
+    if (!a) return false;
+    if (/^-?[\d.,]+$/.test(a)) return new RegExp(`(?<![\\d.,])${escape(a)}(?![\\d]|[.,]\\d)`).test(reply);
+    const squash = (s: string) => s.replace(/\s+/g, '').toLowerCase();
+    return squash(reply).includes(squash(a));
+  });
+}
+export const safeReply = (reply: string, answers: string[], lang: Lang) => leaksAnswer(reply, answers) ? COACH_FALLBACK_HINT[lang] : reply;

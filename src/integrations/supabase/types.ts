@@ -91,6 +91,21 @@ export type Database = {
           },
         ]
       }
+      coach_global_usage: {
+        Row: {
+          count: number
+          day: string
+        }
+        Insert: {
+          count?: number
+          day: string
+        }
+        Update: {
+          count?: number
+          day?: string
+        }
+        Relationships: []
+      }
       learning_sessions: {
         Row: {
           class_join_attempts: string[]
@@ -196,6 +211,10 @@ export type Database = {
     Functions: {
       consume_pisan_coach: {
         Args: { p_hash: string; p_limit?: number }
+        Returns: number
+      }
+      consume_pisan_coach_gated: {
+        Args: { p_global: number; p_hash: string; p_limit: number }
         Returns: number
       }
       consume_pisan_exercise: { Args: { p_hash: string }; Returns: boolean }
