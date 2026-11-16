@@ -591,7 +591,7 @@ export const SAMPLE_EXERCISES: Exercise[] = SAMPLE_PARAMS.map(([id, params], i) 
   return { ...tpl.build(seeded(100 + i), params), id: `sample-${i + 1}` };
 });
 
-export type GenerateContext = { level: number; countryId: string; lang: string };
+export type GenerateContext = { level: number; countryId: string; lang: string; notions?: NotionId[] | undefined; focus?: NotionId | undefined };
 
 const LEVEL_DEMOS: Array<Array<[string, Params]>> = [
   [['sharing', { a: 3 }], ['fraction', { den: 4, num: 3, u: 3 }]],
@@ -621,6 +621,77 @@ export function demonstrationsForLevel(level: number): Exercise[] {
   return (LEVEL_DEMOS[index] ?? LEVEL_DEMOS[0] ?? []).map(([id, params], i) => ({
     ...buildDemo(id, params, seeded(100 + index * 10 + i)), id: `demo-${index}-${i}`, minLevel: index,
   }));
+}
+
+// ───────────── Atelier adapté au programme ─────────────
+
+/** Notions du programme que chaque type de problème en barres fait travailler. */
+export const TEMPLATE_NOTIONS: Record<string, NotionId[]> = {
+  sharing: ['integers', 'decimals'],
+  multiple: ['equations', 'algebra'],
+  difference: ['equations', 'systems'],
+  fraction: ['fractions'],
+  percent: ['proportion', 'statistics'],
+  ratio: ['proportion'],
+  perimeter: ['equations', 'areas'],
+};
+const TEMPLATE_ORDER = ['sharing', 'fraction', 'percent', 'ratio', 'multiple', 'difference', 'perimeter'] as const;
+
+/** Les paramètres du niveau le plus proche qui utilise ce type de problème (difficulté alignée sur la classe). */
+function paramsFor(template: string, index: number): Params | null {
+  for (let d = 0; d <= 6; d++) {
+    for (const i of [index - d, index + d]) {
+      const found = LEVEL_DEMOS[i]?.find(([id]) => id === template);
+      if (found) return found[1];
+    }
+  }
+  return SAMPLE_PARAMS.find(([id]) => id === template)?.[1] ?? null;
+}
+
+/** Les types de problèmes utiles pour ces notions ; la notion visée (chapitre en cours) d'abord. */
+export function templatesFor(notions: NotionId[], focus?: NotionId): string[] {
+  const useful = TEMPLATE_ORDER.filter(id => TEMPLATE_NOTIONS[id]!.some(n => notions.includes(n)));
+  if (!focus) return useful;
+  return [...useful.filter(id => TEMPLATE_NOTIONS[id]!.includes(focus)), ...useful.filter(id => !TEMPLATE_NOTIONS[id]!.includes(focus))];
+}
+
+/** La notion du programme travaillée par un problème : la notion visée si elle en fait partie, sinon la première du programme. */
+function notionServed(template: string, notions: NotionId[], focus?: NotionId): NotionId | null {
+  const served = TEMPLATE_NOTIONS[template] ?? [];
+  if (focus && served.includes(focus)) return focus;
+  return served.find(n => notions.includes(n)) ?? null;
+}
+
+/**
+ * Les exercices de l'atelier pour le programme de l'élève (au plus 3). Sans programme connu,
+ * on garde les démonstrations par niveau. Liste vide si aucun problème en barres ne sert ce programme
+ * (fréquent au lycée) : l'atelier propose alors les activités graphiques.
+ */
+export function workshopExercises(level: number, notions?: NotionId[], focus?: NotionId): Exercise[] {
+  if (!notions?.length) return demonstrationsForLevel(level);
+  const index = Math.max(0, Math.min(6, Math.floor(level)));
+  return templatesFor(notions, focus).slice(0, 3).flatMap(template => {
+    const params = paramsFor(template, index);
+    const notion = notionServed(template, notions, focus);
+    if (!params || !notion) return [];
+    return [{ ...buildDemo(template, params, seeded(300 + index * 10 + TEMPLATE_ORDER.indexOf(template as (typeof TEMPLATE_ORDER)[number]))), id: `prog-${index}-${template}`, minLevel: index, notion }];
+  });
+}
+
+export type HighSchoolMode = 'graph' | 'tree' | 'sign';
+const MODE_NOTIONS: Record<HighSchoolMode, NotionId[]> = {
+  graph: ['functions', 'quadratics', 'derivatives', 'limits', 'exponential', 'logarithm', 'trig-functions'],
+  tree: ['probability', 'probability-laws', 'counting'],
+  sign: ['quadratics', 'inequalities', 'derivatives'],
+};
+/** Les activités graphiques utiles au programme (toutes, sans programme connu). */
+export function highSchoolModes(notions?: NotionId[]): HighSchoolMode[] {
+  const modes: HighSchoolMode[] = ['graph', 'tree', 'sign'];
+  return notions?.length ? modes.filter(m => MODE_NOTIONS[m].some(n => notions.includes(n))) : modes;
+}
+/** La notion enregistrée pour une activité graphique : celle du programme quand c'est possible. */
+export function highSchoolNotion(mode: HighSchoolMode, notions?: NotionId[]): NotionId {
+  return MODE_NOTIONS[mode].find(n => notions?.includes(n)) ?? (mode === 'tree' ? 'probability' : mode === 'sign' ? 'inequalities' : 'functions');
 }
 
 /** A concrete tray for each equal part, plus a separate tray for any known excess. */
@@ -653,7 +724,21 @@ export function checkCalculation(ex: Exercise, equation: number | null, part: st
  * (same shape). The local fallback re-draws a template suited to the level with fresh numbers.
  */
 export async function generateAdaptedExercise(ctx: GenerateContext, seed: number = Date.now() % 1_000_000): Promise<Exercise> {
-  return buildGenerated(Math.max(0, Math.min(6, Math.floor(ctx.level))), seed);
+  const index = Math.max(0, Math.min(6, Math.floor(ctx.level)));
+  const templates = ctx.notions?.length ? templatesFor(ctx.notions, ctx.focus) : [];
+  if (!templates.length) return buildGenerated(index, seed);
+  // Le chapitre en cours une fois sur deux, sinon un autre problème utile au programme.
+  const template = seeded(seed)() < 0.5 ? templates[0]! : templates[seed % templates.length]!;
+  const ex = buildGeneratedFrom(index, seed, template);
+  const notion = notionServed(template, ctx.notions!, ctx.focus);
+  return notion ? { ...ex, notion } : ex;
+}
+
+function buildGeneratedFrom(index: number, seed: number, template: string): Exercise {
+  const rng = seeded(seed);
+  const params = paramsFor(template, index) ?? {};
+  const ex = buildDemo(template, { ...params, ...(template === 'sharing' ? { a: int(rng, 3, 8) } : template === 'difference' || template === 'perimeter' ? { x: (params.x ?? 5) + int(rng, 1, 5) } : template === 'multiple' ? { a: (params.a ?? 6) + int(rng, 1, 5) } : { u: (params.u ?? 3) + int(rng, 1, 5) }) }, rng);
+  return { ...ex, id: `gen-${index}-${seed}-${template}` };
 }
 
 /** Deterministic: the server can rebuild the exact same exercise from its id. */
@@ -670,6 +755,14 @@ export function exerciseById(id: string): Exercise | null {
   if (demo) return demonstrationsForLevel(Number(demo[1])).find(e => e.id === id) ?? null;
   const gen = /^gen-([0-6])-(\d{1,7})$/.exec(id);
   if (gen) return buildGenerated(Number(gen[1]), Number(gen[2]));
+  const genT = /^gen-([0-6])-(\d{1,7})-([a-z]{3,12})$/.exec(id);
+  if (genT && genT[3]! in TEMPLATE_NOTIONS) return buildGeneratedFrom(Number(genT[1]), Number(genT[2]), genT[3]!);
+  const prog = /^prog-([0-6])-([a-z]{3,12})$/.exec(id);
+  if (prog && prog[2]! in TEMPLATE_NOTIONS) {
+    const index = Number(prog[1]);
+    const params = paramsFor(prog[2]!, index);
+    return params ? { ...buildDemo(prog[2]!, params, seeded(300 + index * 10 + TEMPLATE_ORDER.indexOf(prog[2] as (typeof TEMPLATE_ORDER)[number]))), id, minLevel: index } : null;
+  }
   return SAMPLE_EXERCISES.find(e => e.id === id) ?? null;
 }
 
