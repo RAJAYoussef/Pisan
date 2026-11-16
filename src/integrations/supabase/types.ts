@@ -94,6 +94,8 @@ export type Database = {
       learning_sessions: {
         Row: {
           class_join_attempts: string[]
+          coach_count: number
+          coach_date: string
           created_at: string
           dys_default: Json | null
           dys_updated_at: string | null
@@ -107,6 +109,8 @@ export type Database = {
         }
         Insert: {
           class_join_attempts?: string[]
+          coach_count?: number
+          coach_date?: string
           created_at?: string
           dys_default?: Json | null
           dys_updated_at?: string | null
@@ -120,6 +124,8 @@ export type Database = {
         }
         Update: {
           class_join_attempts?: string[]
+          coach_count?: number
+          coach_date?: string
           created_at?: string
           dys_default?: Json | null
           dys_updated_at?: string | null
@@ -188,6 +194,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      consume_pisan_coach: {
+        Args: { p_hash: string; p_limit?: number }
+        Returns: number
+      }
       consume_pisan_exercise: { Args: { p_hash: string }; Returns: boolean }
       join_pisan_class: {
         Args: { p_code: string; p_hash: string }
