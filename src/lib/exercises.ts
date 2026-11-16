@@ -671,3 +671,16 @@ export function checkModel(
   const labelsOk = ex.required.every((r) => r.slots.some((s) => placed[s] === r.chip));
   return { unitsOk, labelsOk };
 }
+
+/** Explains why a concrete distribution is refused: totals right but excess misplaced, or unequal parts. */
+export function concreteMistake(ex: Exercise, counts: number[]): 'extra' | 'equal' | 'count' | null {
+  if (checkConcrete(ex, counts)) return null;
+  const { groups } = concreteSpec(ex);
+  const barSum = (b: number, from: number[]) => groups.reduce((s, g, i) => g.barIndex === b ? s + (from[i] ?? 0) : s, 0);
+  const target = groups.map(g => g.target);
+  const barsOk = ex.bars.every((_, b) => barSum(b, counts) === barSum(b, target));
+  if (barsOk && groups.some(g => g.extra)) return 'extra';
+  const parts = groups.map((g, i) => g.extra ? null : counts[i]).filter((n): n is number => n != null);
+  if (parts.some(n => n !== parts[0])) return 'equal';
+  return 'count';
+}

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ArrowRight, CheckCircle2, Lightbulb, Plus, Minus, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DICTS, type Lang } from '@/lib/i18n';
-import { checkModel, checkConcrete, checkCalculation, concreteSpec, demonstrationsForLevel, generateAdaptedExercise, type Exercise, type Slot } from '@/lib/exercises';
+import { checkModel, checkConcrete, concreteMistake, checkCalculation, concreteSpec, demonstrationsForLevel, generateAdaptedExercise, type Exercise, type Slot } from '@/lib/exercises';
 import { say, type Attempt } from '@/lib/pisan';
 import { Speaker, Tutor } from './shared';
 import { AskPi } from './coach';
@@ -47,7 +47,13 @@ function BarExercise({ lang, exercise: ex, onSave, onBack }: Props & { exercise:
   async function check() {
     setError('');
     const valid = step === 0 ? ex.verbal.blanks.every((b, i) => choices[i] === b.answer) : step === 1 ? checkConcrete(ex, objects) : step === 2 ? Object.values(checkModel(ex, units, extras, placed)).every(Boolean) : checkCalculation(ex, equation, partAnswer, answer);
-    if (!valid) { setError(d.ws.almost); setHint(true); return; }
+    if (!valid) {
+      const m = step === 1 ? concreteMistake(ex, objects) : null;
+      setError(m === 'extra' ? say(lang, 'Les totaux sont justes ! Mets dans chaque « Part » autant de jetons que les autres parts, et le reste dans « En plus ».', 'The totals are right! Put the same number of tokens in each "Part" as the other parts, and the rest in "Extra".', 'المجاميع صحيحة! ضع في كل «جزء» عدد الرموز نفسه كباقي الأجزاء، والباقي في «الزيادة».', '¡Los totales están bien! Pon en cada «Parte» tantas fichas como en las demás partes, y el resto en «Extra».')
+        : m === 'equal' ? say(lang, 'Toutes les « Parts » doivent avoir le même nombre de jetons.', 'All the "Parts" must have the same number of tokens.', 'يجب أن تحتوي كل «الأجزاء» على العدد نفسه من الرموز.', 'Todas las «Partes» deben tener el mismo número de fichas.')
+        : d.ws.almost);
+      setHint(true); return;
+    }
     if (step < 3) { setStep(step + 1); setHint(false); return; }
     setBusy(true);
     try { await onSave({ kind: 'workshop', notion: ex.notion, correct: 1, total: 1, date: new Date().toISOString(), minutes: 8 }); setDone(true); }
