@@ -9,7 +9,6 @@ import type { Lang } from '@/lib/i18n';
 import { say, type Progress, type StreakResult } from '@/lib/pisan';
 import { QuestionChoices } from './diagnostic';
 import { Why } from './learning-aids';
-import { browserTimeZone } from './streak';
 
 type Today = { day: string; notion: NotionId; index: number; done: boolean; correct: boolean | null };
 
