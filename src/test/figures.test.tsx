@@ -79,3 +79,108 @@ describe('Activité à l’écran', () => {
     vi.restoreAllMocks();
   });
 });
+
+import { angleDeg, answerOk, figureChapter, figuresFor, inscribedAngle, inscribedProblem, INSCRIBED_SPAN, trigoProblem } from '@/lib/figures';
+import { programmeFor, programmeNotions } from '@/lib/programmes';
+
+describe('Figures : trigonométrie', () => {
+  it('uses right triangles with whole sides that fit the grid', () => {
+    for (let seed = 0; seed < 200; seed++) {
+      const p = trigoProblem(seed);
+      expect(p.ab * p.ab + p.bc * p.bc).toBe(p.ac * p.ac);
+      expect(Math.max(p.ab, p.bc)).toBeLessThanOrEqual(GRID);
+      expect(p.angle).toBe(angleDeg(p.bc, p.ab));
+    }
+  });
+  it('checks BC, then cos Â, then Â to the nearest degree', () => {
+    const p = trigoProblem(1);
+    expect(placementOk(p, 0, p.bc)).toBe(true);
+    expect(placementOk(p, 0, p.bc + 1)).toBe(false);
+    expect(answerOk(p, 1, `${p.ab}/${p.ac}`)).toBe(true);
+    expect(answerOk(p, 1, `${p.bc}/${p.ac}`)).toBe(false); // sinus au lieu de cosinus
+    expect(answerOk(p, 2, String(p.angle))).toBe(true);
+    expect(answerOk(p, 2, `${p.angle + 1}°`)).toBe(true); // arrondi voisin accepté
+    expect(answerOk(p, 2, String(p.angle + 3))).toBe(false);
+  });
+  it('knows the classic angle of the 3-4-5 triangle', () => expect(angleDeg(3, 4)).toBe(37));
+});
+
+describe('Figures : angles inscrits', () => {
+  it('asks values that stay whole and on the right arc', () => {
+    for (let seed = 0; seed < 100; seed++) {
+      const p = inscribedProblem(seed);
+      expect(p.askCentral).not.toBe(p.central);
+      expect(Number.isInteger(inscribedAngle(p.askCentral))).toBe(true);
+      expect(p.askInscribed * 2).toBeLessThan(180);
+    }
+  });
+  it('requires moving M far enough, then applies the half rule both ways', () => {
+    const p = inscribedProblem(2);
+    expect(placementOk(p, INSCRIBED_SPAN - 5)).toBe(false);
+    expect(placementOk(p, INSCRIBED_SPAN)).toBe(true);
+    expect(answerOk(p, 1, String(p.askCentral / 2))).toBe(true);
+    expect(answerOk(p, 1, String(p.askCentral))).toBe(false);
+    expect(answerOk(p, 2, `${p.askInscribed * 2}°`)).toBe(true);
+  });
+});
+
+describe('Figures proposées selon le programme', () => {
+  const at = (country: string, grade: number) => { const p = programmeFor(country, grade)!; return figuresFor(p, programmeNotions(p).map(n => n.id), 0); };
+  it('Maroc 3e année collège : Pythagore (rappel), Thalès, trigonométrie et angles inscrits', () => {
+    expect(at('ma', 2)).toEqual(['pythagoras', 'thales', 'trigo', 'inscribed']);
+    expect(figureChapter(programmeFor('ma', 2), 'pythagoras')).toBeNull(); // Pythagore est vu en 2AC : « rappel »
+    expect(figureChapter(programmeFor('ma', 2), 'inscribed')?.fr).toBe('Angles inscrits et angles au centre');
+  });
+  it('France 3e : pas d’angles inscrits (hors programme)', () => {
+    expect(at('fr', 3)).toEqual(['pythagoras', 'thales', 'trigo']);
+  });
+  it('France 6e : aucune de ces figures, même si la 6e a un chapitre de géométrie', () => {
+    expect(at('fr', 0)).toEqual([]);
+  });
+  it('Côte d’Ivoire 3e : le chapitre « Triangle rectangle » sert à Pythagore et à la trigonométrie', () => {
+    const p = programmeFor('ci', 3);
+    expect(at('ci', 3)).toEqual(['pythagoras', 'thales', 'trigo', 'inscribed']);
+    expect(figureChapter(p, 'pythagoras')?.fr).toBe('Triangle rectangle');
+    expect(figureChapter(p, 'trigo')?.fr).toBe('Triangle rectangle');
+  });
+});
+
+describe('Nouvelles activités à l’écran', () => {
+  it('trigonometry can be completed with the keyboard and saves the trigonometry notion', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1);
+    const p = trigoProblem(1);
+    const onSave = vi.fn(async () => {});
+    render(<FigureActivity lang="fr" kind="trigo" onSave={onSave} onBack={() => {}} />);
+    // L'angle n'est jamais affiché avant la fin : c'est la réponse de la 3e étape.
+    expect(screen.getByText('Â = ?')).toBeTruthy();
+    const c = screen.getByRole('slider', { name: 'C' });
+    for (let v = 2; v < p.bc; v++) fireEvent.keyDown(c, { key: 'ArrowUp' });
+    expect(screen.getByText('Â = ?')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
+    fireEvent.change(screen.getByLabelText('Ta réponse'), { target: { value: `${p.ab}/${p.ac}` } });
+    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
+    fireEvent.change(screen.getByLabelText('Ta réponse'), { target: { value: String(p.angle) } });
+    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
+    expect(await screen.findByText('Bravo, figure réussie !')).toBeTruthy();
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ notion: 'trigonometry' }));
+    vi.restoreAllMocks();
+  });
+  it('inscribed angles: M must travel before going on, then the half rule is asked', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(2);
+    const p = inscribedProblem(2);
+    const onSave = vi.fn(async () => {});
+    render(<FigureActivity lang="fr" kind="inscribed" onSave={onSave} onBack={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
+    expect(screen.getByText(/Fais tourner M plus loin/)).toBeTruthy();
+    const m = screen.getByRole('slider', { name: 'M' });
+    for (let i = 0; i < 14; i++) fireEvent.keyDown(m, { key: 'ArrowRight' });
+    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
+    fireEvent.change(screen.getByLabelText('Ta réponse'), { target: { value: String(p.askCentral / 2) } });
+    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
+    fireEvent.change(screen.getByLabelText('Ta réponse'), { target: { value: String(p.askInscribed * 2) } });
+    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
+    expect(await screen.findByText('Bravo, figure réussie !')).toBeTruthy();
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ notion: 'geometry' }));
+    vi.restoreAllMocks();
+  });
+});

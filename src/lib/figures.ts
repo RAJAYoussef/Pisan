@@ -3,10 +3,14 @@
 // Fonctions pures et déterministes. Couvert par src/test/figures.test.ts.
 import { parse } from './answer-check';
 import { seeded } from './exercises';
-import type { NotionId } from './curriculum';
+import type { L, NotionId } from './curriculum';
+import type { Programme } from './programmes';
 
-export type FigureKind = 'pythagoras' | 'thales';
-export const FIGURE_NOTIONS: Record<FigureKind, NotionId[]> = { pythagoras: ['pythagoras-thales'], thales: ['pythagoras-thales'] };
+export type FigureKind = 'pythagoras' | 'thales' | 'trigo' | 'inscribed';
+export const FIGURE_KINDS: FigureKind[] = ['pythagoras', 'thales', 'trigo', 'inscribed'];
+export const FIGURE_NOTIONS: Record<FigureKind, NotionId[]> = { pythagoras: ['pythagoras-thales'], thales: ['pythagoras-thales'], trigo: ['trigonometry'], inscribed: ['geometry'] };
+/** Mots de l'intitulé officiel du chapitre qui correspond à chaque figure (Pythagore et Thalès partagent une notion, les angles inscrits aussi avec d'autres chapitres de géométrie). */
+export const FIGURE_CHAPTER_WORDS: Record<FigureKind, string[]> = { pythagoras: ['Pythagore', 'Triangle rectangle'], thales: ['Thalès'], trigo: ['Trigonométrie', 'trigonométriques', 'Triangle rectangle'], inscribed: ['inscrits'] };
 /** Taille du quadrillage (en carreaux) : les points se placent sur des nœuds entiers de 0 à GRID. */
 export const GRID = 12;
 
@@ -14,7 +18,11 @@ export const GRID = 12;
 export type PythagorasProblem = { kind: 'pythagoras'; ab: number; ac: number; bc: number };
 /** Triangle ABC, rectangle en B pour un dessin net : A(0 ; 0), B(ab ; 0), C(ab ; bc). M sur [AB], N sur [AC], (MN) ∥ (BC). */
 export type ThalesProblem = { kind: 'thales'; ab: number; bc: number; am: number; mn: number; ratio: [number, number] };
-export type FigureProblem = PythagorasProblem | ThalesProblem;
+/** Triangle rectangle en B : A(0 ; 0), B(ab ; 0), C(ab ; bc). L'élève règle la hauteur BC. */
+export type TrigoProblem = { kind: 'trigo'; ab: number; bc: number; ac: number; angle: number };
+/** Cercle de centre O, A et B fixes : l'angle au centre AOB, et l'angle inscrit AMB quand M parcourt le grand arc. */
+export type InscribedProblem = { kind: 'inscribed'; central: number; askCentral: number; askInscribed: number };
+export type FigureProblem = PythagorasProblem | ThalesProblem | TrigoProblem | InscribedProblem;
 
 // Triplets pythagoriciens qui tiennent dans le quadrillage.
 const TRIPLES: [number, number, number][] = [[3, 4, 5], [4, 3, 5], [6, 8, 10], [8, 6, 10], [5, 12, 13], [12, 5, 13], [9, 12, 15], [12, 9, 15]];
@@ -37,18 +45,67 @@ export function thalesProblem(seed: number): ThalesProblem {
   return options[Math.floor(rng() * options.length)]!;
 }
 
-export function figureProblem(kind: FigureKind, seed: number): FigureProblem {
-  return kind === 'pythagoras' ? pythagorasProblem(seed) : thalesProblem(seed);
+// Triangles rectangles à côtés entiers qui tiennent dans le quadrillage (AB adjacent, BC opposé à Â).
+const TRIGO: [number, number, number][] = [[8, 6, 10], [6, 8, 10], [12, 5, 13], [5, 12, 13], [12, 9, 15], [9, 12, 15], [4, 3, 5], [3, 4, 5]];
+/** Angle Â en degrés, arrondi au degré. */
+export const angleDeg = (opp: number, adj: number) => Math.round((Math.atan2(opp, adj) * 180) / Math.PI);
+
+export function trigoProblem(seed: number): TrigoProblem {
+  const [ab, bc, ac] = TRIGO[Math.floor(seeded(seed)() * TRIGO.length)]!;
+  return { kind: 'trigo', ab, bc, ac, angle: angleDeg(bc, ab) };
 }
+
+export function inscribedProblem(seed: number): InscribedProblem {
+  const rng = seeded(seed);
+  const pick = (list: number[]) => list[Math.floor(rng() * list.length)]!;
+  const central = pick([80, 100, 120, 140]);
+  const askCentral = pick([60, 90, 110, 130, 150].filter(v => v !== central));
+  return { kind: 'inscribed', central, askCentral, askInscribed: pick([25, 35, 40, 55, 65]) };
+}
+
+export function figureProblem(kind: FigureKind, seed: number): FigureProblem {
+  switch (kind) {
+    case 'pythagoras': return pythagorasProblem(seed);
+    case 'thales': return thalesProblem(seed);
+    case 'trigo': return trigoProblem(seed);
+    case 'inscribed': return inscribedProblem(seed);
+  }
+}
+
+/** Angle inscrit AMB (en degrés) pour un angle au centre AOB, M sur le grand arc. */
+export const inscribedAngle = (central: number) => central / 2;
+/** Étendue minimale (en degrés) que M doit parcourir sur le cercle pour « observer » que AMB ne change pas. */
+export const INSCRIBED_SPAN = 60;
 
 /** Étape 1 réussie : les points sont à la bonne place. */
 export function placementOk(p: FigureProblem, x: number, y = 0): boolean {
-  return p.kind === 'pythagoras' ? x === p.ab && y === p.ac : x === p.am;
+  switch (p.kind) {
+    case 'pythagoras': return x === p.ab && y === p.ac;
+    case 'thales': return x === p.am;
+    case 'trigo': return y === p.bc;
+    case 'inscribed': return x >= INSCRIBED_SPAN; // x = étendue parcourue par M, en degrés
+  }
 }
 
 /** Ce que l'élève doit trouver à chaque étape de calcul. */
 export function expectedValues(p: FigureProblem): [number, number] {
-  return p.kind === 'pythagoras' ? [p.bc * p.bc, p.bc] : [p.ratio[0] / p.ratio[1], p.mn];
+  switch (p.kind) {
+    case 'pythagoras': return [p.bc * p.bc, p.bc];
+    case 'thales': return [p.ratio[0] / p.ratio[1], p.mn];
+    case 'trigo': return [p.ab / p.ac, p.angle];
+    case 'inscribed': return [inscribedAngle(p.askCentral), p.askInscribed * 2];
+  }
+}
+
+/** Réponse de l'étape 1 ou 2. Un angle de trigonométrie se donne au degré près (on accepte l'arrondi voisin). */
+export function answerOk(p: FigureProblem, step: 1 | 2, input: string): boolean {
+  const expected = expectedValues(p)[step - 1]!;
+  if (p.kind === 'trigo' && step === 2) {
+    const parsed = parse(input.replace(/°/g, ''));
+    if (!parsed || parsed.usesX) return false;
+    return Math.abs(parsed.fn(0) - expected) <= 1;
+  }
+  return valueOk(input.replace(/°/g, ''), expected);
 }
 
 /** Réponse tapée : la valeur exacte (fraction ou décimal), ou un décimal arrondi au centième pour un rapport. */
@@ -68,4 +125,23 @@ export const length = (dx: number, dy: number) => Math.round(Math.hypot(dx, dy) 
 export function pointN(p: ThalesProblem, am: number): { x: number; y: number } {
   const k = am / p.ab;
   return { x: p.ab * k, y: p.bc * k };
+}
+
+/** Le chapitre officiel qui correspond à une figure (null si la figure n'est pas au programme de l'année). */
+export function figureChapter(programme: Programme | null | undefined, kind: FigureKind): L | null {
+  const words = FIGURE_CHAPTER_WORDS[kind];
+  return programme?.chapters.find(c => c.notions.some(n => FIGURE_NOTIONS[kind].includes(n)) && words.some(w => c.title.fr.includes(w)))?.title ?? null;
+}
+
+/**
+ * Les figures à proposer dans l'atelier. Pythagore, Thalès et la trigonométrie suivent la notion (Pythagore
+ * apparaît alors en « rappel » s'il était au programme d'une année précédente). Les angles inscrits partagent
+ * la notion « géométrie » avec d'autres chapitres : on exige l'intitulé officiel. Sans programme : selon le niveau.
+ */
+export function figuresFor(programme: Programme | null | undefined, notions: NotionId[] | undefined, level: number): FigureKind[] {
+  return FIGURE_KINDS.filter(k => {
+    if (!notions) return k === 'inscribed' ? level === 3 : level >= 2 && level <= 4;
+    if (k === 'inscribed') return figureChapter(programme, k) !== null;
+    return FIGURE_NOTIONS[k].some(n => notions.includes(n));
+  });
 }
