@@ -10,9 +10,9 @@ import { say } from '@/lib/pisan';
 import { Speaker } from './shared';
 
 /** Bouton « Pourquoi ? » : déplie la correction pas à pas d'une question. */
-export function Why({ notion, index, lang }: { notion: NotionId; index: number; lang: Lang }) {
+export function Why({ notion, index, lang, steps: given }: { notion: NotionId; index: number; lang: Lang; steps?: string[] | undefined }) {
   const [open, setOpen] = useState(false);
-  const steps = (CORRECTIONS[notion]?.[index] ?? []).map(step => localizeMath(step, lang));
+  const steps = (given ?? CORRECTIONS[notion]?.[index] ?? []).map(step => localizeMath(step, lang));
   if (!steps.length) return null;
   const label = say(lang, 'Pourquoi ?', 'Why?', 'لماذا؟', '¿Por qué?');
   return <div className="mt-3">

@@ -39,3 +39,15 @@ describe('Banque du défi du jour', () => {
     expect(typed).toBeGreaterThan(40);
   });
 });
+
+describe('Défi du jour branché sur sa banque', () => {
+  it('serves a question from the challenge bank, never one from the graded tests', async () => {
+    const { dailyChallenge, challengeNotions } = await import('@/lib/challenge');
+    const notions = challengeNotions('ma', 2);
+    for (const day of ['2026-11-16', '2026-11-17', '2026-12-01', '2027-01-05']) {
+      const c = dailyChallenge(day, notions)!;
+      expect(CHALLENGE_BANK[c.notion]).toContainEqual({ question: c.question, steps: c.steps });
+      expect(NOTIONS.find(n => n.id === c.notion)!.questions).not.toContain(c.question);
+    }
+  });
+});

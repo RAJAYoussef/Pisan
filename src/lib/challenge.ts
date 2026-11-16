@@ -3,6 +3,7 @@
 import { chaptersForLevel, getLevel, type Notion, type NotionId, type Question } from './curriculum';
 import { programmeFor, programmeNotions } from './programmes';
 import { checkFreeAnswer, freeAnswer } from './answer-check';
+import { CHALLENGE_BANK } from './challenge-bank';
 
 export const CHALLENGE_STARS = 5;
 
@@ -15,17 +16,23 @@ function hash(text: string): number {
 export function challengeNotions(country: string, grade: number, track?: string): Notion[] {
   const programme = programmeFor(country, grade, track);
   const list = programme ? programmeNotions(programme) : chaptersForLevel(getLevel(country, grade));
-  return list.filter(n => n.questions.length > 0);
+  return list.filter(n => (CHALLENGE_BANK[n.id]?.length ?? 0) > 0);
 }
 
-export type Challenge = { notion: NotionId; index: number; question: Question };
+export type Challenge = { notion: NotionId; index: number; question: Question; steps: string[] };
+
+/** Question n° index du défi pour une notion (banque séparée des contrôles notés). */
+export function challengeItem(notion: NotionId, index: number) {
+  return CHALLENGE_BANK[notion]?.[index] ?? null;
+}
 
 export function dailyChallenge(day: string, notions: Notion[]): Challenge | null {
   if (!notions.length) return null;
   const h = hash(`${day}|${notions.map(n => n.id).join(',')}`);
   const notion = notions[h % notions.length]!;
-  const index = Math.floor(h / notions.length) % notion.questions.length;
-  return { notion: notion.id, index, question: notion.questions[index]! };
+  const bank = CHALLENGE_BANK[notion.id]!;
+  const index = Math.floor(h / notions.length) % bank.length;
+  return { notion: notion.id, index, question: bank[index]!.question, steps: bank[index]!.steps };
 }
 
 /** Correction côté serveur : index de QCM ou réponse tapée. */
