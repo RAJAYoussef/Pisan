@@ -13,7 +13,7 @@ import { FreeAnswer, loadAnswerMode, saveAnswerMode, type AnswerMode } from './f
 import { freeAnswer } from '@/lib/answer-check';
 
 type Props = { lang: Lang; level: number; notions?: Notion[] | undefined; onSave: (a: Attempt) => Promise<void>; onWorkshop: () => void };
-export function QuestionChoices({ question, lang, selected, onSelect, coach, onText }: { question: Question; lang: Lang; selected: number | null; onSelect: (i: number | null) => void; onText?: (text: string) => void; coach?: { notion: NotionId; index: number } }) {
+export function QuestionChoices({ question, lang, selected, onSelect, coach, onText }: { question: Question; lang: Lang; selected: number | null; onSelect: (i: number | null) => void; onText?: ((text: string) => void) | undefined; coach?: { notion: NotionId; index: number } }) {
   const d = DICTS[lang];
   const [mode, setMode] = useState<AnswerMode>(loadAnswerMode);
   const canType = freeAnswer(question) !== null;

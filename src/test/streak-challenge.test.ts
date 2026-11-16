@@ -30,11 +30,13 @@ describe('Flamme', () => {
 
 describe('Local day', () => {
   const at = new Date('2026-11-16T22:30:00Z');
-  it('Casablanca and Paris differ late in the evening', () => {
+  it('Casablanca and Paris (UTC+1 in November) switch day at local midnight, not server midnight', () => {
     expect(localDay(at, 'Africa/Casablanca')).toBe('2026-11-16');
     expect(localDay(at, 'Europe/Paris')).toBe('2026-11-16');
+    expect(localDay(at, 'UTC')).toBe('2026-11-16');
     expect(localDay(new Date('2026-11-16T23:30:00Z'), 'Europe/Paris')).toBe('2026-11-17');
-    expect(localDay(new Date('2026-11-16T23:30:00Z'), 'Africa/Casablanca')).toBe('2026-11-16');
+    expect(localDay(new Date('2026-11-16T23:30:00Z'), 'Africa/Casablanca')).toBe('2026-11-17');
+    expect(localDay(new Date('2026-11-16T23:30:00Z'), 'UTC')).toBe('2026-11-16');
   });
   it('La Réunion (UTC+4) is already tomorrow', () => {
     expect(localDay(new Date('2026-11-16T20:30:00Z'), 'Indian/Reunion')).toBe('2026-11-17');
