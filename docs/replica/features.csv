@@ -1,55 +1,55 @@
 feature,area,priority,original,clone,notes
-Connexion élève par email ou compte école,compte,must,yes,no,SSO école en plus (Google Workspace / Microsoft / ENT)
-Onboarding : niveau et objectif,onboarding,must,yes,no,
-Choix du pays et du référentiel à l'onboarding,onboarding,must,no,no,AJOUT : FR / MA / BE-FWB / CH-PER / UK / US
-Interface en FR et EN,langues,must,partial,no,AJOUT : l'original a FR et EN selon le store
-Interface en arabe avec affichage RTL,langues,must,no,no,AJOUT : formules gardées en LTR
-Diagnostic de niveau,parcours,must,yes,no,
-Parcours personnalisé de compétences,parcours,must,yes,no,
-Programme par chapitres et compétences du référentiel,parcours,must,yes,no,un référentiel par pays (AJOUT)
-Fiche cours par compétence,contenu,must,yes,no,contenu écrit par nous
+Connexion élève par email ou compte école,compte,must,yes,partial,"SSO école en plus (Google Workspace / Microsoft / ENT) | PiSan : pseudo + code de classe, sans email (choix volontaire) ; pas de SSO école"
+Onboarding : niveau et objectif,onboarding,must,yes,yes,"PiSan : pays, niveau, filière, langue"
+Choix du pays et du référentiel à l'onboarding,onboarding,must,no,yes,"AJOUT : FR / MA / BE-FWB / CH-PER / UK / US | PiSan : FR, MA, SN, CI, US + niveaux pour BE, CH, UK, CA, IB"
+Interface en FR et EN,langues,must,partial,yes,AJOUT : l'original a FR et EN selon le store
+Interface en arabe avec affichage RTL,langues,must,no,yes,AJOUT : formules gardées en LTR | PiSan : chiffres 0-9
+Diagnostic de niveau,parcours,must,yes,yes,"PiSan : adaptatif, suit le programme et remonte aux prérequis"
+Parcours personnalisé de compétences,parcours,must,yes,yes,PiSan : diagnostic → lacune → consolidation → parcours
+Programme par chapitres et compétences du référentiel,parcours,must,yes,yes,"un référentiel par pays (AJOUT) | PiSan : 6e, 3e, Terminale ; autres niveaux par âge"
+Fiche cours par compétence,contenu,must,yes,partial,"contenu écrit par nous | PiSan : une leçon courte et un exemple par notion, pas de vraie fiche"
 Fiche méthode par compétence,contenu,must,yes,no,contenu écrit par nous
-Exercices en 3 niveaux (Manipuler / Expliquer / Raisonner),exercices,must,yes,no,
-Correction pas à pas,exercices,must,yes,no,
-Saisie mathématique (nombres expressions fractions),exercices,must,yes,no,accepter « 0.5 » et la virgule décimale
-Suivi de maîtrise par compétence,progression,must,yes,no,
-Coach IA par texte qui guide sans donner la réponse,coach,must,yes,no,garde-fous pour mineurs
-Mode DYS : police adaptée taille interligne espacement fond,dys,must,no,no,AJOUT : OpenDyslexic / Lexend / Andika ; fond crème
+Exercices en 3 niveaux (Manipuler / Expliquer / Raisonner),exercices,must,yes,partial,PiSan : atelier CPA en 4 étapes ; pas de gradation par compétence
+Correction pas à pas,exercices,must,yes,partial,PiSan : dans l'atelier ; QCM sans correction détaillée
+Saisie mathématique (nombres expressions fractions),exercices,must,yes,partial,"accepter « 0.5 » et la virgule décimale | PiSan : nombres dans l'atelier ; QCM ailleurs, pas d'expressions"
+Suivi de maîtrise par compétence,progression,must,yes,yes,
+Coach IA par texte qui guide sans donner la réponse,coach,must,yes,yes,"garde-fous pour mineurs | PiSan : Pi, réservé aux établissements et classes"
+Mode DYS : police adaptée taille interligne espacement fond,dys,must,no,yes,AJOUT : OpenDyslexic / Lexend / Andika ; fond crème
 Coach IA par photo d'exercice,coach,should,yes,no,
-Indices progressifs sur les exercices,exercices,should,partial,no,
-Quiz de révision illimités,révision,should,yes,no,
+Indices progressifs sur les exercices,exercices,should,partial,partial,PiSan : indices de l'atelier
+Quiz de révision illimités,révision,should,yes,partial,"PiSan : contrôles par chapitre, 3 par jour en offre Découverte"
 Révision espacée,révision,should,partial,no,
-Mode DYS : lecture audio des fiches et énoncés y compris formules,dys,should,no,no,AJOUT : Web Speech API + MathML
-Mode DYS : règle de lecture et une consigne à la fois,dys,should,no,no,AJOUT
-Mode DYS : pas de chronomètre et plus de temps,dys,should,no,no,AJOUT
+Mode DYS : lecture audio des fiches et énoncés y compris formules,dys,should,no,partial,AJOUT : Web Speech API + MathML | PiSan : énoncés lus ; formules lues telles quelles
+Mode DYS : règle de lecture et une consigne à la fois,dys,should,no,partial,AJOUT | PiSan : règle oui ; « une consigne à la fois » non
+Mode DYS : pas de chronomètre et plus de temps,dys,should,no,yes,AJOUT
 Mode DYS : réponse à l'oral (dictée),dys,should,no,no,AJOUT : dysgraphie
-Espace enseignant : classes et code d'invitation,enseignant,should,no,no,AJOUT
-Espace enseignant : carte de chaleur des compétences,enseignant,should,no,no,AJOUT
+Espace enseignant : classes et code d'invitation,enseignant,should,no,yes,AJOUT
+Espace enseignant : carte de chaleur des compétences,enseignant,should,no,yes,AJOUT
 Espace enseignant : assigner un travail,enseignant,should,no,no,AJOUT
-Enseignant prescrit le mode DYS pour un élève (PAP/PAI),enseignant,should,no,no,AJOUT
-Table de correspondance des notions entre pays,référentiels,should,no,no,AJOUT : NotionPivot pour réutiliser le contenu
+Enseignant prescrit le mode DYS pour un élève (PAP/PAI),enseignant,should,no,yes,AJOUT
+Table de correspondance des notions entre pays,référentiels,should,no,yes,AJOUT : NotionPivot pour réutiliser le contenu | PiSan : notions partagées entre pays
 Notifications de rappel,motivation,should,yes,no,
 Mode DYS : coloration syllabique (FR),dys,could,no,no,AJOUT
-Mode DYS dyscalculie : couleurs par rang (unités dizaines) et manipulables,dys,could,no,no,AJOUT
-Notes visuelles,contenu,could,yes,no,
+Mode DYS dyscalculie : couleurs par rang (unités dizaines) et manipulables,dys,could,no,partial,AJOUT | PiSan : jetons manipulables ; pas de couleurs par rang
+Notes visuelles,contenu,could,yes,partial,PiSan : modèles en barres de Singapour
 Mode hors ligne pour les fiches,contenu,could,partial,no,
-Export des résultats (CSV),enseignant,could,no,no,AJOUT
-Programmes anglophones UK et US,référentiels,could,partial,no,à faire après FR et MA
+Export des résultats (CSV),enseignant,could,no,yes,AJOUT
+Programmes anglophones UK et US,référentiels,could,partial,partial,à faire après FR et MA | PiSan : US oui ; UK niveaux seulement
 Contenu de Mathflow (cours et exercices),contenu,must,yes,skip,leur propriété : on écrit le nôtre
 Abonnement et paywall,paiement,should,yes,skip,usage école
 Prépa SAT / AP et parcours adultes,contenu,could,yes,skip,hors du public visé
-Chemin de compétences par chapitre (nœuds) et épreuve de chapitre,parcours,must,yes,no,vu sur capture
-Activités interactives manipulables (graphique ou figure),exercices,must,yes,no,vu sur capture
-Bouton « Pourquoi ? » après chaque réponse,exercices,must,yes,no,vu sur capture
-Flamme (série de jours) avec gel,motivation,should,yes,no,
+Chemin de compétences par chapitre (nœuds) et épreuve de chapitre,parcours,must,yes,partial,vu sur capture | PiSan : chapitres + contrôle par chapitre ; pas de chemin de nœuds
+Activités interactives manipulables (graphique ou figure),exercices,must,yes,yes,"vu sur capture | PiSan : jetons, graphique, arbre, tableau de signes"
+Bouton « Pourquoi ? » après chaque réponse,exercices,must,yes,partial,vu sur capture | PiSan : dans l'atelier seulement
+Flamme (série de jours) avec gel,motivation,should,yes,partial,PiSan : compteur de jours actifs ; pas de série ni de gel
 Quêtes de la semaine et coffre,motivation,could,yes,no,
 Défi du jour,motivation,should,yes,no,
 Mini-jeux de calcul,motivation,could,yes,no,
 Duels et classement de la semaine,motivation,could,yes,no,désactivable par l'enseignant (anxiété DYS)
-Étoiles et avatars,motivation,could,yes,no,
-Mode parent : semaine de l'enfant et alertes,parents,should,yes,no,
-Conversations avec le coach privées (non visibles par parents et enseignants),coach,must,yes,no,
-Activité d'essai sans compte,onboarding,could,yes,no,
-Niveaux collège 6e à 3e,référentiels,could,yes,no,après le premier jalon
+Étoiles et avatars,motivation,could,yes,partial,PiSan : étoiles oui ; avatars non
+Mode parent : semaine de l'enfant et alertes,parents,should,yes,partial,PiSan : vue de suivi ; pas d'alertes ni de compte parent
+Conversations avec le coach privées (non visibles par parents et enseignants),coach,must,yes,yes,
+Activité d'essai sans compte,onboarding,could,yes,no,PiSan : il faut un pseudo
+Niveaux collège 6e à 3e,référentiels,could,yes,yes,après le premier jalon
 Énergies limitées et publicité,paiement,could,yes,skip,usage école : rien de bloquant
-Langue espagnole (ES),langues,should,no,no,AJOUT : déjà présente dans la maquette Lovable
+Langue espagnole (ES),langues,should,no,yes,AJOUT : déjà présente dans la maquette Lovable
