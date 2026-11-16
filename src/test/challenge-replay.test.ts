@@ -40,9 +40,34 @@ describe('Défi du jour côté serveur', () => {
   });
 
   it('alternating two time zones does not allow replaying the challenge', async () => {
-    // UTC+14 then UTC-11: the second zone is a calendar day behind.
+    // UTC+14 then UTC-11: the second zone is a calendar day behind, so its "today" is not after the claimed day.
     expect((await answer({ data: { token, choice: 0 } })).status).toBe('done');
     await open({ data: { token, profile: { ...base, timezone: 'Pacific/Pago_Pago' } } });
-    expect((db.row.profile as { timezone: string }).timezone).toBe('Pacific/Kiritimati'); // change refused? first change allowed only when none set; here one is set and changedAt null → allowed
+    expect(db.row.profile.timezone).toBe('Pacific/Pago_Pago');
+    expect((await answer({ data: { token, choice: 1 } })).status).toBe('already');
+    await open({ data: { token, profile: { ...base, timezone: 'Pacific/Kiritimati' } } });
+    expect(db.row.profile.timezone).toBe('Pacific/Pago_Pago'); // second change within 7 days refused
+    expect((await answer({ data: { token, choice: 1 } })).status).toBe('already');
+  });
+
+  it('two simultaneous saves keep both attempts', async () => {
+    const attempt = (n: number) => ({ kind: 'workshop', notion: 'fractions', correct: n, total: 5, date: 'x', minutes: 1 });
+    await Promise.all([save({ data: { token, attempt: attempt(1) } }), save({ data: { token, attempt: attempt(2) } })]);
+    expect(db.row.progress.attempts).toHaveLength(2);
+  });
+});
+
+describe('Règles de jour et de fuseau', () => {
+  const now = new Date('2026-11-16T20:00:00Z');
+  it('refuses a day equal to or before the last one, or more than one day ahead of UTC', () => {
+    expect(acceptDay('2026-11-16', '2026-11-16', now)).toBe(false);
+    expect(acceptDay('2026-11-16', '2026-11-15', now)).toBe(false);
+    expect(acceptDay('2026-11-15', '2026-11-18', now)).toBe(false);
+    expect(acceptDay('2026-11-16', '2026-11-17', now)).toBe(true);
+  });
+  it('accepts at most one time zone change per 7 days', () => {
+    expect(resolveTimeZone('Europe/Paris', 'Asia/Tokyo', '2026-11-12T00:00:00Z', now).timezone).toBe('Europe/Paris');
+    expect(resolveTimeZone('Europe/Paris', 'Asia/Tokyo', '2026-11-08T00:00:00Z', now).timezone).toBe('Asia/Tokyo');
+    expect(localDay(now, 'Pacific/Kiritimati')).toBe('2026-11-17');
   });
 });
