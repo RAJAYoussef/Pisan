@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import type { Profile } from './pisan';
-import { coachSystemPrompt, trimHistory, westernDigits, COACH_DAILY_LIMIT, COACH_MAX_CHARS } from './coach';
+import { coachSystemPrompt, trimHistory, westernDigits, resolveCoachTarget, safeReply, COACH_DAILY_LIMIT, COACH_GLOBAL_DAILY_LIMIT, COACH_MAX_CHARS, COACH_STEPS, type CoachRef } from './coach';
 
 const credential = z.string().regex(/^[a-f0-9]{64}$/);
 async function hashToken(token: string) {
@@ -9,24 +9,53 @@ async function hashToken(token: string) {
   return Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2, '0')).join('');
 }
 
-export type CoachResult = { ok: true; reply: string; remaining: number } | { ok: false; reason: 'quota' | 'busy' | 'credits' | 'error' };
+export type CoachResult = { ok: true; reply: string; sig: string; remaining: number } | { ok: false; reason: 'quota' | 'busy' | 'credits' | 'error' | 'locked' | 'resting' };
+
+// Signe les réponses de Pi : seul le serveur peut produire un message « assistant » accepté dans l'historique.
+async function sign(hash: string, ref: CoachRef, content: string) {
+  const secret = process.env['SUPABASE_SERVICE_ROLE_KEY'];
+  if (!secret) throw new Error('missing secret');
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey('raw', enc.encode(`pisan-coach:${secret}`), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const mac = await crypto.subtle.sign('HMAC', key, enc.encode(`${hash}\n${JSON.stringify(ref)}\n${content}`));
+  return Array.from(new Uint8Array(mac), b => b.toString(16).padStart(2, '0')).join('');
+}
+const same = (a: string, b: string) => { if (a.length !== b.length) return false; let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i); return d === 0; };
 
 // Les conversations ne sont jamais enregistrées : seul le compteur quotidien est conservé.
 export const askCoach = createServerFn({ method: 'POST' })
   .inputValidator(z.object({
     token: credential,
-    context: z.object({ activity: z.enum(['diagnostic', 'exam', 'workshop', 'consolidation']), statement: z.string().max(2000), notion: z.string().max(200), step: z.string().max(200).optional(), dys: z.boolean() }),
-    messages: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().min(1).max(COACH_MAX_CHARS * 2) })).min(1).max(40),
+    context: z.object({
+      activity: z.enum(['workshop', 'consolidation', 'review']),
+      ref: z.discriminatedUnion('kind', [
+        z.object({ kind: z.literal('question'), notion: z.string().max(40), index: z.number().int().min(0).max(50) }),
+        z.object({ kind: z.literal('exercise'), id: z.string().regex(/^[a-z0-9-]{1,30}$/) }),
+      ]),
+      step: z.number().int().min(0).max(3).optional(),
+      dys: z.boolean(),
+    }),
+    messages: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().min(1).max(COACH_MAX_CHARS * 2), sig: z.string().regex(/^[a-f0-9]{64}$/).optional() })).min(1).max(40),
   }))
   .handler(async ({ data }): Promise<CoachResult> => {
     const hash = await hashToken(data.token);
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    const ref = data.context.ref as CoachRef;
+    const last = data.messages[data.messages.length - 1];
+    if (last?.role !== 'user') return { ok: false, reason: 'error' };
+    for (const m of data.messages) {
+      if (m.role === 'assistant' && (!m.sig || !same(m.sig, await sign(hash, ref, m.content)))) return { ok: false, reason: 'error' };
+    }
     const session = await supabaseAdmin.from('learning_sessions').select('profile').eq('token_hash', hash).maybeSingle();
     if (session.error || !session.data) return { ok: false, reason: 'error' };
-    const { data: remaining, error } = await supabaseAdmin.rpc('consume_pisan_coach', { p_hash: hash, p_limit: COACH_DAILY_LIMIT });
-    if (error) return { ok: false, reason: 'error' };
-    if ((remaining ?? -1) < 0) return { ok: false, reason: 'quota' };
     const profile = session.data.profile as unknown as Profile;
+    const target = resolveCoachTarget(ref, profile.lang);
+    if (!target) return { ok: false, reason: 'error' };
+    const { data: remaining, error } = await supabaseAdmin.rpc('consume_pisan_coach_gated', { p_hash: hash, p_limit: COACH_DAILY_LIMIT, p_global: COACH_GLOBAL_DAILY_LIMIT });
+    if (error || remaining === null) return { ok: false, reason: 'error' };
+    if (remaining === -3) return { ok: false, reason: 'locked' };
+    if (remaining === -2) return { ok: false, reason: 'resting' };
+    if (remaining < 0) return { ok: false, reason: 'quota' };
     const key = process.env['LOVABLE_API_KEY'];
     if (!key) return { ok: false, reason: 'error' };
     const history = trimHistory(data.messages);
@@ -36,7 +65,7 @@ export const askCoach = createServerFn({ method: 'POST' })
       body: JSON.stringify({
         model: 'openai/gpt-6-astra', stream: true, store: false,
         reasoning: { effort: 'low' },
-        instructions: coachSystemPrompt(profile, data.context),
+        instructions: coachSystemPrompt(profile, { activity: data.context.activity, statement: target.statement, notion: target.notion, step: data.context.step === undefined ? undefined : COACH_STEPS[data.context.step], dys: data.context.dys }),
         input: history.map(m => ({ role: m.role, content: m.content })),
       }),
     });
@@ -66,7 +95,8 @@ export const askCoach = createServerFn({ method: 'POST' })
       }
     }
     if (refused && !text.trim()) return { ok: false, reason: 'error' };
-    const reply = westernDigits(text.trim());
-    if (!reply) return { ok: false, reason: 'error' };
-    return { ok: true, reply, remaining: remaining as number };
+    const raw = westernDigits(text.trim());
+    if (!raw) return { ok: false, reason: 'error' };
+    const reply = safeReply(raw, target.answers, profile.lang);
+    return { ok: true, reply, sig: await sign(hash, ref, reply), remaining };
   });
