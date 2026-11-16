@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowRight, CheckCircle2, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DICTS, type Lang } from '@/lib/i18n';
-import { getNotion, localizeMath, type Notion, type Question } from '@/lib/curriculum';
+import { getNotion, localizeMath, type Notion, type NotionId, type Question } from '@/lib/curriculum';
 import { analyze, diagnosticPath, DIAGNOSTIC_LENGTH, nextIndex, pickQuestion, startIndex, type DiagAnswer } from '@/lib/diagnostic';
 import { say, type Attempt } from '@/lib/pisan';
 import { Speaker, Tutor, Meter } from './shared';
