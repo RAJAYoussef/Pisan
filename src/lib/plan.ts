@@ -103,3 +103,18 @@ export function localDay(at: Date, tz: string | undefined): string {
   const get = (t: string) => parts.find(p => p.type === t)?.value ?? "";
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
+
+export const TIMEZONE_CHANGE_DAYS = 7;
+/** Fuseau du profil : un changement est accepté au plus une fois tous les 7 jours (le premier réglage est libre). */
+export function resolveTimeZone(current: string | undefined, requested: string | undefined, changedAt: string | null, now: Date): { timezone: string | undefined; changedAt: string | null } {
+  const valid = isTimeZone(requested) ? requested : undefined;
+  if (!valid || valid === current) return { timezone: current, changedAt: null };
+  if (!current) return { timezone: valid, changedAt: now.toISOString() };
+  if (changedAt && now.getTime() - new Date(changedAt).getTime() < TIMEZONE_CHANGE_DAYS * 86400000) return { timezone: current, changedAt: null };
+  return { timezone: valid, changedAt: now.toISOString() };
+}
+/** Miroir de la garde SQL : un jour doit être strictement après le dernier, et au plus demain (UTC). */
+export function acceptDay(last: string | null | undefined, day: string, now: Date): boolean {
+  const tomorrow = new Date(now.getTime() + 86400000).toISOString().slice(0, 10);
+  return day <= tomorrow && (!last || day > last);
+}
