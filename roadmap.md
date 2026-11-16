@@ -20,4 +20,5 @@
 - [x] Vérifications des parcours et des règles
 - [x] Atelier CPA en quatre étapes avec manipulation tactile
 - [x] Démonstrations différenciées selon la classe et vérification des parcours
+- [x] Flamme avec gels, jour local de l’élève, et défi du jour corrigé côté serveur
 - [ ] Activer les paiements réels — fournisseur de paiement non connecté
