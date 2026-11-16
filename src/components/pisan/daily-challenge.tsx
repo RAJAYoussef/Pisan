@@ -9,7 +9,6 @@ import type { Lang } from '@/lib/i18n';
 import { say, type Progress, type StreakResult } from '@/lib/pisan';
 import { QuestionChoices } from './diagnostic';
 import { Why } from './learning-aids';
-import { browserTimeZone } from './streak';
 
 type Today = { day: string; notion: NotionId; index: number; done: boolean; correct: boolean | null };
 
@@ -24,7 +23,7 @@ export function DailyChallenge({ lang, token, onSaved }: { lang: Lang; token: st
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [answer, setAnswer] = useState('');
-  useEffect(() => { let off = false; load({ data: { token, timezone: browserTimeZone() } }).then(t => { if (!off) setToday(t); }).catch(() => {}); return () => { off = true; }; }, [token, load]);
+  useEffect(() => { let off = false; load({ data: { token } }).then(t => { if (!off) setToday(t); }).catch(() => {}); return () => { off = true; }; }, [token, load]);
   if (!today) return null;
   const notion = getNotion(today.notion);
   const question = notion.questions[today.index];
@@ -33,7 +32,7 @@ export function DailyChallenge({ lang, token, onSaved }: { lang: Lang; token: st
     setBusy(true); setError('');
     try {
       const typed = text.trim();
-      const r = await submit({ data: { token, timezone: browserTimeZone(), ...(typed ? { text: typed } : { choice: selected ?? undefined }) } });
+      const r = await submit({ data: { token, ...(typed ? { text: typed } : { choice: selected ?? undefined }) } });
       if (r.status === 'already') { setToday(t => t && { ...t, done: true }); return; }
       setAnswer(r.answer); setToday(t => t && { ...t, done: true, correct: r.correct }); setOpen(false);
       onSaved({ progress: r.progress, streak: r.streak, correct: r.correct, day: r.day });

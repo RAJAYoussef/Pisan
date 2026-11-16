@@ -2,7 +2,7 @@ import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import type { LearningSession } from './pisan';
 import { isNotionId, type NotionId } from './curriculum';
-import { isTimeZone, localDay } from './plan';
+import { isTimeZone, localDay, resolveTimeZone } from './plan';
 import { checkChallenge, challengeNotions, dailyChallenge } from './challenge';
 import type { Attempt, StreakResult } from './pisan';
 
@@ -20,9 +20,9 @@ export const openSession = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const hash = await hashToken(data.token);
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
-    const existing = await supabaseAdmin.from('learning_sessions').select(FIELDS).eq('token_hash', hash).maybeSingle();
+    const existing = await supabaseAdmin.from('learning_sessions').select(`${FIELDS}, timezone_changed_at`).eq('token_hash', hash).maybeSingle();
     if (existing.error) throw new Error('La sauvegarde est indisponible. Réessayez plus tard.');
-    if (!data.profile) return existing.data as LearningSession | null;
+    if (!data.profile) { if (!existing.data) return null; const { timezone_changed_at: _t, ...rest } = existing.data as Record<string, unknown>; return rest as unknown as LearningSession; }
     let partner = existing.data?.partner ?? false;
     const code = data.code?.trim();
     // Only letters, digits and hyphens: this also rules out every pattern wildcard
@@ -32,7 +32,13 @@ export const openSession = createServerFn({ method: 'POST' })
       if (match.error) throw new Error('Impossible de vérifier votre accès partenaire.');
       partner = !!match.data;
     }
-    const saved = await supabaseAdmin.from('learning_sessions').upsert({ token_hash: hash, profile: data.profile, partner: !!partner }).select(FIELDS).single();
+    const prev = existing.data as unknown as (LearningSession & { timezone_changed_at: string | null }) | null;
+    const zoneChange = resolveTimeZone(prev?.profile?.timezone, data.profile.timezone, prev?.timezone_changed_at ?? null, new Date());
+    const { timezone: _ignored, ...rest } = data.profile;
+    const profile = zoneChange.timezone ? { ...rest, timezone: zoneChange.timezone } : rest;
+    const row: Record<string, unknown> = { token_hash: hash, profile, partner: !!partner };
+    if (zoneChange.changedAt) row['timezone_changed_at'] = zoneChange.changedAt;
+    const saved = await supabaseAdmin.from('learning_sessions').upsert(row as never).select(FIELDS).single();
     if (saved.error) throw new Error('Impossible de sauvegarder votre profil.');
     return saved.data as LearningSession;
   });
@@ -48,45 +54,38 @@ export const consumeExercise = createServerFn({ method: 'POST' })
   });
 
 const notion = z.custom<NotionId>((value) => typeof value === 'string' && isNotionId(value), { message: 'Unknown notion' });
-const zone = z.string().max(64).optional();
 
 type Admin = (typeof import('@/integrations/supabase/client.server'))['supabaseAdmin'];
-/** Ajoute la tentative puis met à jour la flamme sur le jour local de l'élève (calculé ici, côté serveur). */
+/** Ajout atomique (verrou SQL) de la tentative + flamme, sur le jour local du fuseau enregistré dans le profil. */
 async function recordAttempt(admin: Admin, hash: string, attempt: Attempt, timezone: string | undefined) {
-  const current = await admin.from('learning_sessions').select('progress, profile').eq('token_hash', hash).single();
-  if (current.error) throw new Error('Session introuvable.');
-  const { progress, profile } = current.data as unknown as LearningSession;
-  const tz = isTimeZone(timezone) ? timezone : profile.timezone;
-  const unlocked = attempt.kind === 'consolidation' && attempt.correct === attempt.total ? Array.from(new Set([...progress.unlocked, attempt.notion])) : progress.unlocked;
-  const next = { attempts: [...progress.attempts, attempt].slice(-500), unlocked };
-  const update: Record<string, unknown> = { progress: next, last_active_at: new Date().toISOString() };
-  if (tz && tz !== profile.timezone) update['profile'] = { ...profile, timezone: tz };
-  const saved = await admin.from('learning_sessions').update(update as never).eq('token_hash', hash);
-  if (saved.error) throw new Error('Le résultat n’a pas pu être sauvegardé.');
-  const streak = await admin.rpc('record_pisan_streak', { p_hash: hash, p_day: localDay(new Date(), tz) });
-  if (streak.error) throw new Error('La flamme n’a pas pu être mise à jour.');
-  return { progress: next, streak: streak.data as unknown as StreakResult };
+  const res = await admin.rpc('append_pisan_attempt', { p_hash: hash, p_attempt: attempt as never, p_day: localDay(new Date(), timezone) });
+  if (res.error || !res.data) throw new Error('Le résultat n’a pas pu être sauvegardé.');
+  return res.data as unknown as { progress: LearningSession['progress']; streak: StreakResult };
 }
 
 export const saveAttempt = createServerFn({ method: 'POST' })
-  .inputValidator(z.object({ token: credential, timezone: zone, attempt: z.object({ kind: z.enum(['diagnostic', 'workshop', 'exam', 'consolidation']), notion, correct: z.number().int().min(0).max(20), total: z.number().int().min(1).max(20), date: z.string().max(50), minutes: z.number().min(0).max(120) }) }))
+  .inputValidator(z.object({ token: credential, attempt: z.object({ kind: z.enum(['diagnostic', 'workshop', 'exam', 'consolidation']), notion, correct: z.number().int().min(0).max(20), total: z.number().int().min(1).max(20), date: z.string().max(50), minutes: z.number().min(0).max(120) }).strict() }).strict())
   .handler(async ({ data }) => {
     if (data.attempt.correct > data.attempt.total) throw new Error('Résultat invalide.');
     const hash = await hashToken(data.token);
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
-    return recordAttempt(supabaseAdmin, hash, data.attempt, data.timezone);
+    return (async () => {
+      const current = await supabaseAdmin.from('learning_sessions').select('profile').eq('token_hash', hash).single();
+      if (current.error) throw new Error('Session introuvable.');
+      return recordAttempt(supabaseAdmin, hash, data.attempt, (current.data as unknown as LearningSession).profile.timezone);
+    })();
   });
 
 /** Défi du jour : le serveur choisit la question et corrige ; une seule tentative par jour local. */
 export const answerChallenge = createServerFn({ method: 'POST' })
-  .inputValidator(z.object({ token: credential, timezone: zone, choice: z.number().int().min(0).max(10).optional(), text: z.string().max(60).optional() }))
+  .inputValidator(z.object({ token: credential, choice: z.number().int().min(0).max(10).optional(), text: z.string().max(60).optional() }).strict())
   .handler(async ({ data }) => {
     const hash = await hashToken(data.token);
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
     const current = await supabaseAdmin.from('learning_sessions').select('profile').eq('token_hash', hash).single();
     if (current.error) throw new Error('Session introuvable.');
     const profile = (current.data as unknown as LearningSession).profile;
-    const tz = isTimeZone(data.timezone) ? data.timezone : profile.timezone;
+    const tz = isTimeZone(profile.timezone) ? profile.timezone : undefined;
     const day = localDay(new Date(), tz);
     const challenge = dailyChallenge(day, challengeNotions(profile.country, profile.grade, profile.track));
     if (!challenge) throw new Error('Pas de défi aujourd’hui.');
@@ -100,14 +99,14 @@ export const answerChallenge = createServerFn({ method: 'POST' })
 
 /** Le défi du jour de l'élève (sans la bonne réponse), sur son jour local. */
 export const todayChallenge = createServerFn({ method: 'POST' })
-  .inputValidator(z.object({ token: credential, timezone: zone }))
+  .inputValidator(z.object({ token: credential }).strict())
   .handler(async ({ data }) => {
     const hash = await hashToken(data.token);
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
     const current = await supabaseAdmin.from('learning_sessions').select('profile, challenge_day, challenge_correct').eq('token_hash', hash).single();
     if (current.error) throw new Error('Session introuvable.');
     const row = current.data as unknown as LearningSession;
-    const tz = isTimeZone(data.timezone) ? data.timezone : row.profile.timezone;
+    const tz = isTimeZone(row.profile.timezone) ? row.profile.timezone : undefined;
     const day = localDay(new Date(), tz);
     const challenge = dailyChallenge(day, challengeNotions(row.profile.country, row.profile.grade, row.profile.track));
     if (!challenge) return null;
