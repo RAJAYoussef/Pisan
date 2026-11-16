@@ -534,3 +534,24 @@ html[style*="--pisan-scale"] .pisan-root {
 
 /* Menu : un vrai espace avant la rubrique « Pour les adultes » */
 nav + .sidebar-label { margin-top: 28px; }
+
+/* ───────────── Figures à manipuler (Pythagore, Thalès) ───────────── */
+.figure-svg { width: 100%; max-height: 62vh; touch-action: none; user-select: none; background: var(--card); border-radius: var(--radius); }
+.figure-grid { stroke: var(--border); stroke-width: 1; }
+.figure-triangle { fill: color-mix(in oklab, var(--primary) 12%, transparent); stroke: var(--foreground); stroke-width: 3; stroke-linejoin: round; }
+.figure-right-angle { fill: none; stroke: var(--foreground); stroke-width: 2; }
+.figure-square { stroke-width: 2; }
+.figure-square-1 { fill: color-mix(in oklab, var(--sky) 30%, transparent); stroke: var(--sky); }
+.figure-square-2 { fill: color-mix(in oklab, var(--sun) 35%, transparent); stroke: var(--sun-deep); }
+.figure-square-3 { fill: color-mix(in oklab, var(--accent) 22%, transparent); stroke: var(--accent-deep); }
+.figure-area { font: 700 26px var(--font-display); fill: var(--foreground); text-anchor: middle; dominant-baseline: middle; }
+.figure-label { font: 700 20px var(--font-display); fill: var(--foreground); }
+.figure-point { fill: var(--primary-deep); stroke: var(--card); stroke-width: 3; }
+.figure-handle { cursor: grab; outline: none; }
+.figure-handle-halo { fill: color-mix(in oklab, var(--primary) 18%, transparent); stroke: var(--primary); stroke-width: 2; stroke-dasharray: 4 4; }
+.figure-handle:focus-visible .figure-handle-halo { stroke-width: 4; stroke-dasharray: none; }
+.figure-parallel { stroke: var(--accent-deep); stroke-width: 4; stroke-linecap: round; }
+.figure-parallel-base { stroke-dasharray: 10 6; }
+/* Vue dézoomée (les trois carrés) : textes plus grands pour rester lisibles */
+.figure-zoomed .figure-label { font-size: 38px; }
+.figure-zoomed .figure-area { font-size: 48px; }
