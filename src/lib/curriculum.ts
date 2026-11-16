@@ -246,6 +246,8 @@ export type Question = {
   expr: string;
   options: string[];
   answer: number;
+  /** QCM obligatoire : plusieurs réponses justes existent (« lequel est premier ? », une primitive…). */
+  choiceOnly?: boolean;
 };
 
 export type Notion = {

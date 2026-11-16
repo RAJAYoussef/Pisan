@@ -7,7 +7,7 @@ import type { Notion, Question } from './curriculum';
 
 type L = Record<Lang, string>;
 const t = (fr: string, en: string, ar: string, es: string): L => ({ fr, en, ar, es });
-const q = (prompt: Question['prompt'], expr: string, options: string[], answer: number): Question => ({ prompt, expr, options, answer });
+const q = (prompt: Question['prompt'], expr: string, options: string[], answer: number, choiceOnly = false): Question => ({ prompt, expr, options, answer, ...(choiceOnly ? { choiceOnly } : {}) });
 
 export const EXTRA_NOTIONS: Notion[] = [
   // ───────────── 6e / 1re année collège / Grade 6 ─────────────
@@ -132,11 +132,11 @@ export const EXTRA_NOTIONS: Notion[] = [
     ),
     example: '60 = 2² × 3 × 5   ·   84/126 = 2/3',
     questions: [
-      q(t('Lequel est un nombre premier ?', 'Which one is a prime number?', 'أيّ هذه الأعداد أولي؟', '¿Cuál es un número primo?'), '21 · 27 · 29 · 33', ['21', '27', '29', '33'], 2),
+      q(t('Lequel est un nombre premier ?', 'Which one is a prime number?', 'أيّ هذه الأعداد أولي؟', '¿Cuál es un número primo?'), '21 · 27 · 29 · 33', ['21', '27', '29', '33'], 2, true),
       q(t('Décomposition de 60 en produit de facteurs premiers :', 'Prime factorisation of 60:', 'تفكيك 60 إلى جداء عوامل أولية:', 'Descomposición de 60 en factores primos:'), '60', ['2 × 30', '2² × 3 × 5', '4 × 15', '2 × 3² × 5'], 1),
       q(t('Plus grand diviseur commun de 24 et 36 :', 'Greatest common divisor of 24 and 36:', 'القاسم المشترك الأكبر للعددين 24 و 36:', 'Máximo común divisor de 24 y 36:'), '24 ; 36', ['6', '4', '72', '12'], 3),
       q(t('Fraction irréductible égale à :', 'Simplest form of:', 'الكسر غير القابل للاختزال المساوي لـ:', 'Fracción irreducible igual a:'), '84/126', ['2/3', '42/63', '4/6', '3/4'], 0),
-      q(t('Quel nombre est divisible à la fois par 3 et par 5 ?', 'Which number is divisible by both 3 and 5?', 'أيّ عدد يقبل القسمة على 3 وعلى 5 معًا؟', '¿Qué número es divisible a la vez entre 3 y 5?'), '35 · 53 · 45 · 25', ['35', '53', '45', '25'], 2),
+      q(t('Quel nombre est divisible à la fois par 3 et par 5 ?', 'Which number is divisible by both 3 and 5?', 'أيّ عدد يقبل القسمة على 3 وعلى 5 معًا؟', '¿Qué número es divisible a la vez entre 3 y 5?'), '35 · 53 · 45 · 25', ['35', '53', '45', '25'], 2, true),
     ],
   },
   {
@@ -153,7 +153,7 @@ export const EXTRA_NOTIONS: Notion[] = [
       q('solve', '2x − 3 > 5', ['x > 1', 'x > 4', 'x < 4', 'x > 8'], 1),
       q('solve', '−3x ≤ 12', ['x ≤ −4', 'x ≥ 4', 'x ≥ −4', 'x ≤ 4'], 2),
       q('solve', '5 − x < 2', ['x > 3', 'x < 3', 'x > −3', 'x < 7'], 0),
-      q(t('Quelle valeur est solution ?', 'Which value is a solution?', 'أيّ قيمة حلّ للمتراجحة؟', '¿Qué valor es solución?'), '3x + 1 ≥ 10', ['x = 2', 'x = 0', 'x = −3', 'x = 3'], 3),
+      q(t('Quelle valeur est solution ?', 'Which value is a solution?', 'أيّ قيمة حلّ للمتراجحة؟', '¿Qué valor es solución?'), '3x + 1 ≥ 10', ['x = 2', 'x = 0', 'x = −3', 'x = 3'], 3, true),
       q('solve', 'x/2 + 1 ≤ 4', ['x ≤ 3', 'x ≤ 10', 'x ≤ 6', 'x ≥ 6'], 2),
     ],
   },
@@ -313,10 +313,10 @@ export const EXTRA_NOTIONS: Notion[] = [
     ),
     example: '∫₀² 3x² dx = [x³]₀² = 8',
     questions: [
-      q(t('Une primitive de f(x) = 2x :', 'An antiderivative of f(x) = 2x:', 'دالة أصلية لـ f(x) = 2x:', 'Una primitiva de f(x) = 2x:'), 'F′ = f', ['F(x) = 2', 'F(x) = x²', 'F(x) = 2x²', 'F(x) = x'], 1),
+      q(t('Une primitive de f(x) = 2x :', 'An antiderivative of f(x) = 2x:', 'دالة أصلية لـ f(x) = 2x:', 'Una primitiva de f(x) = 2x:'), 'F′ = f', ['F(x) = 2', 'F(x) = x²', 'F(x) = 2x²', 'F(x) = x'], 1, true),
       q('value', '∫₀¹ 2x dx', ['1', '2', '1/2', '0'], 0),
       q('value', '∫₁³ 1 dx', ['3', '1', '2', '4'], 2),
-      q(t('Une primitive de f(x) = eˣ :', 'An antiderivative of f(x) = eˣ:', 'دالة أصلية لـ f(x) = eˣ:', 'Una primitiva de f(x) = eˣ:'), 'F′ = f', ['F(x) = xeˣ', 'F(x) = eˣ⁺¹', 'F(x) = ln x', 'F(x) = eˣ'], 3),
+      q(t('Une primitive de f(x) = eˣ :', 'An antiderivative of f(x) = eˣ:', 'دالة أصلية لـ f(x) = eˣ:', 'Una primitiva de f(x) = eˣ:'), 'F′ = f', ['F(x) = xeˣ', 'F(x) = eˣ⁺¹', 'F(x) = ln x', 'F(x) = eˣ'], 3, true),
       q('value', '∫₀² 3x² dx', ['12', '8', '6', '4'], 1),
       q(t('Une primitive de f(x) = 1/x sur ]0 ; +∞[ :', 'An antiderivative of f(x) = 1/x on (0, +∞):', 'دالة أصلية لـ f(x) = 1/x على ]0 ; +∞[:', 'Una primitiva de f(x) = 1/x en ]0 ; +∞[:'), 'F′ = f', ['F(x) = ln x', 'F(x) = −1/x²', 'F(x) = eˣ', 'F(x) = x'], 0),
     ],
