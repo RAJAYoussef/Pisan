@@ -20,11 +20,12 @@ const KEYS = ['x', '²', '√', '/', '(', ')', '−', 'π'];
  * Réponse tapée par l'élève. Renvoie au parent l'index de la bonne option si la réponse est
  * équivalente, −1 si elle est fausse, null si le champ est vide : la correction reste la même que pour le QCM.
  */
-export function FreeAnswer({ question, lang, onSelect }: { question: Question; lang: Lang; onSelect: (i: number | null) => void }) {
+export function FreeAnswer({ question, lang, onSelect, onText }: { question: Question; lang: Lang; onSelect: (i: number | null) => void; onText?: (text: string) => void }) {
   const [text, setText] = useState('');
   useEffect(() => { setText(''); }, [question]);
   const update = (value: string) => {
     setText(value);
+    onText?.(value);
     onSelect(value.trim() ? (checkFreeAnswer(question, value) ? question.answer : -1) : null);
   };
   const label = say(lang, 'Ta réponse', 'Your answer', 'جوابك', 'Tu respuesta');
