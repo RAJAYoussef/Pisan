@@ -34,8 +34,8 @@ export const openSession = createServerFn({ method: 'POST' })
     }
     const prev = existing.data as unknown as (LearningSession & { timezone_changed_at: string | null }) | null;
     const zoneChange = resolveTimeZone(prev?.profile?.timezone, data.profile.timezone, prev?.timezone_changed_at ?? null, new Date());
-    const profile = { ...data.profile, timezone: zoneChange.timezone };
-    if (!profile.timezone) delete profile.timezone;
+    const { timezone: _ignored, ...rest } = data.profile;
+    const profile = zoneChange.timezone ? { ...rest, timezone: zoneChange.timezone } : rest;
     const row: Record<string, unknown> = { token_hash: hash, profile, partner: !!partner };
     if (zoneChange.changedAt) row['timezone_changed_at'] = zoneChange.changedAt;
     const saved = await supabaseAdmin.from('learning_sessions').upsert(row as never).select(FIELDS).single();

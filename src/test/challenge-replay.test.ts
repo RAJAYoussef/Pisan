@@ -43,10 +43,10 @@ describe('Défi du jour côté serveur', () => {
     // UTC+14 then UTC-11: the second zone is a calendar day behind, so its "today" is not after the claimed day.
     expect((await answer({ data: { token, choice: 0 } })).status).toBe('done');
     await open({ data: { token, profile: { ...base, timezone: 'Pacific/Pago_Pago' } } });
-    expect(db.row.profile.timezone).toBe('Pacific/Pago_Pago');
+    expect(db.row.profile['timezone']).toBe('Pacific/Pago_Pago');
     expect((await answer({ data: { token, choice: 1 } })).status).toBe('already');
     await open({ data: { token, profile: { ...base, timezone: 'Pacific/Kiritimati' } } });
-    expect(db.row.profile.timezone).toBe('Pacific/Pago_Pago'); // second change within 7 days refused
+    expect(db.row.profile['timezone']).toBe('Pacific/Pago_Pago'); // second change within 7 days refused
     expect((await answer({ data: { token, choice: 1 } })).status).toBe('already');
   });
 
