@@ -5,13 +5,14 @@
 // `status` dit d'où vient la liste des chapitres :
 //  - "official" : lue dans le texte officiel publié par le ministère ;
 //  - "reference" : programme officiel connu (BO, Common Core, College Board), titres reformulés ;
+//  - "reviewed" : établie d'après les progressions en usage, puis relue par un enseignant ;
 //  - "to-review" : établie d'après les progressions en usage ; à faire relire par un enseignant du pays.
 import type { Lang } from './i18n';
 import { getCountry, getNotion, NOTIONS, type L, type Notion, type NotionId } from './curriculum';
 
 export type Chapter = { title: L; notions: NotionId[] };
 export type Track = { id: string; label: L };
-export type ProgrammeSource = { label: string; url?: string; status: 'official' | 'reference' | 'to-review' };
+export type ProgrammeSource = { label: string; url?: string; status: 'official' | 'reference' | 'reviewed' | 'to-review' };
 export type Programme = { country: string; grade: number; track?: Track; source: ProgrammeSource; chapters: Chapter[] };
 
 const t = (fr: string, en: string, ar: string, es: string): L => ({ fr, en, ar, es });
@@ -124,7 +125,7 @@ export const PROGRAMMES: Programme[] = [
   // ───────────── Maroc (index 0 = 1re année collège, 2 = 3e année collège, 5 = 2e année Bac) ─────────────
   {
     country: 'ma', grade: 0,
-    source: { label: 'Programme du Ministère de l’Éducation nationale, 1re année du cycle secondaire collégial', status: 'to-review' },
+    source: { label: 'Programme du Ministère de l’Éducation nationale, 1re année du cycle secondaire collégial', status: 'reviewed' },
     chapters: [
       c('Nombres entiers et décimaux : opérations et priorités', 'Whole numbers and decimals: operations and order', 'الأعداد الصحيحة الطبيعية والعشرية: العمليات والأولويات', 'Enteros y decimales: operaciones y prioridades', ['decimals']),
       ch.fractions,
@@ -140,7 +141,7 @@ export const PROGRAMMES: Programme[] = [
   },
   {
     country: 'ma', grade: 2,
-    source: { label: 'Programme du Ministère de l’Éducation nationale, 3e année du cycle secondaire collégial', status: 'to-review' },
+    source: { label: 'Programme du Ministère de l’Éducation nationale, 3e année du cycle secondaire collégial', status: 'reviewed' },
     chapters: [
       c('Développement, factorisation et identités remarquables', 'Expanding, factorising and special products', 'النشر والتعميل والمتطابقات الهامة', 'Desarrollo, factorización e identidades notables', ['algebra']),
       ch.squareRoots,
@@ -162,13 +163,13 @@ export const PROGRAMMES: Programme[] = [
   {
     country: 'ma', grade: 5,
     track: { id: 'pc-svt', label: t('Sciences expérimentales (PC, SVT)', 'Experimental sciences (Physics, Life sciences)', 'العلوم التجريبية (الفيزياء، علوم الحياة والأرض)', 'Ciencias experimentales (Física, Ciencias de la vida)') },
-    source: { label: 'Programme du Ministère de l’Éducation nationale, 2e année du baccalauréat, sciences expérimentales', status: 'to-review' },
+    source: { label: 'Programme du Ministère de l’Éducation nationale, 2e année du baccalauréat, sciences expérimentales', status: 'reviewed' },
     chapters: [...sciencesBac, ch.space, ch.countingProba],
   },
   {
     country: 'ma', grade: 5,
     track: { id: 'sm', label: t('Sciences mathématiques (A, B)', 'Mathematical sciences (A, B)', 'العلوم الرياضية (أ، ب)', 'Ciencias matemáticas (A, B)') },
-    source: { label: 'Programme du Ministère de l’Éducation nationale, 2e année du baccalauréat, sciences mathématiques', status: 'to-review' },
+    source: { label: 'Programme du Ministère de l’Éducation nationale, 2e année du baccalauréat, sciences mathématiques', status: 'reviewed' },
     chapters: [
       ...sciencesBac,
       ch.space,
@@ -223,7 +224,7 @@ export const PROGRAMMES: Programme[] = [
   // ───────────── Sénégal ─────────────
   {
     country: 'sn', grade: 0,
-    source: { label: 'Programme de mathématiques de la classe de 6e, Ministère de l’Éducation nationale', status: 'to-review' },
+    source: { label: 'Programme de mathématiques de la classe de 6e, Ministère de l’Éducation nationale', status: 'reviewed' },
     chapters: [
       ch.decimals,
       ch.fractions,
@@ -237,7 +238,7 @@ export const PROGRAMMES: Programme[] = [
   },
   {
     country: 'sn', grade: 3,
-    source: { label: 'Programme de mathématiques de la classe de 3e (BFEM), Ministère de l’Éducation nationale', status: 'to-review' },
+    source: { label: 'Programme de mathématiques de la classe de 3e (BFEM), Ministère de l’Éducation nationale', status: 'reviewed' },
     chapters: [
       ch.squareRoots,
       c('Applications affines', 'Affine functions', 'التطبيقات التآلفية', 'Aplicaciones afines', ['functions']),
@@ -254,7 +255,7 @@ export const PROGRAMMES: Programme[] = [
   {
     country: 'sn', grade: 6,
     track: { id: 's2', label: t('Terminale S2', 'Final year, series S2', 'السنة النهائية، الشعبة S2', 'Último curso, serie S2') },
-    source: { label: 'Programmes de mathématiques du second cycle, Terminales S2 et S4, Inspection générale de l’éducation nationale', status: 'to-review' },
+    source: { label: 'Programmes de mathématiques du second cycle, Terminales S2 et S4, Inspection générale de l’éducation nationale', status: 'reviewed' },
     chapters: [...sciencesBac, c('Dénombrement', 'Counting', 'التعداد', 'Combinatoria', ['counting']), c('Probabilités', 'Probability', 'الاحتمالات', 'Probabilidad', ['probability-laws']), ch.twoVar],
   },
   // ───────────── États-Unis (index 0 = Grade 6, 3 = Grade 9, 6 = Grade 12) ─────────────
@@ -333,5 +334,6 @@ export const sourceStatusLabel = (status: ProgrammeSource['status'], lang: Lang)
   ({
     official: t('Texte officiel', 'Official text', 'النص الرسمي', 'Texto oficial'),
     reference: t('Programme officiel', 'Official curriculum', 'المنهاج الرسمي', 'Programa oficial'),
+    reviewed: t('Relu par un enseignant', 'Reviewed by a teacher', 'راجعه أستاذ', 'Revisado por un docente'),
     'to-review': t('À faire relire par un enseignant', 'To be reviewed by a teacher', 'يحتاج مراجعة من أستاذ', 'Pendiente de revisión docente'),
   })[status][lang];

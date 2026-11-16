@@ -4,9 +4,23 @@ export const DIAGNOSTIC_LENGTH = 6;
 
 export type DiagAnswer = { notion: NotionId; qIndex: number; correct: boolean };
 
-/** Notions the adaptive test can visit: up to one step above the student's level. */
-export function diagnosticPath(level: number): Notion[] {
-  return NOTIONS.filter((n) => n.minLevel <= Math.min(6, level + 1));
+/**
+ * Notions the adaptive test can visit. With the student's official programme: its notions plus all
+ * their prerequisites (to find the real gap), from easiest to hardest. Without one: every notion up
+ * to one step above the student's level.
+ */
+export function diagnosticPath(level: number, programme?: Notion[]): Notion[] {
+  if (!programme?.length) return NOTIONS.filter((n) => n.minLevel <= Math.min(6, level + 1));
+  const ids = new Set<NotionId>();
+  const visit = (id: NotionId) => {
+    if (ids.has(id)) return;
+    ids.add(id);
+    const prereq = NOTIONS.find((n) => n.id === id)?.prereq;
+    if (prereq) visit(prereq);
+  };
+  programme.forEach((n) => visit(n.id));
+  // NOTIONS order breaks ties, so the path is stable.
+  return NOTIONS.filter((n) => ids.has(n.id)).sort((a, b) => a.minLevel - b.minLevel);
 }
 
 export function startIndex(path: Notion[], level: number): number {

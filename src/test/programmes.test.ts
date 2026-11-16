@@ -83,3 +83,23 @@ describe('Decimal display', () => {
     expect(localizeMath('A(2 ; 3)', 'en')).toBe('A(2 ; 3)');
   });
 });
+
+describe('Diagnostic suivant le programme', () => {
+  it('visits the programme notions and their prerequisites, easiest first', async () => {
+    const { diagnosticPath } = await import('@/lib/diagnostic');
+    const programme = programmeNotions(programmeFor('ma', 5, 'sm')!);
+    const path = diagnosticPath(6, programme).map(n => n.id);
+    expect(path).toContain('congruences');
+    expect(path).toContain('arithmetic'); // prérequis de l'arithmétique dans ℤ
+    expect(path).not.toContain('symmetry');
+    const levels = diagnosticPath(6, programme).map(n => n.minLevel);
+    expect(levels).toEqual([...levels].sort((a, b) => a - b));
+  });
+  it('keeps the age-based path when there is no programme', async () => {
+    const { diagnosticPath } = await import('@/lib/diagnostic');
+    expect(diagnosticPath(3).map(n => n.id)).toEqual(diagnosticPath(3, []).map(n => n.id));
+  });
+  it('marks the Moroccan and Senegalese lists as reviewed', () => {
+    for (const p of PROGRAMMES.filter(p => p.country === 'ma' || p.country === 'sn')) expect(p.source.status).toBe('reviewed');
+  });
+});

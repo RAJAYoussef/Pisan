@@ -8,15 +8,15 @@ import { say, type Attempt } from '@/lib/pisan';
 import { Speaker, Tutor, Meter } from './shared';
 import { useDys } from './dys';
 
-type Props = { lang: Lang; level: number; onSave: (a: Attempt) => Promise<void>; onWorkshop: () => void };
+type Props = { lang: Lang; level: number; notions?: Notion[] | undefined; onSave: (a: Attempt) => Promise<void>; onWorkshop: () => void };
 export function QuestionChoices({ question, lang, selected, onSelect }: { question: Question; lang: Lang; selected: number | null; onSelect: (i: number) => void }) {
   const d = DICTS[lang];
   const prompt = typeof question.prompt === 'string' ? d.prompts[question.prompt] : question.prompt[lang];
   return <><div className="flex items-center justify-between gap-4"><p className="text-base text-muted-foreground">{prompt}</p><Speaker text={`${prompt} ${localizeMath(question.expr, lang)}`} lang={lang} /></div><p dir="ltr" className="my-8 text-center font-display text-3xl font-medium">{localizeMath(question.expr, lang)}</p><div className="grid grid-cols-2 gap-3">{question.options.map((option, i) => <Button key={i} variant={selected === i ? 'default' : 'soft'} className="h-16 whitespace-normal text-lg" onClick={() => onSelect(i)} aria-pressed={selected === i}><span dir="ltr">{localizeMath(option, lang)}</span></Button>)}</div></>;
 }
-export function Diagnostic({ lang, level, onSave, onWorkshop }: Props) {
+export function Diagnostic({ lang, level, notions, onSave, onWorkshop }: Props) {
   const d = DICTS[lang];
-  const path = diagnosticPath(level);
+  const path = diagnosticPath(level, notions);
   const [active, setActive] = useState(false);
   const [answers, setAnswers] = useState<DiagAnswer[]>([]);
   const [idx, setIdx] = useState(startIndex(path, level));
