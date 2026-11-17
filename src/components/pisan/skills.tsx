@@ -197,7 +197,7 @@ function StepView({ lang, step, solved, onAnswer, onFractionInteraction }: { lan
         {step.widget.kind === 'fraction-bars' && <FractionBars lang={lang} left={step.widget.left} right={step.widget.right} locked={solved} onComplete={onAnswer} />}
         {step.widget.kind === 'fraction-equivalence' && <FractionEquivalenceLab lang={lang} source={step.widget.source} factor={step.widget.factor} locked={solved} onComplete={onAnswer} onInteraction={event => onFractionInteraction?.(event, step.widget)} />}
         {step.widget.kind === 'fraction-addition' && <FractionAdditionLab lang={lang} left={step.widget.left} right={step.widget.right} locked={solved} onComplete={onAnswer} onInteraction={event => onFractionInteraction?.(event, step.widget)} />}
-        {step.widget.kind === 'fraction-numberline' && <FractionNumberLineLab lang={lang} target={step.widget.target} locked={solved} onComplete={onAnswer} onInteraction={onFractionInteraction} />}
+        {step.widget.kind === 'fraction-numberline' && <FractionNumberLineLab lang={lang} target={step.widget.target} locked={solved} onComplete={onAnswer} onInteraction={event => onFractionInteraction?.(event, step.widget)} />}
         {step.widget.kind === 'line' && <LineWidget lang={lang} target={step.widget} locked={solved} onState={setWidgetOk} />}
         {step.widget.kind === 'tangent' && <TangentWidget lang={lang} target={step.widget} locked={solved} onState={setWidgetOk} />}
         {step.widget.kind === 'level' && <LevelWidget lang={lang} values={step.widget.values} locked={solved} onState={setWidgetOk} />}
