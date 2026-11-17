@@ -31,6 +31,14 @@ describe('Fraction diagnosis', () => {
     expect(result.confirmed).toBe(false);
   });
 
+  it('does not crash when diagnosing a wrong subtraction with equal denominators', () => {
+    const result = analyzeFractionResponse({
+      kind: 'subtract', left: { n: 3, d: 4 }, right: { n: 1, d: 4 },
+    }, '2/8');
+    expect(result.correct).toBe(false);
+    expect(result.misconception).toBe('fraction-add-denominators');
+  });
+
   it('accepts equivalent forms and handles subtraction and multiplication', () => {
     expect(analyzeFractionResponse({
       kind: 'add', left: { n: 1, d: 2 }, right: { n: 1, d: 4 },
