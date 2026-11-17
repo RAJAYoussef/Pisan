@@ -568,3 +568,43 @@ nav + .sidebar-label { margin-top: 28px; }
 /* Angles inscrits */
 .figure-circle { fill: none; stroke: var(--foreground); stroke-width: 3; }
 .figure-inscribed { fill: none; stroke: var(--accent-deep); stroke-width: 4; stroke-linejoin: round; }
+/* Parcours de compétences */
+.skill-scene { touch-action: manipulation; max-height: 46vh; }
+.skill-seg { stroke: var(--foreground); stroke-width: 3; stroke-linecap: round; }
+.skill-seg-bold { stroke: var(--accent-deep); stroke-width: 4; }
+.skill-seg-soft { stroke-width: 2; opacity: .55; }
+.skill-seg-dashed { stroke-dasharray: 8 6; }
+.skill-arc { fill: none; stroke: var(--foreground); stroke-width: 3; }
+.skill-hit { fill: none; stroke: transparent; stroke-width: 26; stroke-linecap: round; }
+.skill-tappable { cursor: pointer; outline: none; }
+.skill-tappable:hover .skill-seg, .skill-tappable:hover .skill-arc, .skill-tappable:focus-visible .skill-seg, .skill-tappable:focus-visible .skill-arc { stroke: var(--sky); stroke-width: 6; }
+.skill-ok, .skill-tappable .skill-ok { stroke: var(--primary-deep); stroke-width: 6; }
+.skill-wrong, .skill-tappable .skill-wrong { stroke: var(--destructive); stroke-width: 6; }
+.skill-length { font: 700 15px var(--font-display); fill: var(--foreground); paint-order: stroke; stroke: var(--card); stroke-width: 4px; }
+.skill-arc-label { font-size: 16px; fill: var(--primary-deep); }
+.skill-vertex { fill: color-mix(in oklab, var(--primary) 10%, transparent); stroke: var(--primary); stroke-width: 1.5; stroke-dasharray: 3 3; cursor: pointer; outline: none; }
+.skill-vertex:focus-visible, .skill-vertex-on { stroke-width: 3; stroke-dasharray: none; }
+.skill-equerre polygon { fill: color-mix(in oklab, var(--sun) 45%, transparent); stroke: var(--sun-deep); stroke-width: 2; }
+.skill-equerre polyline { fill: none; stroke: var(--sun-foreground); stroke-width: 1.5; }
+.skill-emptied { fill-opacity: .25; }
+.skill-fill { fill: color-mix(in oklab, var(--primary) 45%, transparent); stroke: none; }
+.skill-fill-over { fill: color-mix(in oklab, var(--destructive) 45%, transparent); }
+.skill-progress { display: flex; gap: 6px; margin: 0 0 16px; }
+.skill-dot { flex: 1; height: 6px; border-radius: 3px; background: var(--muted); }
+.skill-dot-active { background: var(--primary-soft); box-shadow: inset 0 0 0 2px var(--primary); }
+.skill-dot-done { background: var(--primary); }
+.skill-dot-missed { background: var(--sun-deep); }
+.chip-line { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; min-height: 52px; margin-top: 16px; padding: 8px; border: 2px dashed var(--border); border-radius: var(--radius); }
+.chip { min-height: 44px; min-width: 44px; padding: 6px 12px; border-radius: 10px; border: 2px solid var(--border); background: var(--card); font: 700 17px var(--font-display); cursor: pointer; }
+.chip:disabled { opacity: .35; cursor: default; }
+.chip-placed { display: inline-flex; align-items: center; border-color: var(--primary); background: var(--primary-soft); }
+.sentence-line { line-height: 2.6; font-size: 1.05rem; }
+.sentence-blank { min-height: 40px; max-width: 100%; margin: 0 2px; padding: 4px 8px; border: 2px solid var(--primary); border-radius: 8px; background: var(--card); font-weight: 700; }
+.skill-list { display: grid; gap: 6px; margin-top: 14px; }
+.skill-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border); }
+.skill-status { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 999px; border: 2px solid var(--border); color: var(--sun-deep); }
+.skill-status-mastered { border-color: var(--primary); background: var(--primary); color: var(--primary-foreground); }
+.skill-status-started { border-color: var(--sun-deep); }
+.skill-status-text-mastered { color: var(--primary-deep); }
+.skill-status-text-started { color: var(--sun-foreground); }
+.skill-status-text-todo { color: var(--muted-foreground); }

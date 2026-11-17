@@ -5,6 +5,7 @@ import { isNotionId, type NotionId } from './curriculum';
 import { isTimeZone, localDay, resolveTimeZone } from './plan';
 import { checkChallenge, challengeNotions, dailyChallenge } from './challenge';
 import type { Attempt, StreakResult } from './pisan';
+import { getSkill, skillNotion } from './skills';
 
 const credential = z.string().regex(/^[a-f0-9]{64}$/);
 const PARTNER_CODE_FORMAT = /^[A-Za-z0-9-]{4,40}$/;
@@ -64,9 +65,11 @@ async function recordAttempt(admin: Admin, hash: string, attempt: Attempt, timez
 }
 
 export const saveAttempt = createServerFn({ method: 'POST' })
-  .inputValidator(z.object({ token: credential, attempt: z.object({ kind: z.enum(['diagnostic', 'workshop', 'exam', 'consolidation']), notion, correct: z.number().int().min(0).max(20), total: z.number().int().min(1).max(20), date: z.string().max(50), minutes: z.number().min(0).max(120) }).strict() }).strict())
+  .inputValidator(z.object({ token: credential, attempt: z.object({ kind: z.enum(['diagnostic', 'workshop', 'exam', 'consolidation']), notion, correct: z.number().int().min(0).max(20), total: z.number().int().min(1).max(20), date: z.string().max(50), minutes: z.number().min(0).max(120), skill: z.string().max(40).refine(id => getSkill(id) !== null, 'Unknown skill').optional() }).strict() }).strict())
   .handler(async ({ data }) => {
     if (data.attempt.correct > data.attempt.total) throw new Error('Résultat invalide.');
+    const skill = data.attempt.skill ? getSkill(data.attempt.skill) : null;
+    if (skill && (data.attempt.kind !== 'workshop' || skillNotion(skill) !== data.attempt.notion)) throw new Error('Résultat invalide.');
     const hash = await hashToken(data.token);
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
     return (async () => {

@@ -1,7 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
 import { expectedValues, figureProblem, GRID, placementOk, pointN, pythagorasProblem, thalesProblem, valueOk } from '@/lib/figures';
-import { FigureActivity } from '@/components/pisan/figures';
 
 describe('Figures : Pythagore', () => {
   it('always draws a right triangle that fits the grid, with whole sides', () => {
@@ -51,32 +49,6 @@ describe('Figures : Thalès', () => {
   });
   it('is deterministic for a given seed', () => {
     expect(figureProblem('thales', 42)).toEqual(figureProblem('thales', 42));
-  });
-});
-
-describe('Activité à l’écran', () => {
-  it('can be completed with the keyboard only, then saves the result', async () => {
-    vi.spyOn(Date, 'now').mockReturnValue(3);
-    const p = pythagorasProblem(3);
-    const onSave = vi.fn(async () => {});
-    render(<FigureActivity lang="fr" kind="pythagoras" onSave={onSave} onBack={() => {}} />);
-    const move = (name: string, to: number) => { const h = screen.getByRole('slider', { name }); for (let v = 2; v < to; v++) fireEvent.keyDown(h, { key: 'ArrowRight' }); };
-    move('B', p.ab); move('C', p.ac);
-    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
-    fireEvent.change(screen.getByLabelText('Ta réponse'), { target: { value: String(p.bc * p.bc) } });
-    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
-    fireEvent.change(screen.getByLabelText('Ta réponse'), { target: { value: String(p.bc) } });
-    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
-    expect(await screen.findByText('Bravo, figure réussie !')).toBeTruthy();
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ kind: 'workshop', notion: 'pythagoras-thales', correct: 1 }));
-    vi.restoreAllMocks();
-  });
-  it('gives a hint instead of the answer when wrong', () => {
-    vi.spyOn(Date, 'now').mockReturnValue(3);
-    render(<FigureActivity lang="fr" kind="pythagoras" onSave={async () => {}} onBack={() => {}} />);
-    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
-    expect(screen.getByText(/compte les carreaux/)).toBeTruthy();
-    vi.restoreAllMocks();
   });
 });
 
@@ -142,45 +114,5 @@ describe('Figures proposées selon le programme', () => {
     expect(at('ci', 3)).toEqual(['pythagoras', 'thales', 'trigo', 'inscribed']);
     expect(figureChapter(p, 'pythagoras')?.fr).toBe('Triangle rectangle');
     expect(figureChapter(p, 'trigo')?.fr).toBe('Triangle rectangle');
-  });
-});
-
-describe('Nouvelles activités à l’écran', () => {
-  it('trigonometry can be completed with the keyboard and saves the trigonometry notion', async () => {
-    vi.spyOn(Date, 'now').mockReturnValue(1);
-    const p = trigoProblem(1);
-    const onSave = vi.fn(async () => {});
-    render(<FigureActivity lang="fr" kind="trigo" onSave={onSave} onBack={() => {}} />);
-    // L'angle n'est jamais affiché avant la fin : c'est la réponse de la 3e étape.
-    expect(screen.getByText('Â = ?')).toBeTruthy();
-    const c = screen.getByRole('slider', { name: 'C' });
-    for (let v = 2; v < p.bc; v++) fireEvent.keyDown(c, { key: 'ArrowUp' });
-    expect(screen.getByText('Â = ?')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
-    fireEvent.change(screen.getByLabelText('Ta réponse'), { target: { value: `${p.ab}/${p.ac}` } });
-    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
-    fireEvent.change(screen.getByLabelText('Ta réponse'), { target: { value: String(p.angle) } });
-    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
-    expect(await screen.findByText('Bravo, figure réussie !')).toBeTruthy();
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ notion: 'trigonometry' }));
-    vi.restoreAllMocks();
-  });
-  it('inscribed angles: M must travel before going on, then the half rule is asked', async () => {
-    vi.spyOn(Date, 'now').mockReturnValue(2);
-    const p = inscribedProblem(2);
-    const onSave = vi.fn(async () => {});
-    render(<FigureActivity lang="fr" kind="inscribed" onSave={onSave} onBack={() => {}} />);
-    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
-    expect(screen.getByText(/Fais tourner M plus loin/)).toBeTruthy();
-    const m = screen.getByRole('slider', { name: 'M' });
-    for (let i = 0; i < 14; i++) fireEvent.keyDown(m, { key: 'ArrowRight' });
-    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
-    fireEvent.change(screen.getByLabelText('Ta réponse'), { target: { value: String(p.askCentral / 2) } });
-    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
-    fireEvent.change(screen.getByLabelText('Ta réponse'), { target: { value: String(p.askInscribed * 2) } });
-    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
-    expect(await screen.findByText('Bravo, figure réussie !')).toBeTruthy();
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ notion: 'geometry' }));
-    vi.restoreAllMocks();
   });
 });

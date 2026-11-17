@@ -145,3 +145,8 @@ export function figuresFor(programme: Programme | null | undefined, notions: Not
     return FIGURE_NOTIONS[k].some(n => notions.includes(n));
   });
 }
+
+/** Les parcours de compétences qui correspondent à un chapitre (titre officiel + notions). */
+export function chapterSkillKinds(chapter: { title: L; notions: NotionId[] }): FigureKind[] {
+  return FIGURE_KINDS.filter(k => chapter.notions.some(n => FIGURE_NOTIONS[k].includes(n)) && FIGURE_CHAPTER_WORDS[k].some(w => chapter.title.fr.includes(w)));
+}

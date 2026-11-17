@@ -9,6 +9,8 @@ import { gradeOn20, mastery, say, type Progress } from '@/lib/pisan';
 import { Meter } from './shared';
 import { SheetButton } from './learning-aids';
 import { StreakBadge, type StreakView } from './streak';
+import { chapterSkillKinds } from '@/lib/figures';
+import { CHAPTER_NAMES, SkillList } from './skills';
 
 export function Journey({ lang, level, progress, onPractice, onTracking, programme }: { lang: Lang; level: number; progress: Progress; onPractice: (notion: NotionId) => void; onTracking?: (() => void) | undefined; programme?: Programme | null | undefined }) {
   const d = DICTS[lang];
@@ -39,6 +41,7 @@ export function Journey({ lang, level, progress, onPractice, onTracking, program
         {isOpen && <div className="chapter-row-body">
           <div className="mb-2 flex justify-between text-xs"><span>{d.journey.mastery}</span><span className="font-bold">{c.started ? `${c.mastery} %` : say(lang, 'Pas encore commencé', 'Not started yet', 'لم يبدأ بعد', 'Sin empezar')}</span></div>
           <Meter value={c.mastery} />
+          {chapterSkillKinds(c).map(k => <div key={k} className="mt-4"><p className="mb-1 text-xs font-bold text-muted-foreground">{say(lang, `Compétences · ${CHAPTER_NAMES[k].fr} (à l’atelier)`, `Skills · ${CHAPTER_NAMES[k].en} (in the workshop)`, `الكفايات · ${CHAPTER_NAMES[k].ar} (في الورشة)`, `Competencias · ${CHAPTER_NAMES[k].es} (en el taller)`)}</p><SkillList lang={lang} kind={k} attempts={attempts} /></div>)}
           <div className="mt-4 flex flex-wrap gap-2">{c.notions.map(id => <SheetButton key={id} notion={id} lang={lang} variant="ghost" />)}</div>
           <Button className="mt-4" onClick={() => onPractice(notionToPractise(c, progress))}>{say(lang, 'S’entraîner sur ce chapitre', 'Practise this chapter', 'تدرّب على هذا الفصل', 'Practicar este capítulo')}<ArrowRight /></Button>
         </div>}
