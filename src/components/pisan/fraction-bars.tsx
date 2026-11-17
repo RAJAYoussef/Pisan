@@ -14,9 +14,9 @@ type FractionBarsProps = {
 
 const labels = {
   fr: { left: 'Fraction A', right: 'Fraction B', fill: 'Parts coloriées', check: 'Vérifier', choose: 'Compare les deux bandes', relation: 'Aucune relation choisie', correct: 'Bonne comparaison', incorrect: 'Ce n’est pas encore correct', reset: 'Effacer les bandes' },
-  en: { left: 'Fraction A', right: 'Fraction B', fill: 'Shaded parts', check: 'Check', choose: 'Compare the two bars', relation: 'No relation selected', correct: 'Correct comparison', incorrect: 'Not correct yet', reset: 'Clear the bars' },
-  ar: { left: 'الكسر A', right: 'الكسر B', fill: 'الأجزاء الملونة', check: 'تحقق', choose: 'قارن الشريطين', relation: 'لم يتم اختيار علاقة', correct: 'مقارنة صحيحة', incorrect: 'ليست صحيحة بعد', reset: 'امسح الشريطين' },
-  es: { left: 'Fracción A', right: 'Fracción B', fill: 'Partes coloreadas', check: 'Comprobar', choose: 'Compara las dos barras', relation: 'No se ha elegido relación', correct: 'Comparación correcta', incorrect: 'Todavía no es correcto', reset: 'Vaciar las barras' },
+  en: { left: 'Fraction A', right: 'Fraction B', fill: 'Shaded parts', check: 'Check', choose: 'Compare the two bars', relation: 'No relation selected', correct: 'Correct comparison', incorrect: 'Not correct yet', reset: 'Clear the bars', part: 'Part' },
+  ar: { left: 'الكسر A', right: 'الكسر B', fill: 'الأجزاء الملونة', check: 'تحقق', choose: 'قارن الشريطين', relation: 'لم يتم اختيار علاقة', correct: 'مقارنة صحيحة', incorrect: 'ليست صحيحة بعد', reset: 'امسح الشريطين', part: 'جزء' },
+  es: { left: 'Fracción A', right: 'Fracción B', fill: 'Partes coloreadas', check: 'Comprobar', choose: 'Compara las dos barras', relation: 'No se ha elegido relación', correct: 'Comparación correcta', incorrect: 'Todavía no es correcto', reset: 'Vaciar las barras', part: 'Parte' },
 } as const;
 
 /** Fraction bars students can partition and shade; comparison is checked and diagnosed deterministically. */
@@ -27,6 +27,11 @@ export function FractionBars({ lang, left, right, locked = false, onDiagnosis, o
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [diagnosis, setDiagnosis] = useState<FractionDiagnosis | null>(null);
   const copy = labels[lang];
+  for (const fraction of [left, right]) {
+    if (!Number.isSafeInteger(fraction.n) || !Number.isSafeInteger(fraction.d) || fraction.d < 1 || fraction.d > 16 || fraction.n < 0 || fraction.n > fraction.d) {
+      throw new Error('FractionBars expects 0 ≤ numerator ≤ denominator ≤ 16.');
+    }
+  }
   const expected = useMemo(() => Math.sign(left.n * right.d - right.n * left.d), [left.n, left.d, right.n, right.d]);
   const expectedRelation = expected > 0 ? '>' : expected < 0 ? '<' : '=';
   const toggle = (values: number[], set: (v: number[]) => void, index: number) => {
