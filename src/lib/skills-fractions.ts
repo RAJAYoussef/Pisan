@@ -1,7 +1,7 @@
 // Parcours de compétences dédié aux fractions.
 // Générateurs purs et déterministes : une graine produit toujours la même activité.
 import { seeded } from './exercises';
-import { t, type Activity, type Skill, type Step } from './skill-kit';
+import { t, type Activity, type Skill } from './skill-kit';
 
 const pick = <T,>(rng: () => number, values: readonly T[]): T => values[Math.floor(rng() * values.length)]!;
 
