@@ -143,7 +143,7 @@ export function figureChapter(programme: Programme | null | undefined, kind: Fig
  */
 export function figuresFor(programme: Programme | null | undefined, notions: NotionId[] | undefined, level: number): FigureKind[] {
   return FIGURE_KINDS.filter(k => {
-    if (!notions) return k === 'seq' || k === 'deriv' || k === 'proba' ? level >= 5 : k === 'inscribed' || k === 'vectors' || k === 'affine' ? level === 3 : k === 'stats' ? level >= 1 && level <= 3 : level >= 2 && level <= 4;
+    if (!notions) return k === 'fractions' ? true : k === 'seq' || k === 'deriv' || k === 'proba' ? level >= 5 : k === 'inscribed' || k === 'vectors' || k === 'affine' ? level === 3 : k === 'stats' ? level >= 1 && level <= 3 : level >= 2 && level <= 4;
     if (NEEDS_TITLE.includes(k)) return figureChapter(programme, k) !== null;
     return FIGURE_NOTIONS[k].some(n => notions.includes(n));
   });
