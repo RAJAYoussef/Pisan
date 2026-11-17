@@ -58,6 +58,7 @@ export type Step =
   | { type: 'grid'; prompt: L; scene: Scene & { grid: Grid }; label: string; start: P; answer: P; hint: L }
   | { type: 'widget'; prompt: L; hint: L; widget: Widget };
 export type Widget =
+  | { kind: 'fraction-bars'; left: { n: number; d: number }; right: { n: number; d: number } }
   | { kind: 'squares'; ab: number; ac: number }
   | { kind: 'thales'; problem: ThalesProblem }
   | { kind: 'inscribed'; problem: InscribedProblem }
