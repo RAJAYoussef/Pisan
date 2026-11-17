@@ -2,9 +2,9 @@ import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import type { Lang } from '@/lib/i18n';
 import { analyzeFractionResponse, type FractionDiagnosis, type FractionTask } from '@/lib/fraction-diagnosis';
+import type { FractionWidgetKind } from '@/lib/fraction-reasoning';
 
 type Fraction = { n: number; d: number };
-export type FractionWidgetKind = 'fraction-equivalence' | 'fraction-addition' | 'fraction-numberline';
 export type FractionInteractionEvent = {
   widgetKind: FractionWidgetKind;
   sequence: number;
