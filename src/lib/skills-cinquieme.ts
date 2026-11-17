@@ -132,7 +132,7 @@ function angSum(seed: number): Activity {
 function parallelScene(marks: [string, string, string][], label: { at: P; text: string }[]): Scene {
   return {
     points: { L1: { x: -1, y: 0 }, R1: { x: 7, y: 0 }, L2: { x: -1, y: 3 }, R2: { x: 7, y: 3 }, S0: { x: 1, y: -1.2 }, S1: { x: 5, y: 4.2 }, P: { x: 1.9, y: 0 }, Q: { x: 4.1, y: 3 } },
-    hidden: ['L1', 'R1', 'L2', 'R2', 'S0', 'S1'],
+    hidden: ['L1', 'R1', 'L2', 'R2', 'S0', 'S1', 'P', 'Q'],
     segments: [{ id: 'd1', a: 'L1', b: 'R1' }, { id: 'd2', a: 'L2', b: 'R2' }, { id: 'sec', a: 'S0', b: 'S1', style: 'bold' }],
     angleMarks: marks,
     labels: [{ at: { x: 6.6, y: 0.4 }, text: '(d)' }, { at: { x: 6.6, y: 3.4 }, text: '(d′)' }, ...label],
