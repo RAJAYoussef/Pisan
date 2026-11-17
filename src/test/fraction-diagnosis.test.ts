@@ -22,6 +22,16 @@ describe('Fraction diagnosis', () => {
     expect(result.remediation).toBe('visualise-parts');
   });
 
+  it('detects changing only one term when building an equivalent fraction', () => {
+    const result = analyzeFractionResponse({
+      kind: 'equivalent', value: { n: 1, d: 2 }, expected: { n: 2, d: 4 },
+    }, '1/4');
+    expect(result.correct).toBe(false);
+    expect(result.misconception).toBe('fraction-scale-one-term');
+    expect(result.remediation).toBe('equivalent-fractions');
+    expect(result.confirmed).toBe(false);
+  });
+
   it('does not diagnose a misconception from an arbitrary wrong comparison', () => {
     const result = analyzeFractionResponse({
       kind: 'compare', left: { n: 2, d: 3 }, right: { n: 3, d: 5 }, relation: '>',
