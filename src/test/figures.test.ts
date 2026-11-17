@@ -99,19 +99,19 @@ describe('Figures : angles inscrits', () => {
 describe('Figures proposées selon le programme', () => {
   const at = (country: string, grade: number) => { const p = programmeFor(country, grade)!; return figuresFor(p, programmeNotions(p).map(n => n.id), 0); };
   it('Maroc 3e année collège : Pythagore (rappel), Thalès, trigonométrie et angles inscrits', () => {
-    expect(at('ma', 2)).toEqual(['pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'affine', 'stats']);
+    expect(at('ma', 2)).toEqual(['pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'affine', 'stats', 'sci', 'literal', 'linear', 'roots', 'identities', 'inequalities', 'systems', 'solids']);
     expect(figureChapter(programmeFor('ma', 2), 'pythagoras')).toBeNull(); // Pythagore est vu en 2AC : « rappel »
     expect(figureChapter(programmeFor('ma', 2), 'inscribed')?.fr).toBe('Angles inscrits et angles au centre');
   });
   it('France 3e : pas d’angles inscrits (hors programme)', () => {
-    expect(at('fr', 3)).toEqual(['pythagoras', 'thales', 'trigo', 'affine', 'stats', 'proportion']);
+    expect(at('fr', 3)).toEqual(['pythagoras', 'thales', 'trigo', 'affine', 'stats', 'proportion', 'primes', 'chance', 'sci', 'literal', 'linear', 'roots', 'identities', 'inequalities', 'solids']);
   });
   it('France 6e : fractions, décimaux, proportionnalité, droites et angles, symétrie, mesures', () => {
     expect(at('fr', 0)).toEqual(['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures', 'data', 'arith', 'polygons']);
   });
   it('Côte d’Ivoire 3e : le chapitre « Triangle rectangle » sert à Pythagore et à la trigonométrie', () => {
     const p = programmeFor('ci', 3);
-    expect(at('ci', 3)).toEqual(['pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'affine', 'stats']);
+    expect(at('ci', 3)).toEqual(['pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'affine', 'stats', 'sci', 'literal', 'linear', 'roots', 'identities', 'inequalities', 'systems', 'solids']);
     expect(figureChapter(p, 'pythagoras')?.fr).toBe('Triangle rectangle');
     expect(figureChapter(p, 'trigo')?.fr).toBe('Triangle rectangle');
   });

@@ -638,6 +638,11 @@ export const CHAPTER_NAMES: Record<FigureKind, L> = {
   sci: { fr: 'Puissances de 10', en: 'Powers of 10', ar: 'قوى العدد 10', es: 'Potencias de 10' },
   literal: { fr: 'Calcul littéral', en: 'Algebra', ar: 'الحساب الحرفي', es: 'Cálculo algebraico' },
   linear: { fr: 'Équations du premier degré', en: 'Linear equations', ar: 'معادلات الدرجة الأولى', es: 'Ecuaciones de primer grado' },
+  roots: { fr: 'Racines carrées', en: 'Square roots', ar: 'الجذور المربعة', es: 'Raíces cuadradas' },
+  identities: { fr: 'Identités remarquables', en: 'Special products', ar: 'المتطابقات الهامة', es: 'Identidades notables' },
+  inequalities: { fr: 'Inéquations et équation produit', en: 'Inequalities and zero products', ar: 'المتراجحات ومعادلة الجداء', es: 'Inecuaciones y ecuación producto' },
+  systems: { fr: 'Systèmes de deux équations', en: 'Simultaneous equations', ar: 'نظمة معادلتين', es: 'Sistemas de dos ecuaciones' },
+  solids: { fr: 'Géométrie dans l’espace', en: 'Solids and space', ar: 'الهندسة الفضائية', es: 'Geometría del espacio' },
 };
 const STATUS: Record<SkillStatus, (lang: Lang) => string> = {
   mastered: lang => say(lang, 'Acquis', 'Mastered', 'مكتسبة', 'Adquirida'),

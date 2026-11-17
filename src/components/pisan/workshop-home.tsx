@@ -9,7 +9,7 @@ import { skillsFor, skillStatus, type Skill, type SkillStatus } from '@/lib/skil
 import { CHAPTER_NAMES } from './skills';
 
 /** Couleur de chaque chapitre (mêmes variables que les modules de l'accueil). */
-export const KIND_TONE: Record<FigureKind, string> = { pythagoras: 'module-teal', thales: 'module-coral', trigo: 'module-sky', inscribed: 'module-sun', vectors: 'module-coral', affine: 'module-teal', stats: 'module-sky', seq: 'module-sun', deriv: 'module-coral', proba: 'module-teal', fractions: 'module-sun', decimals: 'module-teal', proportion: 'module-coral', lines: 'module-sky', symmetry: 'module-sun', measures: 'module-coral', relatives: 'module-sky', data: 'module-teal', arith: 'module-coral', powers: 'module-sun', expressions: 'module-sky', equations: 'module-teal', polygons: 'module-coral', primes: 'module-sun', angles: 'module-sky', surfaces: 'module-teal', chance: 'module-coral', signs: 'module-sky', sci: 'module-sun', literal: 'module-teal', linear: 'module-coral' };
+export const KIND_TONE: Record<FigureKind, string> = { pythagoras: 'module-teal', thales: 'module-coral', trigo: 'module-sky', inscribed: 'module-sun', vectors: 'module-coral', affine: 'module-teal', stats: 'module-sky', seq: 'module-sun', deriv: 'module-coral', proba: 'module-teal', fractions: 'module-sun', decimals: 'module-teal', proportion: 'module-coral', lines: 'module-sky', symmetry: 'module-sun', measures: 'module-coral', relatives: 'module-sky', data: 'module-teal', arith: 'module-coral', powers: 'module-sun', expressions: 'module-sky', equations: 'module-teal', polygons: 'module-coral', primes: 'module-sun', angles: 'module-sky', surfaces: 'module-teal', chance: 'module-coral', signs: 'module-sky', sci: 'module-sun', literal: 'module-teal', linear: 'module-coral', roots: 'module-sun', identities: 'module-sky', inequalities: 'module-coral', systems: 'module-teal', solids: 'module-sun' };
 
 /** Petit dessin propre à chaque chapitre. */
 export function ChapterGlyph({ kind }: { kind: FigureKind }) {
@@ -28,6 +28,11 @@ export function ChapterGlyph({ kind }: { kind: FigureKind }) {
     lines: <><path d="M6 32 H34" /><path d="M8 32 L30 9" /><path d="M14 32 A8 8 0 0 0 13.5 26.5" className="glyph-accent" /></>,
     symmetry: <><path d="M20 5 V35" className="glyph-thin" strokeDasharray="3 3" /><path d="M16 10 L6 30 H16 Z" /><path d="M24 10 L34 30 H24 Z" className="glyph-accent" /></>,
     measures: <><rect x="6" y="11" width="22" height="18" rx="1" /><path d="M6 34 H28 M6 32 V36 M28 32 V36" className="glyph-thin" /><path d="M32 11 V29 M30 11 H34 M30 29 H34" className="glyph-thin" /></>,
+    roots: <><path d="M6 22 L11 22 L16 32 L22 8 H35" /><text x="28" y="26" textAnchor="middle" className="glyph-text glyph-small">x</text></>,
+    identities: <><text x="20" y="26" textAnchor="middle" className="glyph-text glyph-small">a²−b²</text></>,
+    inequalities: <><text x="20" y="27" textAnchor="middle" className="glyph-text">x&lt;3</text></>,
+    systems: <><path d="M8 8 Q4 8 4 14 V18 Q4 20 2 20 Q4 20 4 22 V26 Q4 32 8 32" className="glyph-thin" /><path d="M12 14 H34 M12 26 H34" /></>,
+    solids: <><path d="M20 6 L34 30 L6 30 Z" /><path d="M20 6 L24 34 M6 30 L24 34 L34 30" className="glyph-thin" /></>,
     signs: <><text x="20" y="27" textAnchor="middle" className="glyph-text">−×−</text></>,
     sci: <><text x="16" y="29" textAnchor="middle" className="glyph-text">10</text><text x="31" y="16" textAnchor="middle" className="glyph-text glyph-small">−3</text></>,
     literal: <><text x="20" y="26" textAnchor="middle" className="glyph-text glyph-small">(x+a)²</text></>,

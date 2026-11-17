@@ -26,8 +26,8 @@ const typed = (step: Extract<Step, { type: 'number' }>) => {
 const chipsSolution = (step: Extract<Step, { type: 'chips' }>) => step.ordered ? step.groups[0]! : step.groups.flatMap((g, i) => [...(i ? ['='] : []), ...g.flatMap((tok, j) => j ? ['+', tok] : [tok])]);
 
 describe('Parcours de compétences : contenu', () => {
-  it('covers the thirty-one chapters with the agreed skills', () => {
-    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 11, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4]);
+  it('covers the thirty-six chapters with the agreed skills', () => {
+    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 11, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]);
     expect(new Set(SKILLS.map(s => s.id)).size).toBe(SKILLS.length);
     for (const s of SKILLS) { expect(s.id).toMatch(/^[a-z]+(-[a-z]+){1,2}$/); expect(filled(s.title) && filled(s.desc)).toBe(true); }
   });
@@ -199,7 +199,7 @@ describe('Mini-contrôles', () => {
 describe('Chapitres du programme', () => {
   it('Maroc 3AC : Pythagore, Thalès, trigonométrie et angles inscrits chacun dans son chapitre', () => {
     const kinds = programmeFor('ma', 2)!.chapters.flatMap(chapterSkillKinds);
-    expect(new Set(kinds)).toEqual(new Set(['thales', 'trigo', 'inscribed', 'vectors', 'affine', 'stats']));
+    expect(new Set(kinds)).toEqual(new Set(['thales', 'trigo', 'inscribed', 'vectors', 'affine', 'stats', 'sci', 'literal', 'linear', 'roots', 'identities', 'inequalities', 'systems', 'solids']));
   });
   it('Côte d’Ivoire 3e : le chapitre « Triangle rectangle » donne Pythagore et la trigonométrie', () => {
     const chapter = programmeFor('ci', 3)!.chapters.find(c => c.title.fr.includes('Triangle rectangle'))!;
@@ -346,7 +346,7 @@ describe('Mini-contrôle à l’écran', () => {
 describe('Vue professeur', () => {
   const student = (id: string, attempts: { skill: string; correct: number; total: number; review?: boolean }[]) => ({ id, profile: { nickname: id, country: 'ma', grade: 2, lang: 'fr' as const }, last_active_at: '2026-11-01', dys_default: null, progress: { unlocked: [], attempts: attempts.map(a => ({ kind: 'workshop' as const, notion: 'vectors' as const, date: '2026-11-01T10:00:00Z', minutes: 5, ...a })) } });
   it('the class programme gives its pathways', () => {
-    expect(classSkillKinds('ma', 2)).toEqual(['pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'affine', 'stats']);
+    expect(classSkillKinds('ma', 2)).toEqual(['pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'affine', 'stats', 'sci', 'literal', 'linear', 'roots', 'identities', 'inequalities', 'systems', 'solids']);
     expect(classSkillKinds('fr', 0)).toEqual(['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures', 'data', 'arith', 'polygons']);
   });
   it('flags a skill when at least two students are stuck on it', () => {
@@ -475,7 +475,7 @@ describe('6e', () => {
     const { chapterSkillKinds } = await import('@/lib/figures');
     const { programmesFor } = await import('@/lib/programmes');
     for (const country of ['fr', 'ma', 'ci', 'sn', 'us']) for (const ch of programmesFor(country, 0)[0]!.chapters) expect(chapterSkillKinds(ch), `${country} ${ch.title.fr}`).not.toEqual([]);
-    expect(chapterSkillKinds({ title: { fr: 'Équations et inéquations du premier degré', en: '', ar: '', es: '' }, notions: ['equations'] })).toEqual([]);
+    expect(chapterSkillKinds({ title: { fr: 'Équations et inéquations du premier degré', en: '', ar: '', es: '' }, notions: ['equations'] })).not.toContain('equations');
     for (let seed = 0; seed < 40; seed++) {
       const euclid = getSkill('arith-euclid')!.build(seed).steps;
       const q = euclid[0]!, r = euclid[1]!;
@@ -500,8 +500,8 @@ describe('6e', () => {
     const { chapterSkillKinds, figuresFor } = await import('@/lib/figures');
     const { programmesFor, programmeNotions } = await import('@/lib/programmes');
     for (const country of ['fr', 'ci', 'sn', 'us']) for (const ch of programmesFor(country, 1)[0]!.chapters) expect(chapterSkillKinds(ch), `${country} ${ch.title.fr}`).not.toEqual([]);
-    // les parcours de 5e ne débordent ni sur la 6e ni sur le lycée
-    for (const country of ['fr', 'ma', 'ci', 'sn', 'us']) for (const grade of [0, 3, 6]) for (const p of programmesFor(country, grade)) {
+    // les parcours de 5e ne débordent ni sur la 6e ni sur le lycée (la 3e en reprend certains, comme les nombres premiers)
+    for (const country of ['fr', 'ma', 'ci', 'sn', 'us']) for (const grade of [0, 6]) for (const p of programmesFor(country, grade)) {
       expect(figuresFor(p, programmeNotions(p).map(n => n.id), grade).filter(k => ['primes', 'angles', 'surfaces', 'chance'].includes(k)), `${country} ${grade}`).toEqual([]);
     }
     for (let seed = 0; seed < 40; seed++) {
@@ -527,8 +527,8 @@ describe('6e', () => {
     const { programmesFor, programmeNotions } = await import('@/lib/programmes');
     const { getLevel } = await import('@/lib/curriculum');
     for (const [country, grade] of [['fr', 2], ['ma', 1], ['ci', 2], ['sn', 2], ['us', 2]] as const) for (const ch of programmesFor(country, grade)[0]!.chapters) expect(chapterSkillKinds(ch), `${country} ${ch.title.fr}`).not.toEqual([]);
-    // les parcours de 4e restent en 4e (et en 7.NS pour les relatifs)
-    for (const country of ['fr', 'ma', 'ci', 'sn', 'us']) for (const grade of [0, 3, 6]) for (const p of programmesFor(country, grade)) {
+    // les parcours de 4e ne descendent pas en 6e et ne montent pas au lycée (la 3e les reprend)
+    for (const country of ['fr', 'ma', 'ci', 'sn', 'us']) for (const grade of [0, 6]) for (const p of programmesFor(country, grade)) {
       if (country === 'ma' && grade === 0) continue;
       expect(figuresFor(p, programmeNotions(p).map(n => n.id), getLevel(country, grade)).filter(k => ['signs', 'sci', 'literal', 'linear'].includes(k)), `${country} ${grade}`).toEqual([]);
     }
@@ -554,6 +554,36 @@ describe('6e', () => {
         const exp = Number(e!.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻]/g, c => ({ '⁻': '-' } as Record<string, string>)[c] ?? String('⁰¹²³⁴⁵⁶⁷⁸⁹'.indexOf(c))));
         expect(st.answer).toBeCloseTo(Number(m!.replace(',', '.')) * 10 ** exp, 9);
       }
+    }
+  });
+  it('3e: every chapter of the five programmes has a pathway, and the new ones say what the answer says', async () => {
+    const { chapterSkillKinds, figuresFor } = await import('@/lib/figures');
+    const { programmesFor, programmeNotions } = await import('@/lib/programmes');
+    const { getLevel } = await import('@/lib/curriculum');
+    for (const [country, grade] of [['fr', 3], ['ma', 2], ['ci', 3], ['sn', 3], ['us', 3]] as const) for (const ch of programmesFor(country, grade)[0]!.chapters) expect(chapterSkillKinds(ch), `${country} ${ch.title.fr}`).not.toEqual([]);
+    // les parcours de 3e ne descendent pas au collège et ne montent pas au lycée
+    for (const country of ['fr', 'ci', 'sn', 'us']) for (const grade of [0, 1, 2, 6]) for (const p of programmesFor(country, grade)) {
+      const kinds = figuresFor(p, programmeNotions(p).map(n => n.id), getLevel(country, grade)).filter(k => ['identities', 'inequalities', 'systems', 'solids'].includes(k));
+      expect(kinds, `${country} ${grade}`).toEqual([]);
+    }
+    expect(chapterSkillKinds(programmesFor('ci', 3)[0]!.chapters.find(c => c.title.fr.endsWith('ℝ × ℝ'))!)).toEqual(['systems']);
+    for (let seed = 0; seed < 40; seed++) {
+      const sub = getSkill('sys-substitution')!.build(seed).steps;
+      const [x, y] = sub.map(st => (st.type === 'number' ? st.answer : NaN));
+      const eqs = sub[0]!.prompt.fr.match(/\{ (.*) \}/)![1]!.split(' ; ');
+      const value = (e: string) => Number(Function('x', 'y', `return (${e.replace(/−/g, '-').replace(/(\d)([xy])/g, '$1*$2')})`)(x, y));
+      for (const e of eqs) { const [l, r] = e.split(' = '); expect(value(l!)).toBe(value(r!)); }
+      const prod = getSkill('ineq-product')!.build(seed).steps;
+      const p0 = prod[0]!, p1 = prod[1]!;
+      if (p0.type !== 'number' || p1.type !== 'number') throw new Error();
+      const [a, b] = (p0.prompt.fr.match(/\d+/g) ?? []).map(Number);
+      expect([p0.answer, p1.answer]).toEqual([a, -b!]);
+      const flip = getSkill('ineq-flip')!.build(seed).steps[0]!;
+      if (flip.type !== 'choice') throw new Error();
+      expect(['x <', 'x ≤']).toContain(flip.options[flip.answer]!.fr);
+      const sect = getSkill('solid-section')!.build(seed).steps[1]!;
+      if (sect.type !== 'number') throw new Error();
+      expect(Number.isInteger(sect.answer)).toBe(true);
     }
   });
   it('decimal traps are really traps: 2,5 > 2,45 and 2,5 = 2,50', () => {
