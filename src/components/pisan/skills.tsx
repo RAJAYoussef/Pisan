@@ -14,13 +14,13 @@ import { Speaker, Tutor } from './shared';
 import { minusSign, Rich } from './math-text';
 import { FractionBars } from './fraction-bars';
 import { FractionAdditionLab, FractionEquivalenceLab, FractionNumberLineLab, type FractionInteractionEvent } from './fraction-labs';
-import { readFractionSequence, type FractionReasoningEvent, type FractionSequenceAnalysis, type FractionWidgetSpec } from '@/lib/fraction-reasoning';
+import { readFractionSequence, verifyFractionHypothesis, type FractionReasoningEvent, type FractionSequenceAnalysis, type FractionWidgetSpec } from '@/lib/fraction-reasoning';
 
 export type FractionInteractionContext = FractionReasoningEvent;
-type Props = { lang: Lang; skill: Skill; onSave: (a: Attempt) => Promise<void>; onBack: () => void; onFractionInteraction?: (event: FractionInteractionContext) => void; onFractionAnalysis?: (analysis: FractionSequenceAnalysis) => void };
+type Props = { lang: Lang; skill: Skill; onSave: (a: Attempt) => Promise<void>; onBack: () => void; onFractionInteraction?: (event: FractionInteractionContext) => void; onFractionAnalysis?: (analysis: FractionSequenceAnalysis) => void; onAdaptiveSkill?: (skillId: string) => void };
 
 /** Une compétence : les étapes s'enchaînent ; une étape ratée au premier essai ne compte pas comme réussie. */
-export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteraction, onFractionAnalysis }: Props) {
+export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteraction, onFractionAnalysis, onAdaptiveSkill }: Props) {
   const [seed, setSeed] = useState(() => Date.now() % 100000);
   const activity = useMemo(() => skill.build(seed), [skill, seed]);
   const [index, setIndex] = useState(0);
@@ -31,6 +31,8 @@ export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteracti
   const [done, setDone] = useState<null | { correct: number; total: number }>(null);
   const [saveError, setSaveError] = useState('');
   const fractionEvents = useRef<FractionReasoningEvent[]>([]);
+  const [fractionAnalysis, setFractionAnalysis] = useState<FractionSequenceAnalysis | null>(null);
+  const [verificationAnswers, setVerificationAnswers] = useState<Record<string, string>>({});
   function recordFractionInteraction(event: FractionInteractionContext) {
     const sameSequence = fractionEvents.current.filter(item =>
       item.skillId === event.skillId && item.activitySeed === event.activitySeed &&
@@ -38,7 +40,10 @@ export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteracti
     );
     fractionEvents.current = [...sameSequence, event];
     onFractionInteraction?.(event);
-    onFractionAnalysis?.(readFractionSequence(fractionEvents.current));
+    const analysis = readFractionSequence(fractionEvents.current);
+    setFractionAnalysis(analysis);
+    setVerificationAnswers({});
+    onFractionAnalysis?.(analysis);
   }
   const step = activity.steps[index]!;
   const total = activity.steps.length;
@@ -71,6 +76,23 @@ export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteracti
         : <>
           <div className="mb-5 flex items-start justify-between gap-4"><p className="text-lg font-semibold leading-snug"><Rich lang={lang} text={show(step.prompt)} /></p><Speaker text={spoken(show(step.prompt), lang)} lang={lang} /></div>
           <StepView key={`${seed}-${index}`} lang={lang} step={step} solved={solved} onAnswer={answer} onFractionInteraction={(event, widget) => recordFractionInteraction({ ...event, skillId: skill.id, activitySeed: seed, stepIndex: index, widget })} />
+          {fractionAnalysis?.hypotheses.map(hypothesis => {
+            const diagnostic = verifyFractionHypothesis(hypothesis, verificationAnswers);
+            const complete = diagnostic.status !== 'inconclusive';
+            return <section key={hypothesis.code} className="mt-5 rounded-xl border p-4" aria-label={say(lang, 'Vérification pédagogique', 'Learning check', 'تحقق تعليمي', 'Comprobación pedagógica')}>
+              <p className="text-sm font-bold text-primary-deep">{say(lang, 'Une petite vérification pour mieux t’aider', 'A quick check to help you better', 'تحقق قصير لمساعدتك', 'Una pequeña comprobación para ayudarte')}</p>
+              <p className="mt-2 text-sm">{hypothesis.explanation}</p>
+              {hypothesis.checks.map(check => <fieldset key={check.id} className="mt-4">
+                <legend className="mb-2 text-sm font-semibold">{check.prompt}</legend>
+                <div className="grid gap-2">{check.options.map(option => <Button key={option.value} type="button" variant={verificationAnswers[check.id] === option.value ? 'default' : 'soft'} className="h-auto min-h-10 whitespace-normal justify-start text-start" aria-pressed={verificationAnswers[check.id] === option.value} onClick={() => setVerificationAnswers(previous => ({ ...previous, [check.id]: option.value }))}>{option.label}</Button>)}</div>
+              </fieldset>)}
+              {complete && <div className="mt-4 rounded-lg bg-muted p-3" role="status">
+                <p className="font-semibold">{diagnostic.status === 'confirmed' ? say(lang, 'Une difficulté précise semble se confirmer.', 'A specific difficulty appears to be confirmed.', 'يبدو أن صعوبة محددة قد تأكدت.', 'Parece confirmarse una dificultad concreta.') : say(lang, 'Cette difficulté n’est pas confirmée.', 'This difficulty is not confirmed.', 'لم تتأكد هذه الصعوبة.', 'Esta dificultad no está confirmada.')}</p>
+                <p className="mt-1 text-sm">{diagnostic.explanation}</p>
+                {diagnostic.status === 'confirmed' && <Button className="mt-3" onClick={() => onAdaptiveSkill?.(hypothesis.code === 'fraction-scale-one-term' ? 'frac-equivalent' : 'frac-add-subtract')}>{say(lang, 'Adapter mon prochain exercice', 'Adapt my next exercise', 'تكييف التمرين التالي', 'Adaptar mi próximo ejercicio')}<ArrowRight /></Button>}
+              </div>}
+            </section>;
+          })}
           {solved && <Button className="mt-5 w-full" disabled={busy} onClick={() => void next()}>{index + 1 < total ? say(lang, 'Étape suivante', 'Next step', 'المرحلة التالية', 'Paso siguiente') : say(lang, 'Terminer', 'Finish', 'إنهاء', 'Terminar')}<ArrowRight /></Button>}
           {hint && !solved && <div className="mt-4"><Tutor><Rich lang={lang} text={hint} /></Tutor></div>}
           {saveError && <p role="alert" className="mt-3 text-destructive">{saveError}</p>}
