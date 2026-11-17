@@ -443,8 +443,9 @@ describe('6e', () => {
       expect(angle).toBe(measure.answer);
       const axial = getSkill('sym-axial')!.build(seed).steps[0]!;
       if (axial.type !== 'grid') throw new Error('grille');
-      expect(axial.answer.x + axial.start.x).toBe(10); // axe vertical x = 5
-      expect(axial.answer.y).toBe(axial.start.y);
+      const M = axial.scene.points['M']!;
+      expect(axial.answer.x + M.x).toBe(10); // axe vertical x = 5
+      expect(axial.answer.y).toBe(M.y);
     }
   });
   it('decimal traps are really traps: 2,5 > 2,45 and 2,5 = 2,50', () => {

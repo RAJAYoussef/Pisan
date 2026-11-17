@@ -499,7 +499,7 @@ export function GeoScene({ lang, scene, tapped, answer, locked, onTap, cursor }:
   const g = scene.grid;
   const pr = scene.protractor ? scene.points[scene.protractor.c] : undefined;
   const PR = 3.2; // rayon du rapporteur, en unités de la figure
-  const extra = [...(scene.labels ?? []).map(l => l.at), ...(pr ? [{ x: pr.x - PR, y: pr.y - PR }, { x: pr.x + PR, y: pr.y + PR }] : [])];
+  const extra = [...(scene.labels ?? []).map(l => l.at), ...(pr && scene.protractor ? Array.from({ length: 7 }, (_, i) => { const a = ((scene.protractor!.zero + i * 30) * Math.PI) / 180; return { x: pr.x + PR * Math.cos(a), y: pr.y + PR * Math.sin(a) }; }) : [])]; // le demi-disque seulement
   const xs = pts.map(p => p.x).concat(scene.circle ? [-r, r] : [], g ? [g.minX, g.maxX] : [], extra.map(p => p.x)), ys = pts.map(p => p.y).concat(scene.circle ? [-r, r] : [], g ? [g.minY, g.maxY] : [], extra.map(p => p.y));
   const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
   const s = (g ? 300 : 260) / Math.max(maxX - minX, maxY - minY, 1), pad = g ? 24 : 40;
