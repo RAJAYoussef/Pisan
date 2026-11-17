@@ -31,7 +31,7 @@ export function ChapterGlyph({ kind }: { kind: FigureKind }) {
     arith: <><text x="20" y="25" textAnchor="middle" className="glyph-text">÷</text><path d="M8 32 H32" className="glyph-thin" /></>,
     powers: <><text x="15" y="29" textAnchor="middle" className="glyph-text">2</text><text x="27" y="17" textAnchor="middle" className="glyph-text glyph-small">5</text></>,
     expressions: <><text x="20" y="26" textAnchor="middle" className="glyph-text">3x</text></>,
-    equations: <><text x="20" y="26" textAnchor="middle" className="glyph-text glyph-small">x + 2 = 5</text></>,
+    equations: <><text x="20" y="26" textAnchor="middle" className="glyph-text">x=?</text></>,
     polygons: <><path d="M6 32 L18 10 L24 32 Z" className="glyph-fill" /><path d="M24 14 H36 V32 H26" /></>,
     relatives: <><path d="M4 22 H36" /><path d="M20 17 V27 M10 19 V25 M30 19 V25" className="glyph-thin" /><text x="10" y="13" textAnchor="middle" className="glyph-text glyph-small">−</text><text x="30" y="13" textAnchor="middle" className="glyph-text glyph-small">+</text></>,
     data: <><path d="M6 34 H34 M6 34 V6" className="glyph-thin" /><rect x="10" y="22" width="5" height="12" className="glyph-fill" /><rect x="18" y="14" width="5" height="20" /><rect x="26" y="18" width="5" height="16" className="glyph-fill" /></>,
