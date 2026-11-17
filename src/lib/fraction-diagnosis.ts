@@ -82,7 +82,7 @@ export function expectedFraction(task: FractionTask): Fraction | number | string
     case 'divide': return divide(task.left, task.right);
     case 'simplify':
     case 'equivalent': return normalizeFraction(task.expected);
-    case 'compare': return task.relation;
+    case 'compare': return compare(task.left, task.right) > 0 ? '>' : compare(task.left, task.right) < 0 ? '<' : '=';
     case 'fraction-of': return task.expected;
   }
 }
@@ -93,7 +93,7 @@ export function analyzeFractionResponse(task: FractionTask, raw: string): Fracti
   const expectedText = typeof expected === 'string' || typeof expected === 'number' ? String(expected) : format(expected);
   const observed = raw.trim();
   const correct = task.kind === 'compare'
-    ? ['<', '>', '='].includes(observed) && observed === task.relation
+    ? ['<', '>', '='].includes(observed) && observed === expected && expected === task.relation
     : task.kind === 'fraction-of'
       ? parsed !== null && Math.abs(parsed.n / parsed.d - task.expected) < 1e-9
       : parsed !== null && typeof expected !== 'string' && typeof expected !== 'number' && equal(parsed, expected);
