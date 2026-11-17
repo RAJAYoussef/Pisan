@@ -11,7 +11,7 @@ import { AskPi } from './coach';
 import { ConcreteObjects } from './concrete';
 import { ReviewActivity, SkillActivity } from './skills';
 import { ChapterPath, WorkshopHome, type Tile } from './workshop-home';
-import { dueReviews, nextSkill, type Skill } from '@/lib/skills';
+import { dueReviews, getSkill, nextSkill, type Skill } from '@/lib/skills';
 import { assignmentNext, visibleAssignments, type Assignment } from '@/lib/assignments';
 import { AssignmentRow } from './assignment-row';
 import { figureChapter, figuresFor, type FigureKind } from '@/lib/figures';
@@ -39,6 +39,7 @@ export function Workshop(props: Props) {
   const [busy, setBusy] = useState(false);
   const [highActive, setHighActive] = useState(false);
   const [skill, setSkill] = useState<Skill | null>(null);
+  const [adaptiveSkillId, setAdaptiveSkillId] = useState<string | null>(null);
   const [review, setReview] = useState<Skill[] | null>(null);
   const [chapter, setChapter] = useState<FigureKind | null>(null);
   const [bars, setBars] = useState(false);
@@ -56,9 +57,9 @@ export function Workshop(props: Props) {
   }
   const due = dueReviews(attempts);
   if (review) return <ReviewActivity lang={lang} skills={review} onSave={props.onSave} onBack={() => setReview(null)} />;
-  if (skill) return <SkillActivity key={skill.id} lang={lang} skill={skill} onSave={props.onSave} onBack={() => setSkill(null)} />;
+  if (skill) return <SkillActivity key={skill.id} lang={lang} skill={skill} onSave={props.onSave} onBack={() => setSkill(null)} onAdaptiveSkill={setAdaptiveSkillId} />;
   async function openReview() { setBusy(true); setError(''); try { if (await onStart()) setReview(due); } catch { setError(say(lang, 'Exercice indisponible. Réessaie.', 'Exercise unavailable. Try again.', 'التمرين غير متاح.', 'Ejercicio no disponible.')); } finally { setBusy(false); } }
-  async function openSkill(next: Skill) { setBusy(true); setError(''); try { if (await onStart()) setSkill(next); } catch { setError(say(lang, 'Exercice indisponible. Réessaie.', 'Exercise unavailable. Try again.', 'التمرين غير متاح.', 'Ejercicio no disponible.')); } finally { setBusy(false); } }
+  async function openSkill(next: Skill) { setBusy(true); setError(''); try { if (await onStart()) { setSkill(next); setAdaptiveSkillId(null); } } catch { setError(say(lang, 'Exercice indisponible. Réessaie.', 'Exercise unavailable. Try again.', 'التمرين غير متاح.', 'Ejercicio no disponible.')); } finally { setBusy(false); } }
   if (highActive) return <HighSchool {...props} modes={modes} onBack={() => setHighActive(false)} />;
   if (exercise) return <BarExercise key={exercise.id} {...props} exercise={exercise} onBack={() => setExercise(null)} />;
   const back = say(lang, 'Atelier', 'Workshop', 'الورشة', 'Taller');
@@ -69,7 +70,9 @@ export function Workshop(props: Props) {
     ...(exercises.length ? [{ id: 'bars', tone: 'module-sun', icon: <BarsGlyph />, title: say(lang, 'Problèmes en barres', 'Bar-model problems', 'مسائل بالنماذج الشريطية', 'Problemas con barras'), note: say(lang, `Méthode de Singapour · ${exercises.length} problèmes de ton programme`, `Singapore method · ${exercises.length} problems from your curriculum`, `طريقة سنغافورة · ${exercises.length} مسائل من برنامجك`, `Método de Singapur · ${exercises.length} problemas de tu programa`), onOpen: () => setBars(true) }] : []),
     ...(showGraphs ? [{ id: 'graphs', tone: 'module-sky', icon: <TrendingUp />, title: say(lang, 'Graphiques, arbres et tableaux de signes', 'Graphs, trees and sign tables', 'المنحنيات والأشجار وجداول الإشارة', 'Gráficos, árboles y tablas de signos'), note: say(lang, 'Lire et construire', 'Read and build', 'القراءة والإنشاء', 'Leer y construir'), onOpen: () => void (async () => { setBusy(true); setError(''); try { if (await onStart()) setHighActive(true); } catch { setError(d.ws.almost); } finally { setBusy(false); } })() }] : []),
   ];
-  return <><WorkshopHome lang={lang} assignments={visibleAssignments(props.assignments ?? [], attempts).map(a => <AssignmentRow key={a.id} lang={lang} assignment={a} attempts={attempts} onOpen={() => { const next = assignmentNext(attempts, a); if (next) void openSkill(next); }} />)} kinds={figures} attempts={attempts} chapterLabel={k => figureChapterTitle(programme, k, lang)} next={nextSkill(attempts, figures)} due={due.length} extras={extras} busy={busy} onChapter={setChapter} onSkill={next => void openSkill(next)} onReview={() => void openReview()} />{errorBox}</>;
+  const adaptiveSkill = adaptiveSkillId ? (getSkill(adaptiveSkillId)) : null;
+  const next = adaptiveSkill ? { skill: adaptiveSkill, resumed: true } : nextSkill(attempts, figures);
+  return <><WorkshopHome lang={lang} assignments={visibleAssignments(props.assignments ?? [], attempts).map(a => <AssignmentRow key={a.id} lang={lang} assignment={a} attempts={attempts} onOpen={() => { const next = assignmentNext(attempts, a); if (next) void openSkill(next); }} />)} kinds={figures} attempts={attempts} chapterLabel={k => figureChapterTitle(programme, k, lang)} next={next} due={due.length} extras={extras} busy={busy} onChapter={setChapter} onSkill={next => void openSkill(next)} onReview={() => void openReview()} />{errorBox}</>;
 }
 
 /** Icône des problèmes en barres. */
