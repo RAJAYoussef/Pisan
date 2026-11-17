@@ -40,8 +40,9 @@ function useParts(d: number) {
 }
 
 /** Student constructs an equivalent fraction by shading the refined partition. */
-export function FractionEquivalenceLab({ lang, source, factor, locked = false, onComplete, onDiagnosis }: BaseProps & { source: Fraction; factor: number }) {
-  const c = copy[lang], target = { n: source.n * factor, d: source.d * factor }, parts = useParts(target.d);\n  const record = useInteractionRecorder('fraction-equivalence', onInteraction);
+export function FractionEquivalenceLab({ lang, source, factor, locked = false, onComplete, onDiagnosis, onInteraction }: BaseProps & { source: Fraction; factor: number }) {
+  const c = copy[lang], target = { n: source.n * factor, d: source.d * factor }, parts = useParts(target.d);
+  const record = useInteractionRecorder('fraction-equivalence', onInteraction);
   const [checked, setChecked] = useState<boolean | null>(null), [diagnosis, setDiagnosis] = useState<FractionDiagnosis | null>(null);
   const valid = Number.isSafeInteger(source.n) && Number.isSafeInteger(source.d) && source.d > 0 && source.n >= 0 && source.n <= source.d && Number.isSafeInteger(factor) && factor >= 2 && target.d <= 16;
   if (!valid) throw new Error('Invalid equivalence lab parameters');
@@ -58,8 +59,9 @@ export function FractionEquivalenceLab({ lang, source, factor, locked = false, o
 }
 
 /** Adds two fractions with a common denominator through a third manipulable bar. */
-export function FractionAdditionLab({ lang, left, right, locked = false, onComplete, onDiagnosis }: BaseProps & { left: Fraction; right: Fraction }) {
-  const c = copy[lang], total = left.n + right.n, parts = useParts(left.d);\n  const record = useInteractionRecorder('fraction-addition', onInteraction);
+export function FractionAdditionLab({ lang, left, right, locked = false, onComplete, onDiagnosis, onInteraction }: BaseProps & { left: Fraction; right: Fraction }) {
+  const c = copy[lang], total = left.n + right.n, parts = useParts(left.d);
+  const record = useInteractionRecorder('fraction-addition', onInteraction);
   const [checked, setChecked] = useState<boolean | null>(null), [diagnosis, setDiagnosis] = useState<FractionDiagnosis | null>(null);
   const valid = left.d === right.d && left.d > 0 && left.d <= 16 && left.n >= 0 && right.n >= 0 && total <= left.d;
   if (!valid) throw new Error('Addition lab requires non-negative fractions with a common denominator and sum ≤ 1');
@@ -76,8 +78,9 @@ export function FractionAdditionLab({ lang, left, right, locked = false, onCompl
 }
 
 /** Places a fraction on a continuous 0–1 number line using a controlled slider. */
-export function FractionNumberLineLab({ lang, target, locked = false, onComplete }: BaseProps & { target: Fraction }) {
-  const c = copy[lang], [position, setPosition] = useState(0), [checked, setChecked] = useState<boolean | null>(null);\n  const record = useInteractionRecorder('fraction-numberline', onInteraction);
+export function FractionNumberLineLab({ lang, target, locked = false, onComplete, onInteraction }: BaseProps & { target: Fraction }) {
+  const c = copy[lang], [position, setPosition] = useState(0), [checked, setChecked] = useState<boolean | null>(null);
+  const record = useInteractionRecorder('fraction-numberline', onInteraction);
   if (!Number.isSafeInteger(target.n) || !Number.isSafeInteger(target.d) || target.d <= 0 || target.n < 0 || target.n > target.d) throw new Error('Number line target must be between 0 and 1');
   const verify = () => { const ok = Math.abs(position - target.n / target.d) <= 0.006; record('verified', { position, correct: ok }); setChecked(ok); onComplete?.(ok); };
   return <section className="space-y-3">
