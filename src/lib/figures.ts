@@ -7,13 +7,13 @@ import type { L, NotionId } from './curriculum';
 import type { Programme } from './programmes';
 
 /** Chapitres qui ont un parcours de compétences (src/lib/skills.ts). Les quatre premiers ont aussi des figures à manipuler. */
-export type FigureKind = 'pythagoras' | 'thales' | 'trigo' | 'inscribed' | 'vectors' | 'affine' | 'stats' | 'seq' | 'deriv' | 'proba';
-export const FIGURE_KINDS: FigureKind[] = ['pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'affine', 'stats', 'seq', 'deriv', 'proba'];
-export const FIGURE_NOTIONS: Record<FigureKind, NotionId[]> = { pythagoras: ['pythagoras-thales'], thales: ['pythagoras-thales'], trigo: ['trigonometry'], inscribed: ['geometry'], vectors: ['vectors'], affine: ['functions'], stats: ['statistics'], seq: ['sequences'], deriv: ['derivatives'], proba: ['probability-laws'] };
+export type FigureKind = 'pythagoras' | 'thales' | 'trigo' | 'inscribed' | 'vectors' | 'affine' | 'stats' | 'seq' | 'deriv' | 'proba' | 'fractions';
+export const FIGURE_KINDS: FigureKind[] = ['pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'affine', 'stats', 'seq', 'deriv', 'proba', 'fractions'];
+export const FIGURE_NOTIONS: Record<FigureKind, NotionId[]> = { pythagoras: ['pythagoras-thales'], thales: ['pythagoras-thales'], trigo: ['trigonometry'], inscribed: ['geometry'], vectors: ['vectors'], affine: ['functions'], stats: ['statistics'], seq: ['sequences'], deriv: ['derivatives'], proba: ['probability-laws'], fractions: ['fractions'] };
 /** Mots de l'intitulé officiel du chapitre qui correspond à chaque parcours (plusieurs chapitres partagent une notion). */
-export const FIGURE_CHAPTER_WORDS: Record<FigureKind, string[]> = { pythagoras: ['Pythagore', 'Triangle rectangle'], thales: ['Thalès'], trigo: ['Trigonométrie', 'trigonométriques', 'Triangle rectangle'], inscribed: ['inscrits'], vectors: ['Vecteur', 'vecteur'], affine: ['affines', 'Fonctions linéaires'], stats: ['Statistiques'], seq: ['Suites'], deriv: ['érivation'], proba: ['robabilit', 'Loi binomiale', 'Lois'] };
+export const FIGURE_CHAPTER_WORDS: Record<FigureKind, string[]> = { pythagoras: ['Pythagore', 'Triangle rectangle'], thales: ['Thalès'], trigo: ['Trigonométrie', 'trigonométriques', 'Triangle rectangle'], inscribed: ['inscrits'], vectors: ['Vecteur', 'vecteur'], affine: ['affines', 'Fonctions linéaires'], stats: ['Statistiques'], seq: ['Suites'], deriv: ['érivation'], proba: ['robabilit', 'Loi binomiale', 'Lois'], fractions: ['Fraction', 'fraction'] };
 /** Parcours dont la notion est partagée avec d'autres chapitres : on exige l'intitulé officiel. */
-const NEEDS_TITLE: FigureKind[] = ['inscribed', 'vectors', 'affine', 'stats', 'seq', 'deriv', 'proba'];
+const NEEDS_TITLE: FigureKind[] = ['inscribed', 'vectors', 'affine', 'stats', 'seq', 'deriv', 'proba', 'fractions'];
 /** Taille du quadrillage (en carreaux) : les points se placent sur des nœuds entiers de 0 à GRID. */
 export const GRID = 12;
 
