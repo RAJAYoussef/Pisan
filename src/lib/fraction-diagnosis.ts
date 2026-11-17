@@ -105,10 +105,10 @@ export function analyzeFractionResponse(task: FractionTask, raw: string): Fracti
   if (!correct && (task.kind === 'add' || task.kind === 'subtract')) {
     const { left: a, right: b } = task;
     const sameDenominator = a.d === b.d;
-    const wrong = task.kind === 'add'
+    const wrong = sameDenominator ? null : task.kind === 'add'
       ? normalizeFraction({ n: a.n + b.n, d: a.d + b.d })
       : normalizeFraction({ n: a.n - b.n, d: a.d - b.d });
-    if (parsed && equal(parsed, wrong) && !sameDenominator) {
+    if (parsed && wrong && equal(parsed, wrong)) {
       misconception = 'fraction-add-denominators';
       remediation = 'visualise-parts';
       evidence = 'La réponse correspond à une opération séparée sur les numérateurs et les dénominateurs.';
