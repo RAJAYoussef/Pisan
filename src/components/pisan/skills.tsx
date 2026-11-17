@@ -15,7 +15,6 @@ import { minusSign, Rich } from './math-text';
 import { FractionBars } from './fraction-bars';
 import { FractionAdditionLab, FractionEquivalenceLab, FractionNumberLineLab, type FractionInteractionEvent } from './fraction-labs';
 import type { FractionReasoningEvent, FractionWidgetSpec } from '@/lib/fraction-reasoning';
-import type { Widget } from '@/lib/skill-kit';
 
 export type FractionInteractionContext = FractionReasoningEvent;
 type Props = { lang: Lang; skill: Skill; onSave: (a: Attempt) => Promise<void>; onBack: () => void; onFractionInteraction?: (event: FractionInteractionContext) => void };
@@ -197,7 +196,7 @@ function StepView({ lang, step, solved, onAnswer, onFractionInteraction }: { lan
       return <>
         {step.widget.kind === 'fraction-bars' && <FractionBars lang={lang} left={step.widget.left} right={step.widget.right} locked={solved} onComplete={onAnswer} />}
         {step.widget.kind === 'fraction-equivalence' && <FractionEquivalenceLab lang={lang} source={step.widget.source} factor={step.widget.factor} locked={solved} onComplete={onAnswer} onInteraction={event => onFractionInteraction?.(event, step.widget)} />}
-        {step.widget.kind === 'fraction-addition' && <FractionAdditionLab lang={lang} left={step.widget.left} right={step.widget.right} locked={solved} onComplete={onAnswer} onInteraction={onFractionInteraction} />}
+        {step.widget.kind === 'fraction-addition' && <FractionAdditionLab lang={lang} left={step.widget.left} right={step.widget.right} locked={solved} onComplete={onAnswer} onInteraction={event => onFractionInteraction?.(event, step.widget)} />}
         {step.widget.kind === 'fraction-numberline' && <FractionNumberLineLab lang={lang} target={step.widget.target} locked={solved} onComplete={onAnswer} onInteraction={onFractionInteraction} />}
         {step.widget.kind === 'line' && <LineWidget lang={lang} target={step.widget} locked={solved} onState={setWidgetOk} />}
         {step.widget.kind === 'tangent' && <TangentWidget lang={lang} target={step.widget} locked={solved} onState={setWidgetOk} />}
