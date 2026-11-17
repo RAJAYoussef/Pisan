@@ -19,7 +19,7 @@ import { buildFractionTransferTask, evaluateFractionTransfer } from '@/lib/fract
 import type { FractionJournalEventType } from '@/lib/fraction-journal';
 
 export type FractionInteractionContext = FractionReasoningEvent;
-type Props = { lang: Lang; skill: Skill; onSave: (a: Attempt) => Promise<void>; onBack: () => void; onFractionInteraction?: (event: FractionInteractionContext) => void; onFractionAnalysis?: (analysis: FractionSequenceAnalysis) => void; onAdaptiveSkill?: (skillId: string | null) => void; onJournalEvent?: (event: { type: FractionJournalEventType; payload: Record<string, unknown>; clientOccurredAt?: string }) => void };
+type Props = { lang: Lang; skill: Skill; onSave: (a: Attempt) => Promise<void>; onBack: () => void; onFractionInteraction?: (event: FractionInteractionContext) => void; onFractionAnalysis?: (analysis: FractionSequenceAnalysis) => void; onAdaptiveSkill?: (skillId: string | null) => void; onJournalEvent?: (event: { activityId: string; type: FractionJournalEventType; payload: Record<string, unknown>; clientOccurredAt?: string }) => void };
 
 /** Une compétence : les étapes s'enchaînent ; une étape ratée au premier essai ne compte pas comme réussie. */
 export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteraction, onFractionAnalysis, onAdaptiveSkill, onJournalEvent }: Props) {
@@ -55,7 +55,7 @@ export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteracti
       const key = `${event.skillId}:${event.activitySeed}:${event.stepIndex}:${hypothesis.code}`;
       if (!journaledHypotheses.current.includes(key)) {
         journaledHypotheses.current.push(key);
-        onJournalEvent?.({ type: 'hypothesis', payload: { hypothesisCode: hypothesis.code, explanation: hypothesis.explanation, evidenceSequences: hypothesis.evidenceSequences, confidence: hypothesis.confidence }, clientOccurredAt: event.occurredAtClient });
+        onJournalEvent?.({ activityId: `fraction:${skill.id}:${seed}`, type: 'hypothesis', payload: { hypothesisCode: hypothesis.code, explanation: hypothesis.explanation, evidenceSequences: hypothesis.evidenceSequences, confidence: hypothesis.confidence }, clientOccurredAt: event.occurredAtClient });
       }
     }
     if (analysis.observations.some(item => item.code === 'self-correction')) {
