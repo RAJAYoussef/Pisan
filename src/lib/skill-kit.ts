@@ -59,6 +59,9 @@ export type Step =
   | { type: 'widget'; prompt: L; hint: L; widget: Widget };
 export type Widget =
   | { kind: 'fraction-bars'; left: { n: number; d: number }; right: { n: number; d: number } }
+  | { kind: 'fraction-equivalence'; source: { n: number; d: number }; factor: number }
+  | { kind: 'fraction-addition'; left: { n: number; d: number }; right: { n: number; d: number } }
+  | { kind: 'fraction-numberline'; target: { n: number; d: number } }
   | { kind: 'squares'; ab: number; ac: number }
   | { kind: 'thales'; problem: ThalesProblem }
   | { kind: 'inscribed'; problem: InscribedProblem }
