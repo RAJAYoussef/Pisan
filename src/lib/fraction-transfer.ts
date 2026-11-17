@@ -12,6 +12,11 @@ export type FractionTransferTask = {
 };
 export type FractionTransferResult = 'transfer-success' | 'error-reproduced' | 'other-error';
 
+function rotateOptions<T>(items: T[], offset: number): T[] {
+  const index = offset % items.length;
+  return [...items.slice(index), ...items.slice(0, index)];
+}
+
 /** Génère une situation nouvelle, distincte des questions de confirmation du diagnostic. */
 export function buildFractionTransferTask(
   hypothesisCode: FractionHypothesis['code'],
@@ -36,11 +41,11 @@ export function buildFractionTransferTask(
         ar: `تستعمل وصفة ${n}/${d} لترًا من الحليب. قُسّم كل جزء إلى ${k} أضعاف من الأجزاء الأصغر. أي كسر يمثل الكمية نفسها؟`,
         es: `Una receta utiliza ${n}/${d} litro de leche. Cada unidad se divide en ${k} veces más partes pequeñas. ¿Qué fracción representa la misma cantidad?`,
       },
-      options: [
+      options: rotateOptions([
         { value: correct, label: { fr: correct, en: correct, ar: correct, es: correct } },
         { value: oneTop, label: { fr: oneTop, en: oneTop, ar: oneTop, es: oneTop } },
         { value: oneBottom, label: { fr: oneBottom, en: oneBottom, ar: oneBottom, es: oneBottom } },
-      ],
+      ], variant),
       correctValue: correct,
       errorValues: [oneTop, oneBottom],
       feedback: {
@@ -68,11 +73,11 @@ export function buildFractionTransferTask(
       ar: `قطعت ${a}/${d} من الطريق صباحًا، ثم ${b}/${d} بعد الظهر. ما الكسر الذي يمثل المسافة المقطوعة كلها؟`,
       es: `Recorriste ${a}/${d} de una ruta por la mañana y ${b}/${d} por la tarde. ¿Qué fracción recorriste en total?`,
     },
-    options: [
+    options: rotateOptions([
       { value: correct, label: { fr: correct, en: correct, ar: correct, es: correct } },
       { value: onlyA, label: { fr: onlyA, en: onlyA, ar: onlyA, es: onlyA } },
       { value: onlyB, label: { fr: onlyB, en: onlyB, ar: onlyB, es: onlyB } },
-    ],
+    ], variant),
     correctValue: correct,
     errorValues: [onlyA, onlyB],
     feedback: {
