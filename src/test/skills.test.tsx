@@ -26,8 +26,8 @@ const typed = (step: Extract<Step, { type: 'number' }>) => {
 const chipsSolution = (step: Extract<Step, { type: 'chips' }>) => step.ordered ? step.groups[0]! : step.groups.flatMap((g, i) => [...(i ? ['='] : []), ...g.flatMap((tok, j) => j ? ['+', tok] : [tok])]);
 
 describe('Parcours de compétences : contenu', () => {
-  it('covers the sixteen chapters with the agreed skills', () => {
-    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 11, 5, 4, 4, 4, 4]);
+  it('covers the eighteen chapters with the agreed skills', () => {
+    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 11, 5, 4, 4, 4, 4, 4, 4]);
     expect(new Set(SKILLS.map(s => s.id)).size).toBe(SKILLS.length);
     for (const s of SKILLS) { expect(s.id).toMatch(/^[a-z]+(-[a-z]+){1,2}$/); expect(filled(s.title) && filled(s.desc)).toBe(true); }
   });
@@ -347,7 +347,7 @@ describe('Vue professeur', () => {
   const student = (id: string, attempts: { skill: string; correct: number; total: number; review?: boolean }[]) => ({ id, profile: { nickname: id, country: 'ma', grade: 2, lang: 'fr' as const }, last_active_at: '2026-11-01', dys_default: null, progress: { unlocked: [], attempts: attempts.map(a => ({ kind: 'workshop' as const, notion: 'vectors' as const, date: '2026-11-01T10:00:00Z', minutes: 5, ...a })) } });
   it('the class programme gives its pathways', () => {
     expect(classSkillKinds('ma', 2)).toEqual(['pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'affine', 'stats']);
-    expect(classSkillKinds('fr', 0)).toEqual(['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures']);
+    expect(classSkillKinds('fr', 0)).toEqual(['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures', 'data']);
   });
   it('flags a skill when at least two students are stuck on it', () => {
     const students = [student('a', [{ skill: 'vec-sum', correct: 2, total: 4 }]), student('b', [{ skill: 'vec-sum', correct: 4, total: 4 }, { skill: 'vec-sum', correct: 0, total: 1, review: true }]), student('c', [{ skill: 'vec-sum', correct: 4, total: 4 }])];
@@ -423,11 +423,11 @@ describe('6e', () => {
     const { figuresFor } = await import('@/lib/figures');
     const { programmesFor, programmeNotions } = await import('@/lib/programmes');
     const expected: Record<string, string[]> = {
-      fr: ['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures'],
-      ma: ['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures'],
-      ci: ['stats', 'fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures'],
+      fr: ['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures', 'data'],
+      ma: ['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures', 'relatives'],
+      ci: ['stats', 'fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures', 'relatives'],
       sn: ['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures'],
-      us: ['stats', 'fractions', 'decimals', 'proportion', 'measures'],
+      us: ['stats', 'fractions', 'decimals', 'proportion', 'measures', 'relatives'],
     };
     for (const [country, kinds] of Object.entries(expected)) {
       const p = programmesFor(country, 0)[0]!;
@@ -446,6 +446,29 @@ describe('6e', () => {
       const M = axial.scene.points['M']!;
       expect(axial.answer.x + M.x).toBe(10); // axe vertical x = 5
       expect(axial.answer.y).toBe(M.y);
+    }
+  });
+  it('relatives: the number line, the bars and the sums say what the answer says', () => {
+    for (let seed = 0; seed < 40; seed++) {
+      const line = getSkill('rel-numberline')!.build(seed).steps[0]!;
+      if (line.type !== 'number' || !line.scene) throw new Error('droite');
+      expect(line.scene.points['A']!.x).toBe(line.answer);
+      expect(line.answer).not.toBe(0);
+      const bars = getSkill('data-bars')!.build(seed).steps;
+      const read = bars[0]!, best = bars[1]!;
+      if (read.type !== 'number' || !read.scene?.rects || best.type !== 'choice') throw new Error('barres');
+      const heights = read.scene.rects.map(r => r.h);
+      expect(heights).toContain(read.answer);
+      expect(heights.indexOf(Math.max(...heights))).toBe(best.answer);
+      expect(heights.filter(h => h === Math.max(...heights))).toHaveLength(1);
+      const build = getSkill('data-build')!.build(seed).steps[0]!;
+      if (build.type !== 'grid') throw new Error('grille');
+      expect(build.scene.rects).toHaveLength(4);
+      expect(build.scene.rects!.some(r => Math.abs(r.x + 0.3 - build.answer.x) < 1e-9)).toBe(false);
+      const order = getSkill('rel-compare')!.build(seed).steps.find(s => s.type === 'chips')!;
+      if (order.type !== 'chips') throw new Error();
+      const values = order.groups[0]!.map(v => Number(v.replace('−', '-').replace(',', '.')));
+      expect([...values].sort((a, b) => a - b)).toEqual(values);
     }
   });
   it('decimal traps are really traps: 2,5 > 2,45 and 2,5 = 2,50', () => {

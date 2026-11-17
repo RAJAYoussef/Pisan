@@ -9,7 +9,7 @@ import { skillsFor, skillStatus, type Skill, type SkillStatus } from '@/lib/skil
 import { CHAPTER_NAMES } from './skills';
 
 /** Couleur de chaque chapitre (mêmes variables que les modules de l'accueil). */
-export const KIND_TONE: Record<FigureKind, string> = { pythagoras: 'module-teal', thales: 'module-coral', trigo: 'module-sky', inscribed: 'module-sun', vectors: 'module-coral', affine: 'module-teal', stats: 'module-sky', seq: 'module-sun', deriv: 'module-coral', proba: 'module-teal', fractions: 'module-sun', decimals: 'module-teal', proportion: 'module-coral', lines: 'module-sky', symmetry: 'module-sun', measures: 'module-coral' };
+export const KIND_TONE: Record<FigureKind, string> = { pythagoras: 'module-teal', thales: 'module-coral', trigo: 'module-sky', inscribed: 'module-sun', vectors: 'module-coral', affine: 'module-teal', stats: 'module-sky', seq: 'module-sun', deriv: 'module-coral', proba: 'module-teal', fractions: 'module-sun', decimals: 'module-teal', proportion: 'module-coral', lines: 'module-sky', symmetry: 'module-sun', measures: 'module-coral', relatives: 'module-sky', data: 'module-teal' };
 
 /** Petit dessin propre à chaque chapitre. */
 export function ChapterGlyph({ kind }: { kind: FigureKind }) {
@@ -28,6 +28,8 @@ export function ChapterGlyph({ kind }: { kind: FigureKind }) {
     lines: <><path d="M6 32 H34" /><path d="M8 32 L30 9" /><path d="M14 32 A8 8 0 0 0 13.5 26.5" className="glyph-accent" /></>,
     symmetry: <><path d="M20 5 V35" className="glyph-thin" strokeDasharray="3 3" /><path d="M16 10 L6 30 H16 Z" /><path d="M24 10 L34 30 H24 Z" className="glyph-accent" /></>,
     measures: <><rect x="6" y="11" width="22" height="18" rx="1" /><path d="M6 34 H28 M6 32 V36 M28 32 V36" className="glyph-thin" /><path d="M32 11 V29 M30 11 H34 M30 29 H34" className="glyph-thin" /></>,
+    relatives: <><path d="M4 22 H36" /><path d="M20 17 V27 M10 19 V25 M30 19 V25" className="glyph-thin" /><text x="10" y="13" textAnchor="middle" className="glyph-text glyph-small">−</text><text x="30" y="13" textAnchor="middle" className="glyph-text glyph-small">+</text></>,
+    data: <><path d="M6 34 H34 M6 34 V6" className="glyph-thin" /><rect x="10" y="22" width="5" height="12" className="glyph-fill" /><rect x="18" y="14" width="5" height="20" /><rect x="26" y="18" width="5" height="16" className="glyph-fill" /></>,
     fractions: <><rect x="6" y="8" width="28" height="9" rx="2" /><path d="M15.3 8 V17 M24.6 8 V17" className="glyph-thin" /><rect x="6" y="8" width="9.3" height="9" rx="2" className="glyph-soft" /><rect x="6" y="23" width="28" height="9" rx="2" /><path d="M13 23 V32 M20 23 V32 M27 23 V32" className="glyph-thin" /><rect x="6" y="23" width="14" height="9" rx="2" className="glyph-soft" /></>,
     proba: <><circle cx="8" cy="20" r="2.5" className="glyph-fill" /><path d="M10 19 L28 9 M10 21 L28 31" /><path d="M30 9 L35 6 M30 9 L35 12 M30 31 L35 28 M30 31 L35 34" className="glyph-thin" /></>,
   };

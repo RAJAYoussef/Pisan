@@ -756,3 +756,5 @@ html[data-dys-bg="dark"] { --brand-p: #8f93ff; }
 .skill-protractor line { stroke: var(--sky); stroke-width: 1.2; }
 .skill-protractor-num { font: 700 10px var(--font-display); fill: color-mix(in oklab, var(--sky) 70%, var(--foreground)); }
 .chapter-glyph .glyph-text { fill: currentColor; stroke: none; font: 800 15px var(--font-display); }
+.skill-bar { fill: color-mix(in oklab, var(--primary) 55%, transparent); stroke: var(--primary-deep); stroke-width: 1.5; }
+.chapter-glyph .glyph-small { font-size: 13px; }

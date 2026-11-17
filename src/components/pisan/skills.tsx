@@ -499,7 +499,7 @@ export function GeoScene({ lang, scene, tapped, answer, locked, onTap, cursor }:
   const g = scene.grid;
   const pr = scene.protractor ? scene.points[scene.protractor.c] : undefined;
   const PR = 3.2; // rayon du rapporteur, en unités de la figure
-  const extra = [...(scene.labels ?? []).map(l => l.at), ...(pr && scene.protractor ? Array.from({ length: 7 }, (_, i) => { const a = ((scene.protractor!.zero + i * 30) * Math.PI) / 180; return { x: pr.x + PR * Math.cos(a), y: pr.y + PR * Math.sin(a) }; }) : [])]; // le demi-disque seulement
+  const extra = [...(scene.rects ?? []).flatMap(b => [{ x: b.x, y: b.y }, { x: b.x + b.w, y: b.y + b.h }]), ...(scene.labels ?? []).map(l => l.at), ...(pr && scene.protractor ? Array.from({ length: 7 }, (_, i) => { const a = ((scene.protractor!.zero + i * 30) * Math.PI) / 180; return { x: pr.x + PR * Math.cos(a), y: pr.y + PR * Math.sin(a) }; }) : [])]; // le demi-disque seulement
   const xs = pts.map(p => p.x).concat(scene.circle ? [-r, r] : [], g ? [g.minX, g.maxX] : [], extra.map(p => p.x)), ys = pts.map(p => p.y).concat(scene.circle ? [-r, r] : [], g ? [g.minY, g.maxY] : [], extra.map(p => p.y));
   const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
   const s = (g ? 300 : 260) / Math.max(maxX - minX, maxY - minY, 1), pad = g ? 24 : 40;
@@ -554,6 +554,7 @@ export function GeoScene({ lang, scene, tapped, answer, locked, onTap, cursor }:
   return <div>
     <svg ref={svgRef} viewBox={`0 0 ${width} ${height}`} className={`figure-svg skill-scene${cursor && !locked ? ' skill-pickable' : ''}`} direction="ltr" role="group" aria-label={say(lang, 'Figure', 'Figure', 'الشكل', 'Figura')} onClick={pickNode}>
       {gridLines}
+      {scene.rects?.map((b, i) => { const a = v({ x: b.x, y: b.y + b.h }), c = v({ x: b.x + b.w, y: b.y }); return <rect key={`r${i}`} x={a.x} y={a.y} width={c.x - a.x} height={c.y - a.y} rx={2} className="skill-bar" />; })}
       {scene.curves?.map((c, i) => <polyline key={`c${i}`} points={c.map(p => { const q = v(p); return `${q.x},${q.y}`; }).join(' ')} className="skill-curve" />)}
       {pr && scene.protractor && (() => {
         // Demi-disque gradué tous les 10°, chiffres tous les 30°, posé sur le sommet de l'angle.
@@ -622,6 +623,8 @@ export const CHAPTER_NAMES: Record<FigureKind, L> = {
   lines: { fr: 'Droites et angles', en: 'Lines and angles', ar: 'المستقيمات والزوايا', es: 'Rectas y ángulos' },
   symmetry: { fr: 'Symétrie', en: 'Symmetry', ar: 'التماثل', es: 'Simetría' },
   measures: { fr: 'Périmètres, aires, volumes', en: 'Perimeter, area, volume', ar: 'المحيطات والمساحات والأحجام', es: 'Perímetros, áreas, volúmenes' },
+  relatives: { fr: 'Nombres relatifs', en: 'Negative numbers', ar: 'الأعداد النسبية', es: 'Números enteros' },
+  data: { fr: 'Tableaux et graphiques', en: 'Tables and charts', ar: 'الجداول والتمثيلات', es: 'Tablas y gráficos' },
 };
 const STATUS: Record<SkillStatus, (lang: Lang) => string> = {
   mastered: lang => say(lang, 'Acquis', 'Mastered', 'مكتسبة', 'Adquirida'),

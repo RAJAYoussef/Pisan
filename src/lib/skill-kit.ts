@@ -45,6 +45,8 @@ export type Scene = {
   labels?: { at: P; text: string }[];
   /** Rapporteur centré sur le point `c`, graduation 0 dans la direction `zero` (degrés). */
   protractor?: { c: string; zero: number };
+  /** Barres pleines (diagrammes) : coin inférieur gauche (x ; y), largeur w, hauteur h. */
+  rects?: { x: number; y: number; w: number; h: number }[];
 };
 
 // ───────────── Étapes ─────────────

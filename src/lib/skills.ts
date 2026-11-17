@@ -11,6 +11,7 @@ import { NUMBER_SKILLS } from './skills-numbers';
 import { LYCEE_SKILLS } from './skills-lycee';
 import { FRACTION_SKILLS } from './skills-fractions';
 import { SIXIEME_SKILLS } from './skills-sixieme';
+import { RELATIVE_DATA_SKILLS } from './skills-relatifs-donnees';
 import type { L } from './curriculum';
 
 export * from './skill-kit';
@@ -532,7 +533,7 @@ const GEOMETRY_SKILLS: Skill[] = [
   { id: 'inscribed-same-arc', review: 2, chapter: 'inscribed', build: inscribedSameArc, title: t('Même arc, demi-cercle', 'Same arc, semicircle', 'نفس القوس، نصف الدائرة', 'Mismo arco, semicírculo'), desc: t('Angles égaux ; angle droit dans un demi-cercle.', 'Equal angles; right angle in a semicircle.', 'زوايا متساوية؛ زاوية قائمة في نصف دائرة.', 'Ángulos iguales; ángulo recto en un semicírculo.') },
 ];
 
-export const SKILLS: Skill[] = [...GEOMETRY_SKILLS, ...NUMBER_SKILLS, ...LYCEE_SKILLS, ...FRACTION_SKILLS, ...SIXIEME_SKILLS];
+export const SKILLS: Skill[] = [...GEOMETRY_SKILLS, ...NUMBER_SKILLS, ...LYCEE_SKILLS, ...FRACTION_SKILLS, ...SIXIEME_SKILLS, ...RELATIVE_DATA_SKILLS];
 export const skillsFor = (chapter: FigureKind) => SKILLS.filter(s => s.chapter === chapter);
 export const getSkill = (id: string) => SKILLS.find(s => s.id === id) ?? null;
 export const skillNotion = (skill: Skill): NotionId => FIGURE_NOTIONS[skill.chapter][0]!;
