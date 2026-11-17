@@ -634,6 +634,10 @@ export const CHAPTER_NAMES: Record<FigureKind, L> = {
   angles: { fr: 'Angles et parallélisme', en: 'Angles and parallel lines', ar: 'الزوايا والتوازي', es: 'Ángulos y paralelismo' },
   surfaces: { fr: 'Aires et volumes', en: 'Area and volume', ar: 'المساحات والأحجام', es: 'Áreas y volúmenes' },
   chance: { fr: 'Probabilités', en: 'Probability', ar: 'الاحتمالات', es: 'Probabilidad' },
+  signs: { fr: 'Produits et quotients de relatifs', en: 'Multiplying and dividing signed numbers', ar: 'ضرب وقسمة الأعداد النسبية', es: 'Producto y cociente de relativos' },
+  sci: { fr: 'Puissances de 10', en: 'Powers of 10', ar: 'قوى العدد 10', es: 'Potencias de 10' },
+  literal: { fr: 'Calcul littéral', en: 'Algebra', ar: 'الحساب الحرفي', es: 'Cálculo algebraico' },
+  linear: { fr: 'Équations du premier degré', en: 'Linear equations', ar: 'معادلات الدرجة الأولى', es: 'Ecuaciones de primer grado' },
 };
 const STATUS: Record<SkillStatus, (lang: Lang) => string> = {
   mastered: lang => say(lang, 'Acquis', 'Mastered', 'مكتسبة', 'Adquirida'),

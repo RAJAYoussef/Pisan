@@ -63,6 +63,17 @@ const c5 = {
   areas: c('Aires et volumes : triangle, disque, prisme et cylindre', 'Area and volume: triangle, circle, prism and cylinder', 'المساحات والحجوم: المثلث والقرص والموشور والأسطوانة', 'Áreas y volúmenes: triángulo, círculo, prisma y cilindro', ['areas']),
 };
 
+// Chapitres de 4e (2e année collège au Maroc) communs à plusieurs pays
+const c4 = {
+  signs: c('Nombres relatifs : multiplication et division', 'Signed numbers: multiplying and dividing', 'الأعداد النسبية: الضرب والقسمة', 'Números relativos: multiplicación y división', ['integers']),
+  rationals: c('Nombres rationnels : multiplication et division', 'Rational numbers: multiplying and dividing', 'الأعداد الجذرية: الضرب والقسمة', 'Números racionales: multiplicación y división', ['integers', 'fractions']),
+  fractions: c('Fractions : multiplication et division', 'Fractions: multiplying and dividing', 'الكسور: الضرب والقسمة', 'Fracciones: multiplicación y división', ['fractions']),
+  sci: c('Puissances de 10 et notation scientifique', 'Powers of 10 and scientific notation', 'قوى العدد 10 والكتابة العلمية', 'Potencias de 10 y notación científica', ['powers']),
+  literal: c('Calcul littéral : double distributivité', 'Algebra: expanding double brackets', 'الحساب الحرفي: التوزيعية المزدوجة', 'Cálculo algebraico: doble distributiva', ['algebra']),
+  linear: c('Équations du premier degré', 'Linear equations', 'معادلات الدرجة الأولى', 'Ecuaciones de primer grado', ['equations']),
+  pythagoras: c('Théorème de Pythagore', 'Pythagoras’ theorem', 'مبرهنة فيثاغورس', 'Teorema de Pitágoras', ['pythagoras-thales']),
+};
+
 const sciencesBac = [ch.limits, ch.derivation, ch.sequences, ch.primitives, ch.log, ch.exp, ch.complex, ch.integral, ch.diffEq];
 
 export const PROGRAMMES: Programme[] = [
@@ -358,6 +369,56 @@ export const PROGRAMMES: Programme[] = [
       c('Expressions et équations (7.EE)', 'Expressions and equations (7.EE)', 'التعابير والمعادلات (7.EE)', 'Expresiones y ecuaciones (7.EE)', ['algebra', 'equations']),
       c('Géométrie : angles, aires et volumes (7.G)', 'Geometry: angles, area and volume (7.G)', 'الهندسة: الزوايا والمساحات والحجوم (7.G)', 'Geometría: ángulos, áreas y volúmenes (7.G)', ['geometry', 'areas']),
       c('Statistiques et probabilités (7.SP)', 'Statistics and probability (7.SP)', 'الإحصاء والاحتمالات (7.SP)', 'Estadística y probabilidad (7.SP)', ['statistics', 'probability']),
+    ],
+  },
+  // ───────────── 4e (index 2 ; 2e année collège = index 1 au Maroc) ; Grade 8 aux États-Unis ─────────────
+  {
+    country: 'fr', grade: 2,
+    source: { label: 'Programme du cycle 4 et repères annuels de progression, classe de 4e (BO n° 31 du 30 juillet 2020)', url: 'https://eduscol.education.fr/', status: 'reference' },
+    chapters: [
+      c4.signs, c4.fractions, c4.sci, c4.literal, c4.linear,
+      c('Proportionnalité : représentation graphique', 'Proportionality and its graph', 'التناسبية وتمثيلها المبياني', 'Proporcionalidad y su gráfica', ['proportion']),
+      c4.pythagoras,
+      c('Théorème de Thalès dans le triangle', 'Intercept theorem in the triangle', 'مبرهنة طاليس في المثلث', 'Teorema de Tales en el triángulo', ['pythagoras-thales']),
+      ch.stats, c5.chance,
+    ],
+  },
+  {
+    country: 'ma', grade: 1,
+    source: { label: 'Programme du Ministère de l’Éducation nationale, 2e année du cycle secondaire collégial', status: 'to-review' },
+    chapters: [
+      c4.rationals, c4.sci, c4.literal, c4.linear,
+      c('Proportionnalité', 'Proportionality', 'التناسبية', 'Proporcionalidad', ['proportion']),
+      c4.pythagoras, ch.stats,
+    ],
+  },
+  {
+    country: 'ci', grade: 2,
+    source: { label: 'Programme éducatif de mathématiques, classe de 4e, MENA', url: 'https://dpfc-ci.net/', status: 'to-review' },
+    chapters: [
+      c4.rationals, c4.sci, c4.literal, c4.linear,
+      c('Proportionnalité', 'Proportionality', 'التناسبية', 'Proporcionalidad', ['proportion']),
+      c4.pythagoras, ch.stats,
+    ],
+  },
+  {
+    country: 'sn', grade: 2,
+    source: { label: 'Programme de mathématiques de la classe de 4e, Ministère de l’Éducation nationale', status: 'to-review' },
+    chapters: [
+      c4.rationals, c4.sci, c4.literal, c4.linear,
+      c('Proportionnalité', 'Proportionality', 'التناسبية', 'Proporcionalidad', ['proportion']),
+      c4.pythagoras, ch.stats,
+    ],
+  },
+  {
+    country: 'us', grade: 2,
+    source: { label: 'Common Core State Standards for Mathematics, Grade 8', url: 'https://www.thecorestandards.org/Math/Content/8/', status: 'reference' },
+    chapters: [
+      c('Exposants, racines carrées et notation scientifique (8.EE.A, 8.NS)', 'Exponents, square roots and scientific notation (8.EE.A, 8.NS)', 'الأسس والجذور المربعة والكتابة العلمية (8.EE.A, 8.NS)', 'Exponentes, raíces cuadradas y notación científica (8.EE.A, 8.NS)', ['powers', 'square-roots']),
+      c('Équations linéaires (8.EE.C)', 'Linear equations (8.EE.C)', 'المعادلات الخطية (8.EE.C)', 'Ecuaciones lineales (8.EE.C)', ['equations']),
+      c('Fonctions (8.F)', 'Functions (8.F)', 'الدوال (8.F)', 'Funciones (8.F)', ['functions']),
+      c('Transformations et théorème de Pythagore (8.G)', 'Transformations and Pythagoras’ theorem (8.G)', 'التحويلات ومبرهنة فيثاغورس (8.G)', 'Transformaciones y teorema de Pitágoras (8.G)', ['pythagoras-thales']),
+      c('Nuages de points et tableaux croisés (8.SP)', 'Scatter plots and two-way tables (8.SP)', 'سحب النقط والجداول المزدوجة (8.SP)', 'Diagramas de dispersión y tablas de doble entrada (8.SP)', ['statistics']),
     ],
   },
 ];

@@ -26,8 +26,8 @@ const typed = (step: Extract<Step, { type: 'number' }>) => {
 const chipsSolution = (step: Extract<Step, { type: 'chips' }>) => step.ordered ? step.groups[0]! : step.groups.flatMap((g, i) => [...(i ? ['='] : []), ...g.flatMap((tok, j) => j ? ['+', tok] : [tok])]);
 
 describe('Parcours de compétences : contenu', () => {
-  it('covers the twenty-seven chapters with the agreed skills', () => {
-    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 11, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4]);
+  it('covers the thirty-one chapters with the agreed skills', () => {
+    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 11, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4]);
     expect(new Set(SKILLS.map(s => s.id)).size).toBe(SKILLS.length);
     for (const s of SKILLS) { expect(s.id).toMatch(/^[a-z]+(-[a-z]+){1,2}$/); expect(filled(s.title) && filled(s.desc)).toBe(true); }
   });
@@ -520,6 +520,40 @@ describe('6e', () => {
       const dice = getSkill('chance-dice')!.build(seed).steps[1]!;
       if (dice.type !== 'choice') throw new Error();
       expect(new Set(dice.options.map(o => o.fr)).size).toBe(3);
+    }
+  });
+  it('4e: every chapter has a pathway; signs, powers of 10, algebra and equations say what the answer says', async () => {
+    const { chapterSkillKinds, figuresFor } = await import('@/lib/figures');
+    const { programmesFor, programmeNotions } = await import('@/lib/programmes');
+    const { getLevel } = await import('@/lib/curriculum');
+    for (const [country, grade] of [['fr', 2], ['ma', 1], ['ci', 2], ['sn', 2], ['us', 2]] as const) for (const ch of programmesFor(country, grade)[0]!.chapters) expect(chapterSkillKinds(ch), `${country} ${ch.title.fr}`).not.toEqual([]);
+    // les parcours de 4e restent en 4e (et en 7.NS pour les relatifs)
+    for (const country of ['fr', 'ma', 'ci', 'sn', 'us']) for (const grade of [0, 3, 6]) for (const p of programmesFor(country, grade)) {
+      if (country === 'ma' && grade === 0) continue;
+      expect(figuresFor(p, programmeNotions(p).map(n => n.id), getLevel(country, grade)).filter(k => ['signs', 'sci', 'literal', 'linear'].includes(k)), `${country} ${grade}`).toEqual([]);
+    }
+    expect(chapterSkillKinds(programmesFor('fr', 1)[0]!.chapters[0]!)).toEqual(['relatives']);
+    expect(chapterSkillKinds(programmesFor('fr', 2)[0]!.chapters[0]!)).toEqual(['signs']);
+    const value = (expr: string) => Number(Function(`return (${expr.replace(/−/g, '-').replace(/×/g, '*').replace(/÷/g, '/')})`)());
+    for (let seed = 0; seed < 40; seed++) {
+      for (const st of getSkill('signs-rule')!.build(seed).steps.slice(0, 2)) {
+        if (st.type !== 'number') throw new Error();
+        expect(value(st.prompt.fr.replace('Calcule ', '').replace(/\.$/, ''))).toBe(st.answer);
+      }
+      const both = getSkill('lin-both-sides')!.build(seed).steps;
+      const x = both[1]!, check = both[2]!;
+      if (x.type !== 'number' || check.type !== 'choice') throw new Error();
+      expect(Number.isInteger(x.answer)).toBe(true);
+      const two = getSkill('lin-two-step')!.build(seed).steps[2]!;
+      if (two.type !== 'number') throw new Error();
+      const [lhs, rhs] = two.prompt.fr.replace('Résous : ', '').replace(/\.$/, '').split(' = ');
+      expect(value(lhs!.replace('x', `*(${two.answer})`))).toBe(value(rhs!));
+      for (const st of getSkill('sci-decimal')!.build(seed).steps.slice(0, 2)) {
+        if (st.type !== 'number') throw new Error();
+        const [m, e] = st.prompt.fr.replace('Écris en écriture décimale : ', '').replace(/\.$/, '').split(' × 10');
+        const exp = Number(e!.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻]/g, c => ({ '⁻': '-' } as Record<string, string>)[c] ?? String('⁰¹²³⁴⁵⁶⁷⁸⁹'.indexOf(c))));
+        expect(st.answer).toBeCloseTo(Number(m!.replace(',', '.')) * 10 ** exp, 9);
+      }
     }
   });
   it('decimal traps are really traps: 2,5 > 2,45 and 2,5 = 2,50', () => {

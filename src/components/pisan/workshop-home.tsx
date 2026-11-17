@@ -9,7 +9,7 @@ import { skillsFor, skillStatus, type Skill, type SkillStatus } from '@/lib/skil
 import { CHAPTER_NAMES } from './skills';
 
 /** Couleur de chaque chapitre (mêmes variables que les modules de l'accueil). */
-export const KIND_TONE: Record<FigureKind, string> = { pythagoras: 'module-teal', thales: 'module-coral', trigo: 'module-sky', inscribed: 'module-sun', vectors: 'module-coral', affine: 'module-teal', stats: 'module-sky', seq: 'module-sun', deriv: 'module-coral', proba: 'module-teal', fractions: 'module-sun', decimals: 'module-teal', proportion: 'module-coral', lines: 'module-sky', symmetry: 'module-sun', measures: 'module-coral', relatives: 'module-sky', data: 'module-teal', arith: 'module-coral', powers: 'module-sun', expressions: 'module-sky', equations: 'module-teal', polygons: 'module-coral', primes: 'module-sun', angles: 'module-sky', surfaces: 'module-teal', chance: 'module-coral' };
+export const KIND_TONE: Record<FigureKind, string> = { pythagoras: 'module-teal', thales: 'module-coral', trigo: 'module-sky', inscribed: 'module-sun', vectors: 'module-coral', affine: 'module-teal', stats: 'module-sky', seq: 'module-sun', deriv: 'module-coral', proba: 'module-teal', fractions: 'module-sun', decimals: 'module-teal', proportion: 'module-coral', lines: 'module-sky', symmetry: 'module-sun', measures: 'module-coral', relatives: 'module-sky', data: 'module-teal', arith: 'module-coral', powers: 'module-sun', expressions: 'module-sky', equations: 'module-teal', polygons: 'module-coral', primes: 'module-sun', angles: 'module-sky', surfaces: 'module-teal', chance: 'module-coral', signs: 'module-sky', sci: 'module-sun', literal: 'module-teal', linear: 'module-coral' };
 
 /** Petit dessin propre à chaque chapitre. */
 export function ChapterGlyph({ kind }: { kind: FigureKind }) {
@@ -28,6 +28,10 @@ export function ChapterGlyph({ kind }: { kind: FigureKind }) {
     lines: <><path d="M6 32 H34" /><path d="M8 32 L30 9" /><path d="M14 32 A8 8 0 0 0 13.5 26.5" className="glyph-accent" /></>,
     symmetry: <><path d="M20 5 V35" className="glyph-thin" strokeDasharray="3 3" /><path d="M16 10 L6 30 H16 Z" /><path d="M24 10 L34 30 H24 Z" className="glyph-accent" /></>,
     measures: <><rect x="6" y="11" width="22" height="18" rx="1" /><path d="M6 34 H28 M6 32 V36 M28 32 V36" className="glyph-thin" /><path d="M32 11 V29 M30 11 H34 M30 29 H34" className="glyph-thin" /></>,
+    signs: <><text x="20" y="27" textAnchor="middle" className="glyph-text">−×−</text></>,
+    sci: <><text x="16" y="29" textAnchor="middle" className="glyph-text">10</text><text x="31" y="16" textAnchor="middle" className="glyph-text glyph-small">−3</text></>,
+    literal: <><text x="20" y="26" textAnchor="middle" className="glyph-text glyph-small">(x+a)²</text></>,
+    linear: <><text x="20" y="26" textAnchor="middle" className="glyph-text">x=?</text><path d="M8 32 H32" className="glyph-thin" /></>,
     primes: <><text x="20" y="27" textAnchor="middle" className="glyph-text">7</text><circle cx="20" cy="21" r="13" className="glyph-thin" /></>,
     angles: <><path d="M4 14 H36 M4 28 H36" className="glyph-thin" /><path d="M12 36 L28 4" /><path d="M21 14 a6 6 0 0 0 4 -5" className="glyph-thin" /></>,
     surfaces: <><path d="M6 32 L22 32 L14 14 Z" className="glyph-fill" /><circle cx="28" cy="16" r="8" /></>,
