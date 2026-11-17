@@ -44,6 +44,30 @@ export const FRACTION_SKILL_META: Record<string, FractionMeta> = {
       { code: 'fraction-compare-numerator-only', description: 'Compare le nombre de parts coloriées sans tenir compte de leur taille.' },
     ],
   },
+  'frac-equivalence-visual': {
+    prerequisites: ['frac-meaning'],
+    microSkills: ['partition-equally', 'refine-partition', 'preserve-area'],
+    misconceptions: [
+      { code: 'fraction-scale-one-term', description: 'Ne transforme qu’un terme de la fraction.' },
+      { code: 'fraction-equivalent-count-only', description: 'Confond le nombre de parts avec la quantité représentée.' },
+    ],
+  },
+  'frac-add-visual': {
+    prerequisites: ['frac-meaning', 'frac-equivalent'],
+    microSkills: ['identify-common-unit', 'compose-parts', 'count-result-parts'],
+    misconceptions: [
+      { code: 'fraction-add-denominators', description: 'Additionne les dénominateurs malgré des parts de même taille.' },
+      { code: 'fraction-add-over-one', description: 'Ne contrôle pas si la somme dépasse le tout représenté.' },
+    ],
+  },
+  'frac-numberline': {
+    prerequisites: ['frac-meaning', 'frac-compare'],
+    microSkills: ['identify-unit-interval', 'subdivide-unit', 'locate-fraction'],
+    misconceptions: [
+      { code: 'fraction-numberline-count-ticks', description: 'Confond le nombre de graduations et le nombre d’intervalles.' },
+      { code: 'fraction-numberline-numerator-only', description: 'Place la fraction selon le numérateur sans tenir compte du dénominateur.' },
+    ],
+  },
   'frac-compare': {
     prerequisites: ['frac-meaning', 'frac-equivalent'],
     microSkills: ['compare-same-denominator', 'compare-same-numerator', 'compare-to-unit'],
@@ -154,6 +178,73 @@ function visualCompare(seed: number): Activity {
   };
 }
 
+function visualEquivalence(seed: number): Activity {
+  const rng = seeded(seed);
+  const candidates = [[1, 2, 2], [1, 3, 2], [2, 3, 2], [1, 4, 3], [2, 5, 2]] as const;
+  const [n, d, factor] = pick(rng, candidates);
+  return {
+    title: t('Construire une fraction équivalente', 'Build an equivalent fraction', 'أنشئ كسرًا مكافئًا', 'Construir una fracción equivalente'),
+    summary: 'La quantité représentée reste la même quand on partage chaque part en parts plus petites.',
+    steps: [{
+      type: 'widget',
+      widget: { kind: 'fraction-equivalence', source: { n, d }, factor },
+      prompt: t(`La bande représente ${n}/${d}. Colorie la quantité équivalente dans une bande partagée en ${d * factor} parts.`, `The bar shows ${n}/${d}. Shade the equivalent amount in a bar split into ${d * factor} parts.`, `يمثل الشريط ${n}/${d}. لوّن الكمية المكافئة في شريط مقسم إلى ${d * factor} أجزاء.`, `La barra representa ${n}/${d}. Colorea la cantidad equivalente en una barra dividida en ${d * factor} partes.`),
+      hint: t('Chaque ancienne part est découpée en autant de petites parts. La quantité totale ne change pas.', 'Each original part is split into smaller equal parts. The total amount stays the same.', 'يُقسّم كل جزء أصلي إلى أجزاء أصغر متساوية، ولا تتغير الكمية.', 'Cada parte original se divide en partes iguales más pequeñas. La cantidad total no cambia.'),
+    }, {
+      type: 'choice',
+      options: [t('La quantité reste identique.', 'The amount stays the same.', 'تبقى الكمية نفسها.', 'La cantidad permanece igual.'), t('La quantité devient plus grande.', 'The amount becomes larger.', 'تصبح الكمية أكبر.', 'La cantidad aumenta.')],
+      answer: 0,
+      prompt: t('Quand on multiplie le numérateur et le dénominateur par le même nombre, que devient la quantité ?', 'When numerator and denominator are multiplied by the same number, what happens to the amount?', 'ماذا يحدث للكمية عند ضرب البسط والمقام في العدد نفسه؟', '¿Qué ocurre con la cantidad al multiplicar numerador y denominador por el mismo número?'),
+      hint: t('On change le découpage, pas la quantité représentée.', 'The partition changes, not the represented amount.', 'يتغير التقسيم لا الكمية الممثلة.', 'Cambia la partición, no la cantidad representada.'),
+    }],
+  };
+}
+
+function visualAddition(seed: number): Activity {
+  const rng = seeded(seed);
+  const d = pick(rng, [4, 5, 6, 8]);
+  const n1 = pick(rng, Array.from({ length: d - 1 }, (_, i) => i + 1));
+  const n2 = pick(rng, Array.from({ length: d - n1 }, (_, i) => i + 1));
+  return {
+    title: t('Additionner avec une bande', 'Add using a fraction bar', 'الجمع باستعمال شريط الكسور', 'Sumar con una barra de fracciones'),
+    summary: 'Les deux fractions sont exprimées avec la même unité fractionnaire.',
+    steps: [{
+      type: 'widget',
+      widget: { kind: 'fraction-addition', left: { n: n1, d }, right: { n: n2, d } },
+      prompt: t(`Représente ${n1}/${d} + ${n2}/${d} sur une seule bande. Combien de parts sont coloriées au total ?`, `Represent ${n1}/${d} + ${n2}/${d} on one bar. How many parts are shaded altogether?`, `مثّل ${n1}/${d} + ${n2}/${d} على شريط واحد. كم جزءًا ملونًا في المجموع؟`, `Representa ${n1}/${d} + ${n2}/${d} en una sola barra. ¿Cuántas partes quedan coloreadas en total?`),
+      hint: t('Les dénominateurs sont identiques : les parts ont la même taille. On additionne leur nombre.', 'The denominators are equal: the parts have the same size. Add their counts.', 'المقامات متساوية، أي إن الأجزاء لها الحجم نفسه. اجمع عددها.', 'Los denominadores son iguales: las partes tienen el mismo tamaño. Suma su cantidad.'),
+    }, {
+      type: 'choice',
+      options: [t(`${n1 + n2}/${d}`, `${n1 + n2}/${d}`, `${n1 + n2}/${d}`, `${n1 + n2}/${d}`), t(`${n1 + n2}/${d * 2}`, `${n1 + n2}/${d * 2}`, `${n1 + n2}/${d * 2}`, `${n1 + n2}/${d * 2}`), t(`${n1 + n2}/${(d + d)}`, `${n1 + n2}/${(d + d)}`, `${n1 + n2}/${(d + d)}`, `${n1 + n2}/${(d + d)}`)],
+      answer: 0,
+      prompt: t('Quelle écriture traduit cette représentation ?', 'Which expression matches this representation?', 'أي كتابة توافق هذا التمثيل؟', '¿Qué expresión corresponde a esta representación?'),
+      hint: t('On compte les parts de même taille sans changer le dénominateur.', 'Count equal-sized parts without changing the denominator.', 'نعد الأجزاء المتساوية دون تغيير المقام.', 'Cuenta las partes del mismo tamaño sin cambiar el denominador.'),
+    }],
+  };
+}
+
+function numberLine(seed: number): Activity {
+  const rng = seeded(seed);
+  const fractions = [[1, 2], [1, 3], [2, 3], [1, 4], [3, 4], [2, 5], [3, 5], [5, 8], [7, 10]] as const;
+  const [n, d] = pick(rng, fractions);
+  return {
+    title: t('Placer une fraction sur une droite', 'Place a fraction on a number line', 'ضع كسرًا على مستقيم مدرّج', 'Ubicar una fracción en una recta numérica'),
+    summary: 'Une fraction est un nombre qui possède une position sur la droite numérique.',
+    steps: [{
+      type: 'widget',
+      widget: { kind: 'fraction-numberline', target: { n, d } },
+      prompt: t(`Place ${n}/${d} entre 0 et 1.`, `Place ${n}/${d} between 0 and 1.`, `ضع ${n}/${d} بين 0 و1.`, `Sitúa ${n}/${d} entre 0 y 1.`),
+      hint: t('Partage l’unité en autant d’intervalles que le dénominateur, puis compte le nombre indiqué par le numérateur.', 'Split the unit into as many intervals as the denominator, then count the numerator.', 'قسّم الوحدة إلى عدد من الفواصل يساوي المقام، ثم عدّ ما يشير إليه البسط.', 'Divide la unidad en tantos intervalos como indica el denominador y cuenta los que indica el numerador.'),
+    }, {
+      type: 'choice',
+      options: [t('Le dénominateur indique le nombre d’intervalles de l’unité.', 'The denominator gives the number of intervals in one unit.', 'المقام يحدد عدد فواصل الوحدة.', 'El denominador indica el número de intervalos de la unidad.'), t('Le dénominateur indique le nombre de parts coloriées.', 'The denominator gives the number of shaded parts.', 'المقام يحدد عدد الأجزاء الملونة.', 'El denominador indica el número de partes coloreadas.')],
+      answer: 0,
+      prompt: t('Sur la droite graduée, que représente le dénominateur ?', 'On the number line, what does the denominator represent?', 'ماذا يمثل المقام على المستقيم المدرج؟', 'En la recta numérica, ¿qué representa el denominador?'),
+      hint: t('Il partage l’unité en intervalles de même longueur.', 'It splits one unit into equal-length intervals.', 'يقسم الوحدة إلى فواصل متساوية الطول.', 'Divide la unidad en intervalos de igual longitud.'),
+    }],
+  };
+}
+
 function compare(seed: number): Activity {
   const rng = seeded(seed);
   const a = pick(rng, [[1, 2, 2, 3], [2, 5, 3, 5], [3, 4, 5, 8], [2, 3, 3, 4], [3, 7, 2, 5]] as const);
@@ -224,6 +315,9 @@ export const FRACTION_SKILLS: Skill[] = [
   { id: 'frac-equivalent', chapter: 'fractions', build: equivalent, review: 0, title: t('Fractions équivalentes', 'Equivalent fractions', 'الكسور المتكافئة', 'Fracciones equivalentes'), desc: t('Produire une fraction équivalente en multipliant les deux termes.', 'Generate an equivalent fraction by multiplying both terms.', 'إنشاء كسر مكافئ بضرب البسط والمقام.', 'Obtener una fracción equivalente multiplicando ambos términos.') },
   { id: 'frac-simplify', chapter: 'fractions', build: simplify, review: 0, title: t('Simplifier une fraction', 'Simplifying a fraction', 'اختزال كسر', 'Simplificar una fracción'), desc: t('Diviser le numérateur et le dénominateur par un diviseur commun.', 'Divide numerator and denominator by a common divisor.', 'قسمة البسط والمقام على قاسم مشترك.', 'Dividir el numerador y el denominador por un divisor común.') },
   { id: 'frac-visual-compare', chapter: 'fractions', build: visualCompare, review: 0, title: t('Comparer avec des bandes', 'Compare with bars', 'المقارنة بالأشرطة', 'Comparar con barras'), desc: t('Colorier les parts et comparer deux fractions sur un même tout.', 'Shade parts and compare two fractions of the same whole.', 'تلوين الأجزاء ومقارنة كسرين من الكل نفسه.', 'Colorear partes y comparar dos fracciones del mismo todo.') },
+  { id: 'frac-equivalence-visual', chapter: 'fractions', build: visualEquivalence, review: 0, title: t('Fractions équivalentes en bandes', 'Equivalent fractions with bars', 'كسور متكافئة بالأشرطة', 'Fracciones equivalentes con barras'), desc: t('Découper une bande sans changer la quantité représentée.', 'Split a bar without changing the represented amount.', 'تقسيم الشريط دون تغيير الكمية الممثلة.', 'Dividir una barra sin cambiar la cantidad representada.') },
+  { id: 'frac-add-visual', chapter: 'fractions', build: visualAddition, review: 0, title: t('Addition visuelle', 'Visual addition', 'الجمع البصري', 'Suma visual'), desc: t('Composer une somme avec des parts de même taille.', 'Compose a sum from equal-sized parts.', 'تكوين مجموع من أجزاء متساوية الحجم.', 'Construir una suma con partes del mismo tamaño.') },
+  { id: 'frac-numberline', chapter: 'fractions', build: numberLine, review: 0, title: t('Fractions sur une droite', 'Fractions on a number line', 'الكسور على مستقيم مدرّج', 'Fracciones en la recta numérica'), desc: t('Positionner une fraction entre zéro et un.', 'Position a fraction between zero and one.', 'تحديد موضع كسر بين الصفر والواحد.', 'Situar una fracción entre cero y uno.') },
   { id: 'frac-compare', chapter: 'fractions', build: compare, review: 0, title: t('Comparer des fractions', 'Comparing fractions', 'مقارنة الكسور', 'Comparar fracciones'), desc: t('Comparer avec un dénominateur commun ou des repères.', 'Compare using a common denominator or benchmarks.', 'المقارنة باستعمال مقام مشترك أو مراجع.', 'Comparar usando un denominador común o referencias.') },
   { id: 'frac-add-subtract', chapter: 'fractions', build: addSubtract, review: 0, title: t('Addition et soustraction', 'Addition and subtraction', 'الجمع والطرح', 'Suma y resta'), desc: t('Additionner ou soustraire après avoir rendu les dénominateurs identiques.', 'Add or subtract after making denominators equal.', 'جمع الكسور أو طرحها بعد توحيد المقامات.', 'Sumar o restar tras igualar los denominadores.') },
   { id: 'frac-multiply-divide', chapter: 'fractions', build: multiplyDivide, review: 0, title: t('Multiplication et division', 'Multiplication and division', 'الضرب والقسمة', 'Multiplicación y división'), desc: t('Multiplier terme à terme et diviser en utilisant l’inverse.', 'Multiply term by term and divide using the reciprocal.', 'الضرب حدًا بحد والقسمة باستعمال المقلوب.', 'Multiplicar término a término y dividir usando el inverso.') },
