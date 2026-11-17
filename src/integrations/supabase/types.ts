@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      class_assignments: {
+        Row: {
+          class_id: string
+          created_at: string
+          due_date: string
+          id: string
+          skill_ids: string[]
+          title: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          due_date: string
+          id?: string
+          skill_ids: string[]
+          title: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          skill_ids?: string[]
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_assignments_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       class_members: {
         Row: {
           class_id: string

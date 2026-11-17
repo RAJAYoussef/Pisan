@@ -78,6 +78,13 @@
       "when": 1794859288091,
       "tag": "0010_streak_day_guards_and_atomic_attempts",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794908082912,
+      "tag": "0011_class_assignments",
+      "breakpoints": true
     }
   ]
 }
