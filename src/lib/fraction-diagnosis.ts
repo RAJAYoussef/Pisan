@@ -41,6 +41,13 @@ export function normalizeFraction(f: Fraction): Fraction {
   const g = gcd(f.n, f.d);
   return { n: sign * f.n / g, d: Math.abs(f.d) / g };
 }
+/** La fraction telle que l'élève l'a écrite, sans la simplifier : « 2/8 » reste 2/8 (c'est là que se lit l'erreur). */
+export function parseFractionAsTyped(raw: string): Fraction | null {
+  const m = /^([+-]?\d+)\/([+-]?\d+)$/.exec(raw.trim().replace(/−/g, '-').replace(/\s/g, ''));
+  if (!m) return parseFractionAnswer(raw);
+  const n = Number(m[1]), d = Number(m[2]);
+  return Number.isSafeInteger(n) && Number.isSafeInteger(d) && d !== 0 ? { n, d } : null;
+}
 export function parseFractionAnswer(raw: string): Fraction | null {
   const s = raw.trim().replace(/−/g, '-').replace(/,/g, '.').replace(/\s/g, '');
   if (!s || s.length > 40) return null;
@@ -92,6 +99,7 @@ export function analyzeFractionResponse(task: FractionTask, raw: string): Fracti
   const parsed = parseFractionAnswer(raw);
   const expectedText = typeof expected === 'string' || typeof expected === 'number' ? String(expected) : format(expected);
   const observed = raw.trim();
+  const typed = parseFractionAsTyped(raw);
   const correct = task.kind === 'compare'
     ? ['<', '>', '='].includes(observed) && observed === expected && expected === task.relation
     : task.kind === 'fraction-of'
@@ -113,7 +121,7 @@ export function analyzeFractionResponse(task: FractionTask, raw: string): Fracti
       remediation = 'visualise-parts';
       evidence = 'La réponse correspond à une opération séparée sur les numérateurs et les dénominateurs.';
       confidence = 'medium';
-    } else if (parsed && sameDenominator && (parsed.n === a.n + (task.kind === 'add' ? b.n : -b.n)) && parsed.d !== a.d) {
+    } else if (typed && sameDenominator && (typed.n === a.n + (task.kind === 'add' ? b.n : -b.n)) && typed.d !== a.d) {
       misconception = 'fraction-add-denominators';
       remediation = 'visualise-parts';
       evidence = 'Les numérateurs sont combinés, mais le dénominateur commun n’est pas conservé.';
@@ -123,20 +131,21 @@ export function analyzeFractionResponse(task: FractionTask, raw: string): Fracti
       remediation = 'common-denominator';
       evidence = 'La réponse ne correspond pas au résultat attendu ; vérifier si les fractions ont été rendues comparables avant l’opération.';
     }
-  } else if (!correct && task.kind === 'simplify' && parsed) {
-    const original = normalizeFraction(task.value);
+  } else if (!correct && task.kind === 'simplify' && typed) {
+    // La fraction de départ non simplifiée : c'est l'un de ses termes que l'élève a gardé.
+    const original = task.value;
     const expectedF = normalizeFraction(task.expected);
-    if ((parsed.n === expectedF.n && parsed.d === original.d) || (parsed.d === expectedF.d && parsed.n === original.n)) {
+    if ((typed.n === expectedF.n && typed.d === original.d) || (typed.d === expectedF.d && typed.n === original.n)) {
       misconception = 'fraction-simplify-one-term';
       remediation = 'simplify-both-terms';
       evidence = 'Un seul terme semble avoir été modifié lors de la simplification.';
       confidence = 'medium';
     }
-  } else if (!correct && task.kind === 'equivalent' && parsed) {
-    const source = normalizeFraction(task.value);
+  } else if (!correct && task.kind === 'equivalent' && typed) {
+    const source = task.value;
     // Keep the unreduced target here: its numerator and denominator reveal which term the learner changed.
     const target = task.expected;
-    if ((parsed.n === target.n && parsed.d === source.d) || (parsed.d === target.d && parsed.n === source.n)) {
+    if ((typed.n === target.n && typed.d === source.d) || (typed.d === target.d && typed.n === source.n)) {
       misconception = 'fraction-scale-one-term';
       remediation = 'equivalent-fractions';
       evidence = 'Un seul terme semble avoir été multiplié pour construire la fraction équivalente.';

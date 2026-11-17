@@ -12,9 +12,10 @@ export type FractionTransferTask = {
 };
 export type FractionTransferResult = 'transfer-success' | 'error-reproduced' | 'other-error';
 
+/** Décale les choix vers la droite : le premier (la bonne réponse) se retrouve à la position `offset`. */
 function rotateOptions<T>(items: T[], offset: number): T[] {
   const index = offset % items.length;
-  return [...items.slice(index), ...items.slice(0, index)];
+  return index === 0 ? [...items] : [...items.slice(-index), ...items.slice(0, -index)];
 }
 
 /** Génère une situation nouvelle, distincte des questions de confirmation du diagnostic. */

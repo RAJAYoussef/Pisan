@@ -7,6 +7,7 @@ import { checkChallenge, challengeNotions, dailyChallenge } from './challenge';
 import type { Attempt, StreakResult } from './pisan';
 import { getSkill, skillNotion } from './skills';
 import { FRACTION_JOURNAL_EVENT_TYPES } from './fraction-journal';
+import type { Json } from '@/integrations/supabase/types';
 
 const credential = z.string().regex(/^[a-f0-9]{64}$/);
 const PARTNER_CODE_FORMAT = /^[A-Za-z0-9-]{4,40}$/;
@@ -162,11 +163,12 @@ export const getFractionJournal = createServerFn({ method: 'POST' })
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
     const session = await supabaseAdmin.from('learning_sessions').select('token_hash').eq('token_hash', hash).maybeSingle();
     if (session.error || !session.data) throw new Error('Session introuvable.');
+    type JournalRow = { event_id: string; activity_id: string; skill_id: string; event_type: string; evidence_status: string; payload: Json; client_occurred_at: string | null; recorded_at: string };
     type JournalQuery = {
       eq: (column: string, value: string) => JournalQuery;
       order: (column: string, options: { ascending: boolean }) => {
         order: (column: string, options: { ascending: boolean }) => {
-          limit: (count: number) => Promise<{ data: Record<string, unknown>[] | null; error: { message: string } | null }>;
+          limit: (count: number) => Promise<{ data: JournalRow[] | null; error: { message: string } | null }>;
         };
       };
     };

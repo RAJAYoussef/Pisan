@@ -106,8 +106,8 @@ describe('Figures proposées selon le programme', () => {
   it('France 3e : pas d’angles inscrits (hors programme)', () => {
     expect(at('fr', 3)).toEqual(['pythagoras', 'thales', 'trigo', 'affine', 'stats']);
   });
-  it('France 6e : aucune de ces figures, même si la 6e a un chapitre de géométrie', () => {
-    expect(at('fr', 0)).toEqual([]);
+  it('France 6e : seul le parcours Fractions, même si la 6e a un chapitre de géométrie', () => {
+    expect(at('fr', 0)).toEqual(['fractions']);
   });
   it('Côte d’Ivoire 3e : le chapitre « Triangle rectangle » sert à Pythagore et à la trigonométrie', () => {
     const p = programmeFor('ci', 3);

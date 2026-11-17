@@ -144,11 +144,11 @@ export function Workspace() {
     const persist = () => {
       const pending = journalTimers.current.get(event.activityId);
       if (pending) { clearTimeout(pending); journalTimers.current.delete(event.activityId); }
-      void appendJournal({ data: { token, events: [{ eventId: crypto.randomUUID(), activityId: event.activityId, skillId, type: event.type, payload: event.payload, ...(event.clientOccurredAt ? { clientOccurredAt: event.clientOccurredAt } : {}) }] } }).catch(() => setError(say(lang, 'Une trace pédagogique n’a pas pu être synchronisée.', 'A learning trace could not be synced.', 'تعذر مزامنة أثر تعليمي.', 'No se pudo sincronizar una traza de aprendizaje.')));
+      void appendJournal({ data: { token, events: [{ eventId: crypto.randomUUID(), activityId: event.activityId, skillId, type: event.type, payload: event.payload, ...(event.clientOccurredAt ? { clientOccurredAt: event.clientOccurredAt } : {}) }] } }).catch(() => { /* Le journal sert à l'analyse : un échec ne doit pas interrompre l'élève. */ });
     };
     // Le curseur de la droite graduée peut émettre de nombreux changements :
     // on conserve le dernier état après une courte période sans mouvement.
-    if (event.type === 'manipulation' && event.payload.action === 'position-changed') {
+    if (event.type === 'manipulation' && event.payload['action'] === 'position-changed') {
       const previous = journalTimers.current.get(event.activityId);
       if (previous) clearTimeout(previous);
       journalTimers.current.set(event.activityId, setTimeout(persist, 400));

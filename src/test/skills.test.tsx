@@ -21,8 +21,8 @@ const typed = (step: Extract<Step, { type: 'number' }>) => {
 const chipsSolution = (step: Extract<Step, { type: 'chips' }>) => step.ordered ? step.groups[0]! : step.groups.flatMap((g, i) => [...(i ? ['='] : []), ...g.flatMap((tok, j) => j ? ['+', tok] : [tok])]);
 
 describe('Parcours de compétences : contenu', () => {
-  it('covers the ten chapters with the agreed skills', () => {
-    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 8]);
+  it('covers the eleven chapters with the agreed skills', () => {
+    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 11]);
     expect(new Set(SKILLS.map(s => s.id)).size).toBe(SKILLS.length);
     for (const s of SKILLS) { expect(s.id).toMatch(/^[a-z]+(-[a-z]+){1,2}$/); expect(filled(s.title) && filled(s.desc)).toBe(true); }
   });
@@ -235,6 +235,19 @@ function solveOnScreen(activity: Activity) {
       }
       case 'widget':
         if (step.widget.kind === 'line') { fireEvent.change(screen.getByLabelText(/^a = /), { target: { value: String(step.widget.a) } }); fireEvent.change(screen.getByLabelText(/^b = /), { target: { value: String(step.widget.b) } }); }
+        if (step.widget.kind === 'fraction-bars') {
+          const { left, right } = step.widget;
+          for (const [name, f] of [['Fraction A', left], ['Fraction B', right]] as const) { const bar = screen.getByRole('group', { name }); for (let k = 0; k < f.n; k++) fireEvent.click(within(bar).getAllByRole('button')[k]!); }
+          const sign = Math.sign(left.n * right.d - right.n * left.d);
+          fireEvent.click(screen.getByRole('button', { name: sign > 0 ? '>' : sign < 0 ? '<' : '=' }));
+        }
+        if (step.widget.kind === 'fraction-equivalence' || step.widget.kind === 'fraction-addition') {
+          const w = step.widget;
+          const count = w.kind === 'fraction-equivalence' ? w.source.n * w.factor : w.left.n + w.right.n;
+          const parts = within(screen.getByRole('group', { name: 'Parts coloriées' })).getAllByRole('button');
+          for (let k = 0; k < count; k++) fireEvent.click(parts[k]!);
+        }
+        if (step.widget.kind === 'fraction-numberline') fireEvent.change(screen.getByLabelText('Position choisie'), { target: { value: String(Math.round(step.widget.target.n / step.widget.target.d / 0.005) * 0.005) } });
         if (step.widget.kind === 'tangent') fireEvent.change(screen.getByLabelText(/^x = /), { target: { value: String(step.widget.target) } });
         if (step.widget.kind === 'level') {
           const v = step.widget.values, mean = v.reduce((t, x) => t + x, 0) / v.length;
@@ -331,7 +344,7 @@ describe('Vue professeur', () => {
   const student = (id: string, attempts: { skill: string; correct: number; total: number; review?: boolean }[]) => ({ id, profile: { nickname: id, country: 'ma', grade: 2, lang: 'fr' as const }, last_active_at: '2026-11-01', dys_default: null, progress: { unlocked: [], attempts: attempts.map(a => ({ kind: 'workshop' as const, notion: 'vectors' as const, date: '2026-11-01T10:00:00Z', minutes: 5, ...a })) } });
   it('the class programme gives its pathways', () => {
     expect(classSkillKinds('ma', 2)).toEqual(['pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'affine', 'stats']);
-    expect(classSkillKinds('fr', 0)).toEqual([]);
+    expect(classSkillKinds('fr', 0)).toEqual(['fractions']);
   });
   it('flags a skill when at least two students are stuck on it', () => {
     const students = [student('a', [{ skill: 'vec-sum', correct: 2, total: 4 }]), student('b', [{ skill: 'vec-sum', correct: 4, total: 4 }, { skill: 'vec-sum', correct: 0, total: 1, review: true }]), student('c', [{ skill: 'vec-sum', correct: 4, total: 4 }])];

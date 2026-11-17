@@ -261,12 +261,15 @@ function StepView({ lang, step, solved, onAnswer, onFractionInteraction }: { lan
         {solved && <Solved lang={lang} />}
       </>;
     }
-    case 'widget':
+    case 'widget': {
+      // Constante : TypeScript garde le type précis de la manipulation dans les rappels.
+      const w = step.widget;
+      const fraction = w.kind === 'fraction-equivalence' || w.kind === 'fraction-addition' || w.kind === 'fraction-numberline' ? w : null;
       return <>
         {step.widget.kind === 'fraction-bars' && <FractionBars lang={lang} left={step.widget.left} right={step.widget.right} locked={solved} onComplete={onAnswer} />}
-        {step.widget.kind === 'fraction-equivalence' && <FractionEquivalenceLab lang={lang} source={step.widget.source} factor={step.widget.factor} locked={solved} onComplete={onAnswer} onInteraction={event => onFractionInteraction?.(event, step.widget)} />}
-        {step.widget.kind === 'fraction-addition' && <FractionAdditionLab lang={lang} left={step.widget.left} right={step.widget.right} locked={solved} onComplete={onAnswer} onInteraction={event => onFractionInteraction?.(event, step.widget)} />}
-        {step.widget.kind === 'fraction-numberline' && <FractionNumberLineLab lang={lang} target={step.widget.target} locked={solved} onComplete={onAnswer} onInteraction={event => onFractionInteraction?.(event, step.widget)} />}
+        {fraction?.kind === 'fraction-equivalence' && <FractionEquivalenceLab lang={lang} source={fraction.source} factor={fraction.factor} locked={solved} onComplete={onAnswer} onInteraction={event => onFractionInteraction?.(event, fraction)} />}
+        {fraction?.kind === 'fraction-addition' && <FractionAdditionLab lang={lang} left={fraction.left} right={fraction.right} locked={solved} onComplete={onAnswer} onInteraction={event => onFractionInteraction?.(event, fraction)} />}
+        {fraction?.kind === 'fraction-numberline' && <FractionNumberLineLab lang={lang} target={fraction.target} locked={solved} onComplete={onAnswer} onInteraction={event => onFractionInteraction?.(event, fraction)} />}
         {step.widget.kind === 'line' && <LineWidget lang={lang} target={step.widget} locked={solved} onState={setWidgetOk} />}
         {step.widget.kind === 'tangent' && <TangentWidget lang={lang} target={step.widget} locked={solved} onState={setWidgetOk} />}
         {step.widget.kind === 'level' && <LevelWidget lang={lang} values={step.widget.values} locked={solved} onState={setWidgetOk} />}
@@ -276,6 +279,7 @@ function StepView({ lang, step, solved, onAnswer, onFractionInteraction }: { lan
         {!solved && !['fraction-bars', 'fraction-equivalence', 'fraction-addition', 'fraction-numberline'].includes(step.widget.kind) && <Button className="mt-4 w-full" onClick={() => onAnswer(widgetOk)}>{checkLabel(lang)}<ArrowRight /></Button>}
         {solved && <Solved lang={lang} />}
       </>;
+    }
   }
 }
 
@@ -547,6 +551,7 @@ export const CHAPTER_NAMES: Record<FigureKind, L> = {
   seq: { fr: 'Suites', en: 'Sequences', ar: 'المتتاليات', es: 'Sucesiones' },
   deriv: { fr: 'Dérivation', en: 'Derivatives', ar: 'الاشتقاق', es: 'Derivadas' },
   proba: { fr: 'Probabilités', en: 'Probability', ar: 'الاحتمالات', es: 'Probabilidad' },
+  fractions: { fr: 'Fractions', en: 'Fractions', ar: 'الكسور', es: 'Fracciones' },
 };
 const STATUS: Record<SkillStatus, (lang: Lang) => string> = {
   mastered: lang => say(lang, 'Acquis', 'Mastered', 'مكتسبة', 'Adquirida'),
