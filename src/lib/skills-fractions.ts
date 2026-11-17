@@ -144,6 +144,12 @@ function visualCompare(seed: number): Activity {
       widget: { kind: 'fraction-bars', left: { n: a, d: b }, right: { n: c, d } },
       prompt: t('Colorie les parts de chaque fraction, puis choisis <, > ou =.', 'Shade the parts in each fraction, then choose <, > or =.', 'لوّن أجزاء كل كسر، ثم اختر < أو > أو =.', 'Colorea las partes de cada fracción y elige <, > o =.'),
       hint: t('Les deux bandes représentent le même tout. Compare la taille des parts coloriées, pas seulement leur nombre.', 'Both bars represent the same whole. Compare the size of the shaded parts, not just their number.', 'الشريطان يمثلان الكل نفسه. قارن مساحة الأجزاء الملونة، لا عددها فقط.', 'Las dos barras representan el mismo todo. Compara el tamaño de las partes coloreadas, no solo su cantidad.'),
+    }, {
+      type: 'choice',
+      options: [t('Le nombre de parts coloriées suffit toujours.', 'The number of shaded parts is always enough.', 'عدد الأجزاء الملونة يكفي دائمًا.', 'El número de partes coloreadas siempre basta.'), t('Il faut comparer la taille des parts et le même tout.', 'You must compare part sizes and the same whole.', 'يجب مقارنة حجم الأجزاء والكل نفسه.', 'Hay que comparar el tamaño de las partes y el mismo todo.')],
+      answer: 1,
+      prompt: t('Qu’est-ce qui permet de comparer correctement ces deux bandes ?', 'What lets you compare these two bars correctly?', 'ما الذي يسمح بمقارنة الشريطين بشكل صحيح؟', '¿Qué permite comparar correctamente estas dos barras?'),
+      hint: t('Une fraction dépend du nombre de parts égales et de la taille de chaque part.', 'A fraction depends on the number of equal parts and the size of each part.', 'يعتمد الكسر على عدد الأجزاء المتساوية وحجم كل جزء.', 'Una fracción depende del número de partes iguales y del tamaño de cada parte.'),
     }],
   };
 }
