@@ -13,10 +13,10 @@ type FractionBarsProps = {
 };
 
 const labels = {
-  fr: { left: 'Fraction A', right: 'Fraction B', fill: 'Parts coloriées', check: 'Vérifier', choose: 'Compare les deux bandes', relation: 'Aucune relation choisie', correct: 'Bonne comparaison', incorrect: 'Ce n’est pas encore correct', reset: 'Effacer les bandes', part: 'Part' },
-  en: { left: 'Fraction A', right: 'Fraction B', fill: 'Shaded parts', check: 'Check', choose: 'Compare the two bars', relation: 'No relation selected', correct: 'Correct comparison', incorrect: 'Not correct yet', reset: 'Clear the bars', part: 'Part' },
-  ar: { left: 'الكسر A', right: 'الكسر B', fill: 'الأجزاء الملونة', check: 'تحقق', choose: 'قارن الشريطين', relation: 'لم يتم اختيار علاقة', correct: 'مقارنة صحيحة', incorrect: 'ليست صحيحة بعد', reset: 'امسح الشريطين', part: 'جزء' },
-  es: { left: 'Fracción A', right: 'Fracción B', fill: 'Partes coloreadas', check: 'Comprobar', choose: 'Compara las dos barras', relation: 'No se ha elegido relación', correct: 'Comparación correcta', incorrect: 'Todavía no es correcto', reset: 'Vaciar las barras', part: 'Parte' },
+  fr: { left: 'Fraction A', right: 'Fraction B', fill: 'Parts coloriées', check: 'Vérifier', choose: 'Compare les deux bandes', relation: 'Aucune relation choisie', correct: 'Bonne comparaison', incorrect: 'Ce n’est pas encore correct', reset: 'Effacer les bandes', part: 'Part', shadeHint: 'La représentation ne montre pas encore le bon nombre de parts coloriées dans chaque bande.', compareHint: 'Essaie de situer les deux fractions sur une droite graduée.' },
+  en: { left: 'Fraction A', right: 'Fraction B', fill: 'Shaded parts', check: 'Check', choose: 'Compare the two bars', relation: 'No relation selected', correct: 'Correct comparison', incorrect: 'Not correct yet', reset: 'Clear the bars', part: 'Part', shadeHint: 'The bars do not yet show the correct number of shaded parts.', compareHint: 'Try placing both fractions on a number line.' },
+  ar: { left: 'الكسر A', right: 'الكسر B', fill: 'الأجزاء الملونة', check: 'تحقق', choose: 'قارن الشريطين', relation: 'لم يتم اختيار علاقة', correct: 'مقارنة صحيحة', incorrect: 'ليست صحيحة بعد', reset: 'امسح الشريطين', part: 'جزء', shadeHint: 'لا يُظهر التمثيل بعد العدد الصحيح من الأجزاء الملونة في كل شريط.', compareHint: 'حاول تحديد الكسرين على مستقيم مدرّج.' },
+  es: { left: 'Fracción A', right: 'Fracción B', fill: 'Partes coloreadas', check: 'Comprobar', choose: 'Compara las dos barras', relation: 'No se ha elegido relación', correct: 'Comparación correcta', incorrect: 'Todavía no es correcto', reset: 'Vaciar las barras', part: 'Parte', shadeHint: 'Las barras aún no muestran el número correcto de partes coloreadas.', compareHint: 'Intenta situar ambas fracciones en una recta numérica.' },
 } as const;
 
 /** Fraction bars students can partition and shade; comparison is checked and diagnosed deterministically. */
@@ -57,7 +57,7 @@ export function FractionBars({ lang, left, right, locked = false, onDiagnosis, o
     const rawDiagnosis = analyzeFractionResponse(task, relation ?? '');
     const diagnosis: FractionDiagnosis = leftRepresented && rightRepresented
       ? rawDiagnosis
-      : { ...rawDiagnosis, correct: false, confidence: 'low', evidence: 'La représentation ne montre pas encore le bon nombre de parts coloriées dans chaque bande.', remediation: 'visualise-parts' };
+      : { ...rawDiagnosis, correct: false, confidence: 'low', evidence: copy.shadeHint, remediation: 'visualise-parts' };
     setDiagnosis(diagnosis);
     onDiagnosis?.(diagnosis);
     setFeedback(correct ? 'correct' : 'incorrect');
@@ -77,6 +77,6 @@ export function FractionBars({ lang, left, right, locked = false, onDiagnosis, o
       <Button type="button" onClick={verify} disabled={locked || !relation}>{copy.check}</Button>
       <Button type="button" variant="outline" disabled={locked} onClick={() => { setLeftShade([]); setRightShade([]); setRelation(null); setFeedback(null); setDiagnosis(null); }}>{copy.reset}</Button>
     </div>
-    {feedback && <div role="status" className={feedback === 'correct' ? 'space-y-1 font-semibold text-primary' : 'space-y-1 font-semibold text-destructive'}><p>{feedback === 'correct' ? copy.correct : copy.incorrect}</p>{feedback === 'incorrect' && diagnosis && <p className="text-sm font-normal text-foreground">{diagnosis.evidence} {diagnosis.remediation === 'compare-on-number-line' ? 'Essaie de situer les deux fractions sur une droite graduée.' : ''}</p>}</div>}
+    {feedback && <div role="status" className={feedback === 'correct' ? 'space-y-1 font-semibold text-primary' : 'space-y-1 font-semibold text-destructive'}><p>{feedback === 'correct' ? copy.correct : copy.incorrect}</p>{feedback === 'incorrect' && diagnosis && <p className="text-sm font-normal text-foreground">{diagnosis.remediation === 'visualise-parts' ? copy.shadeHint : copy.compareHint}</p>}</div>}
   </section>;
 }
