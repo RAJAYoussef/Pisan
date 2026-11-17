@@ -107,7 +107,7 @@ describe('Figures proposées selon le programme', () => {
     expect(at('fr', 3)).toEqual(['pythagoras', 'thales', 'trigo', 'affine', 'stats', 'proportion']);
   });
   it('France 6e : fractions, décimaux, proportionnalité, droites et angles, symétrie, mesures', () => {
-    expect(at('fr', 0)).toEqual(['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures', 'data']);
+    expect(at('fr', 0)).toEqual(['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures', 'data', 'arith', 'polygons']);
   });
   it('Côte d’Ivoire 3e : le chapitre « Triangle rectangle » sert à Pythagore et à la trigonométrie', () => {
     const p = programmeFor('ci', 3);

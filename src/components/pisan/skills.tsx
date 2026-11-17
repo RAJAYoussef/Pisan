@@ -625,6 +625,11 @@ export const CHAPTER_NAMES: Record<FigureKind, L> = {
   measures: { fr: 'Périmètres, aires, volumes', en: 'Perimeter, area, volume', ar: 'المحيطات والمساحات والأحجام', es: 'Perímetros, áreas, volúmenes' },
   relatives: { fr: 'Nombres relatifs', en: 'Negative numbers', ar: 'الأعداد النسبية', es: 'Números enteros' },
   data: { fr: 'Tableaux et graphiques', en: 'Tables and charts', ar: 'الجداول والتمثيلات', es: 'Tablas y gráficos' },
+  arith: { fr: 'Opérations et division', en: 'Operations and division', ar: 'العمليات والقسمة', es: 'Operaciones y división' },
+  powers: { fr: 'Puissances', en: 'Powers', ar: 'القوى', es: 'Potencias' },
+  expressions: { fr: 'Expressions littérales', en: 'Expressions', ar: 'التعابير الحرفية', es: 'Expresiones algebraicas' },
+  equations: { fr: 'Équations', en: 'Equations', ar: 'المعادلات', es: 'Ecuaciones' },
+  polygons: { fr: 'Triangles et quadrilatères', en: 'Triangles and quadrilaterals', ar: 'المثلثات والرباعيات', es: 'Triángulos y cuadriláteros' },
 };
 const STATUS: Record<SkillStatus, (lang: Lang) => string> = {
   mastered: lang => say(lang, 'Acquis', 'Mastered', 'مكتسبة', 'Adquirida'),

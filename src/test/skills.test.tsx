@@ -26,8 +26,8 @@ const typed = (step: Extract<Step, { type: 'number' }>) => {
 const chipsSolution = (step: Extract<Step, { type: 'chips' }>) => step.ordered ? step.groups[0]! : step.groups.flatMap((g, i) => [...(i ? ['='] : []), ...g.flatMap((tok, j) => j ? ['+', tok] : [tok])]);
 
 describe('Parcours de compétences : contenu', () => {
-  it('covers the eighteen chapters with the agreed skills', () => {
-    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 11, 5, 4, 4, 4, 4, 4, 4]);
+  it('covers the twenty-three chapters with the agreed skills', () => {
+    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 11, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]);
     expect(new Set(SKILLS.map(s => s.id)).size).toBe(SKILLS.length);
     for (const s of SKILLS) { expect(s.id).toMatch(/^[a-z]+(-[a-z]+){1,2}$/); expect(filled(s.title) && filled(s.desc)).toBe(true); }
   });
@@ -347,7 +347,7 @@ describe('Vue professeur', () => {
   const student = (id: string, attempts: { skill: string; correct: number; total: number; review?: boolean }[]) => ({ id, profile: { nickname: id, country: 'ma', grade: 2, lang: 'fr' as const }, last_active_at: '2026-11-01', dys_default: null, progress: { unlocked: [], attempts: attempts.map(a => ({ kind: 'workshop' as const, notion: 'vectors' as const, date: '2026-11-01T10:00:00Z', minutes: 5, ...a })) } });
   it('the class programme gives its pathways', () => {
     expect(classSkillKinds('ma', 2)).toEqual(['pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'affine', 'stats']);
-    expect(classSkillKinds('fr', 0)).toEqual(['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures', 'data']);
+    expect(classSkillKinds('fr', 0)).toEqual(['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures', 'data', 'arith', 'polygons']);
   });
   it('flags a skill when at least two students are stuck on it', () => {
     const students = [student('a', [{ skill: 'vec-sum', correct: 2, total: 4 }]), student('b', [{ skill: 'vec-sum', correct: 4, total: 4 }, { skill: 'vec-sum', correct: 0, total: 1, review: true }]), student('c', [{ skill: 'vec-sum', correct: 4, total: 4 }])];
@@ -423,11 +423,11 @@ describe('6e', () => {
     const { figuresFor } = await import('@/lib/figures');
     const { programmesFor, programmeNotions } = await import('@/lib/programmes');
     const expected: Record<string, string[]> = {
-      fr: ['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures', 'data'],
-      ma: ['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures', 'relatives'],
-      ci: ['stats', 'fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures', 'relatives'],
-      sn: ['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures', 'relatives'],
-      us: ['stats', 'fractions', 'decimals', 'proportion', 'measures', 'relatives'],
+      fr: ['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures', 'data', 'arith', 'polygons'],
+      ma: ['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures', 'relatives', 'arith', 'powers', 'expressions', 'equations', 'polygons'],
+      ci: ['stats', 'fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures', 'relatives', 'polygons'],
+      sn: ['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures', 'relatives', 'polygons'],
+      us: ['stats', 'fractions', 'decimals', 'proportion', 'measures', 'relatives', 'expressions', 'equations'],
     };
     for (const [country, kinds] of Object.entries(expected)) {
       const p = programmesFor(country, 0)[0]!;
@@ -469,6 +469,31 @@ describe('6e', () => {
       if (order.type !== 'chips') throw new Error();
       const values = order.groups[0]!.map(v => Number(v.replace('−', '-').replace(',', '.')));
       expect([...values].sort((a, b) => a - b)).toEqual(values);
+    }
+  });
+  it('every Grade 6 chapter now has a pathway, and the new ones say what the answer says', async () => {
+    const { chapterSkillKinds } = await import('@/lib/figures');
+    const { programmesFor } = await import('@/lib/programmes');
+    for (const country of ['fr', 'ma', 'ci', 'sn', 'us']) for (const ch of programmesFor(country, 0)[0]!.chapters) expect(chapterSkillKinds(ch), `${country} ${ch.title.fr}`).not.toEqual([]);
+    expect(chapterSkillKinds({ title: { fr: 'Équations et inéquations du premier degré', en: '', ar: '', es: '' }, notions: ['equations'] })).toEqual([]);
+    for (let seed = 0; seed < 40; seed++) {
+      const euclid = getSkill('arith-euclid')!.build(seed).steps;
+      const q = euclid[0]!, r = euclid[1]!;
+      if (q.type !== 'number' || r.type !== 'number') throw new Error();
+      const [a, b] = (q.prompt.fr.match(/\d+/g) ?? []).map(Number);
+      expect(b! * q.answer + r.answer).toBe(a);
+      expect(r.answer).toBeLessThan(b!);
+      const para = getSkill('poly-parallelogram')!.build(seed).steps[0]!;
+      if (para.type !== 'grid') throw new Error();
+      const { A, B, C } = para.scene.points as Record<string, { x: number; y: number }>;
+      expect(para.answer).toEqual({ x: A!.x + C!.x - B!.x, y: A!.y + C!.y - B!.y });
+      const tri = getSkill('poly-inequality')!.build(seed).steps;
+      for (const st of tri.slice(0, 2)) {
+        if (st.type !== 'choice') throw new Error();
+        const sides = (st.prompt.fr.match(/\d+/g) ?? []).map(Number);
+        const max = Math.max(...sides);
+        expect(st.answer).toBe(max < sides.reduce((x, y) => x + y, 0) - max ? 0 : 1);
+      }
     }
   });
   it('decimal traps are really traps: 2,5 > 2,45 and 2,5 = 2,50', () => {

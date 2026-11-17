@@ -130,7 +130,7 @@ export const PROGRAMMES: Programme[] = [
       c('Nombres entiers et décimaux : opérations et priorités', 'Whole numbers and decimals: operations and order', 'الأعداد الصحيحة الطبيعية والعشرية: العمليات والأولويات', 'Enteros y decimales: operaciones y prioridades', ['decimals']),
       ch.fractions,
       c('Nombres décimaux relatifs', 'Positive and negative decimals', 'الأعداد العشرية النسبية', 'Decimales relativos', ['integers']),
-      c('Puissances', 'Powers', 'القوى', 'Potencias', ['powers']),
+      c('Puissances d’exposant entier naturel', 'Powers with whole-number exponents', 'القوى ذات أس صحيح طبيعي', 'Potencias de exponente natural', ['powers']),
       c('Développement et factorisation', 'Expanding and factorising', 'النشر والتعميل', 'Desarrollo y factorización', ['algebra']),
       c('Équations', 'Equations', 'المعادلات', 'Ecuaciones', ['equations']),
       c('Proportionnalité', 'Proportionality', 'التناسبية', 'Proporcionalidad', ['proportion']),
