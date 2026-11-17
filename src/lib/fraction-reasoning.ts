@@ -28,7 +28,7 @@ export type FractionVerificationCheck = {
   id: string;
   prompt: string;
   options: { value: string; label: string }[];
-  expectedValue: string;
+  supportingValues: string[];
 };
 
 export type FractionHypothesis = {
@@ -117,8 +117,8 @@ export function readFractionSequence(input: FractionReasoningEvent[]): FractionS
         explanation: 'La première construction incorrecte conserve le numérateur de départ alors que le nombre de parts a changé. Cela peut indiquer que seul un terme de la fraction a été transformé ; une construction isolée ne suffit pas à l’affirmer.',
         evidenceSequences: [firstFailed.sequence],
         checks: [
-          { id: 'scale-both-terms', prompt: 'Pour conserver la valeur de 1/2 en multipliant par 2, que faut-il faire ?', options: [{ value: 'both', label: 'Multiplier le numérateur et le dénominateur par 2' }, { value: 'top', label: 'Multiplier seulement le numérateur par 2' }, { value: 'bottom', label: 'Multiplier seulement le dénominateur par 2' }], expectedValue: 'both' },
-          { id: 'scale-transfer', prompt: 'Quelle fraction est équivalente à 3/5 ?', options: [{ value: 'a', label: '9/15' }, { value: 'b', label: '9/5' }, { value: 'c', label: '3/15' }], expectedValue: 'a' },
+          { id: 'scale-both-terms', prompt: 'Pour conserver la valeur de 1/2 en multipliant par 2, que faut-il faire ?', options: [{ value: 'both', label: 'Multiplier le numérateur et le dénominateur par 2' }, { value: 'top', label: 'Multiplier seulement le numérateur par 2' }, { value: 'bottom', label: 'Multiplier seulement le dénominateur par 2' }], supportingValues: ['top', 'bottom'] },
+          { id: 'scale-transfer', prompt: 'Quelle fraction est équivalente à 3/5 ?', options: [{ value: 'a', label: '9/15' }, { value: 'b', label: '9/5' }, { value: 'c', label: '3/15' }], supportingValues: ['b', 'c'] },
         ],
       });
     }
@@ -132,8 +132,8 @@ export function readFractionSequence(input: FractionReasoningEvent[]): FractionS
         explanation: 'La construction validée contient autant de parts que l’un des deux termes, ce qui peut signaler que l’élève n’a pris en compte qu’un seul des deux apports.',
         evidenceSequences: [firstFailed.sequence],
         checks: [
-          { id: 'add-count', prompt: 'Combien de quarts représentent 1/4 + 2/4 ?', options: [{ value: '1', label: '1/4' }, { value: '2', label: '2/4' }, { value: '3', label: '3/4' }], expectedValue: '3' },
-          { id: 'add-denominator', prompt: 'Dans 1/4 + 2/4, pourquoi le dénominateur reste-t-il 4 ?', options: [{ value: 'same-size', label: 'Parce que les parts ont déjà la même taille' }, { value: 'add', label: 'Parce qu’on additionne aussi les dénominateurs' }, { value: 'guess', label: 'Parce que le dénominateur ne change jamais' }], expectedValue: 'same-size' },
+          { id: 'add-count', prompt: 'Combien de quarts représentent 1/4 + 2/4 ?', options: [{ value: '1', label: '1/4' }, { value: '2', label: '2/4' }, { value: '3', label: '3/4' }], supportingValues: ['1', '2'] },
+          { id: 'add-denominator', prompt: 'Dans 1/4 + 2/4, pourquoi le dénominateur reste-t-il 4 ?', options: [{ value: 'same-size', label: 'Parce que les parts ont déjà la même taille' }, { value: 'add', label: 'Parce qu’on additionne aussi les dénominateurs' }, { value: 'guess', label: 'Parce que le dénominateur ne change jamais' }], supportingValues: ['add', 'guess'] },
         ],
       });
     }
@@ -156,21 +156,20 @@ export function verifyFractionHypothesis(
 ): FractionDiagnostic {
   const checkResults = hypothesis.checks.map(check => ({
     checkId: check.id,
-    correct: responses[check.id] === check.expectedValue,
+    supportsHypothesis: check.supportingValues.includes(responses[check.id] ?? ''),
   }));
   const answered = hypothesis.checks.every(check => Object.prototype.hasOwnProperty.call(responses, check.id));
-  const allCorrect = checkResults.every(result => result.correct);
-  const anyWrong = checkResults.some(result => !result.correct);
-  const status = answered && allCorrect ? 'confirmed' : answered && anyWrong ? 'not-confirmed' : 'inconclusive';
+  const allSupport = checkResults.every(result => result.supportsHypothesis);
+  const status = answered && allSupport ? 'confirmed' : answered ? 'not-confirmed' : 'inconclusive';
   return {
     level: 'diagnostic',
     status,
     hypothesisCode: hypothesis.code,
     checkResults,
     explanation: status === 'confirmed'
-      ? 'Les deux vérifications complémentaires corroborent l’hypothèse. Le diagnostic est confirmé pour cette difficulté ciblée, pas pour l’ensemble de la compétence.'
+      ? 'Les deux réponses reproduisent la même erreur ciblée dans des vérifications complémentaires. Le diagnostic est confirmé pour cette difficulté, pas pour l’ensemble de la compétence.'
       : status === 'not-confirmed'
-        ? 'Les vérifications ne corroborent pas l’hypothèse initiale. Il faut conserver les observations sans attribuer cette difficulté à l’élève.'
+        ? 'Les réponses ne reproduisent pas systématiquement l’erreur ciblée. Il faut conserver les observations sans attribuer cette difficulté à l’élève.'
         : 'Les deux vérifications sont nécessaires avant de conclure.',
   };
 }
