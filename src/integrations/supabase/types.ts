@@ -141,6 +141,53 @@ export type Database = {
         }
         Relationships: []
       }
+      fraction_learning_journal: {
+        Row: {
+          activity_id: string
+          client_occurred_at: string | null
+          event_id: string
+          event_type: string
+          evidence_status: string
+          id: number
+          payload: Json
+          recorded_at: string
+          skill_id: string
+          token_hash: string
+        }
+        Insert: {
+          activity_id: string
+          client_occurred_at?: string | null
+          event_id: string
+          event_type: string
+          evidence_status?: string
+          id?: never
+          payload?: Json
+          recorded_at?: string
+          skill_id: string
+          token_hash: string
+        }
+        Update: {
+          activity_id?: string
+          client_occurred_at?: string | null
+          event_id?: string
+          event_type?: string
+          evidence_status?: string
+          id?: never
+          payload?: Json
+          recorded_at?: string
+          skill_id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fraction_learning_journal_token_hash_fkey"
+            columns: ["token_hash"]
+            isOneToOne: false
+            referencedRelation: "learning_sessions"
+            referencedColumns: ["token_hash"]
+          },
+        ]
+      }
       learning_sessions: {
         Row: {
           challenge_correct: boolean | null
