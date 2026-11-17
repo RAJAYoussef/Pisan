@@ -64,6 +64,36 @@ describe('Fraction reasoning sequence reader', () => {
     expect(diagnostic.status).toBe('not-confirmed');
   });
 
+  it('checks the same one-addend misconception in two independent addition contexts', () => {
+    const event: FractionReasoningEvent = {
+      widgetKind: 'fraction-addition',
+      sequence: 1,
+      occurredAtClient: '2026-11-17T10:00:00.000Z',
+      action: 'verified',
+      state: { selectedParts: [0], correct: false },
+      skillId: 'frac-add-visual',
+      activitySeed: 77,
+      stepIndex: 0,
+      widget: { kind: 'fraction-addition', left: { n: 1, d: 4 }, right: { n: 2, d: 4 } },
+    };
+    const analysis = readFractionSequence([event]);
+    const hypothesis = analysis.hypotheses[0]!;
+    expect(hypothesis.code).toBe('fraction-count-one-addend');
+    expect(hypothesis.checks[1]!.id).toBe('add-transfer-count');
+
+    const repeatedError = verifyFractionHypothesis(hypothesis, {
+      'add-count': '1',
+      'add-transfer-count': '3',
+    });
+    expect(repeatedError.status).toBe('confirmed');
+
+    const transferCorrect = verifyFractionHypothesis(hypothesis, {
+      'add-count': '1',
+      'add-transfer-count': '5',
+    });
+    expect(transferCorrect.status).toBe('not-confirmed');
+  });
+
   it('records self-correction only when a new manipulation occurs after failure', () => {
     const analysis = readFractionSequence([
       equivalenceEvent(1, 'verified', { selectedParts: [0], correct: false }),
