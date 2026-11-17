@@ -22,7 +22,7 @@ const chipsSolution = (step: Extract<Step, { type: 'chips' }>) => step.ordered ?
 
 describe('Parcours de compétences : contenu', () => {
   it('covers the ten chapters with the agreed skills', () => {
-    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 7]);
+    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 8]);
     expect(new Set(SKILLS.map(s => s.id)).size).toBe(SKILLS.length);
     for (const s of SKILLS) { expect(s.id).toMatch(/^[a-z]+(-[a-z]+){1,2}$/); expect(filled(s.title) && filled(s.desc)).toBe(true); }
   });
@@ -76,13 +76,13 @@ describe('Parcours de compétences : contenu', () => {
 });
 
 describe('Fractions', () => {
-  it('registers seven deterministic, translated fraction skills with valid prerequisites', () => {
+  it('registers eight deterministic, translated fraction skills with valid prerequisites', () => {
     const fractionSkills = skillsFor('fractions');
     expect(fractionSkills.map(s => s.id)).toEqual([
-      'frac-meaning', 'frac-equivalent', 'frac-simplify', 'frac-compare',
+      'frac-meaning', 'frac-equivalent', 'frac-simplify', 'frac-visual-compare', 'frac-compare',
       'frac-add-subtract', 'frac-multiply-divide', 'frac-problem',
     ]);
-    expect(new Set(fractionSkills.map(s => s.id)).size).toBe(7);
+    expect(new Set(fractionSkills.map(s => s.id)).size).toBe(8);
     for (const skill of fractionSkills) {
       expect(filled(skill.title) && filled(skill.desc)).toBe(true);
       expect(JSON.stringify(skill.build(42))).toBe(JSON.stringify(skill.build(42)));
@@ -93,7 +93,7 @@ describe('Fractions', () => {
   it('keeps the fraction misconception catalogue and prerequisite references coherent', async () => {
     const { FRACTION_SKILL_META } = await import('@/lib/skills-fractions');
     const ids = new Set(Object.keys(FRACTION_SKILL_META));
-    expect(ids.size).toBe(7);
+    expect(ids.size).toBe(8);
     for (const meta of Object.values(FRACTION_SKILL_META)) {
       for (const prerequisite of meta.prerequisites) expect(ids.has(prerequisite)).toBe(true);
       expect(meta.microSkills.length).toBeGreaterThan(0);
