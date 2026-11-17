@@ -1,4 +1,4 @@
-import type { FractionWidgetKind } from '@/components/pisan/fraction-labs';
+export type FractionWidgetKind = 'fraction-equivalence' | 'fraction-addition' | 'fraction-numberline';
 
 export type FractionWidgetSpec =
   | { kind: 'fraction-equivalence'; source: { n: number; d: number }; factor: number }
@@ -157,7 +157,7 @@ export function verifyFractionHypothesis(
     checkId: check.id,
     correct: responses[check.id] === check.expectedValue,
   }));
-  const answered = hypothesis.checks.every(check => Object.hasOwn(responses, check.id));
+  const answered = hypothesis.checks.every(check => Object.prototype.hasOwnProperty.call(responses, check.id));
   const allCorrect = checkResults.every(result => result.correct);
   const anyWrong = checkResults.some(result => !result.correct);
   const status = answered && allCorrect ? 'confirmed' : answered && anyWrong ? 'not-confirmed' : 'inconclusive';
