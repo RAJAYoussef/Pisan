@@ -33,6 +33,7 @@ import { CoachTokenProvider } from './coach';
 import { DailyChallenge } from './daily-challenge';
 import { AccountSection, ResumeProfile } from './account';
 import { SESSION_KEY } from '@/lib/recovery';
+import { greeting } from '@/lib/greeting';
 import { dueReviews } from '@/lib/skills';
 import { StreakBadge, browserTimeZone } from './streak';
 import { Speaker } from './shared';
@@ -176,7 +177,7 @@ function HomePage({ assignments, session, token, onChallenge, lang, left, onNavi
   const due = dueReviews(session.progress.attempts).length;
   return <section className="mx-auto max-w-3xl">
     <div className="home-head">
-      <div className="min-w-0 flex-1"><h1 className="font-display text-xl leading-tight sm:text-2xl">{say(lang, 'Salut', 'Hello', 'مرحبًا', 'Hola')} {session.profile.nickname} 👋</h1>
+      <div className="min-w-0 flex-1"><h1 className="font-display text-xl leading-tight sm:text-2xl">{greeting(lang)} {session.profile.nickname} 👋</h1>
         <p className="mt-0.5 truncate text-xs text-muted-foreground">{country.flag} {country.grades[session.profile.grade]?.label[lang]}{programme?.track ? ` · ${programme.track.label[lang]}` : ''}</p></div>
       <div className="home-chips">
         <span className="home-chip"><StreakBadge compact lang={lang} streak={{ count: session.streak_count, lastDay: session.streak_last_day, freezes: session.freezes, timezone: session.profile.timezone }} /></span>
