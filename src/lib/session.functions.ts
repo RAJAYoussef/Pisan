@@ -175,7 +175,7 @@ export const getFractionJournal = createServerFn({ method: 'POST' })
     };
     let query = journal.select('event_id, activity_id, skill_id, event_type, evidence_status, payload, client_occurred_at, recorded_at').eq('token_hash', hash);
     if (data.activityId) query = query.eq('activity_id', data.activityId);
-    const result = await query.order('recorded_at', { ascending: true }).order('id', { ascending: true }).limit(data.limit);
+    const result = await query.order('recorded_at', { ascending: false }).order('id', { ascending: false }).limit(data.limit);
     if (result.error) throw new Error('Le journal pédagogique est indisponible.');
-    return result.data ?? [];
+    return (result.data ?? []).reverse();
   });
