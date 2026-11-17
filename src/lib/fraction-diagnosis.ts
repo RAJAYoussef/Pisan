@@ -134,8 +134,9 @@ export function analyzeFractionResponse(task: FractionTask, raw: string): Fracti
     }
   } else if (!correct && task.kind === 'equivalent' && parsed) {
     const source = normalizeFraction(task.value);
-    const target = normalizeFraction(task.expected);
-    if (parsed.n === target.n && parsed.d === source.d || parsed.d === target.d && parsed.n === source.n) {
+    // Keep the unreduced target here: its numerator and denominator reveal which term the learner changed.
+    const target = task.expected;
+    if ((parsed.n === target.n && parsed.d === source.d) || (parsed.d === target.d && parsed.n === source.n)) {
       misconception = 'fraction-scale-one-term';
       remediation = 'equivalent-fractions';
       evidence = 'Un seul terme semble avoir été multiplié pour construire la fraction équivalente.';
