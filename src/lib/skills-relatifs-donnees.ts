@@ -114,15 +114,17 @@ const DAYS: [string, string, string, string][] = [['Lundi', 'Monday', 'الإث�
 const SHORT = ['Lu', 'Ma', 'Me', 'Je', 'Ve'];
 const day = (i: number) => t(...DAYS[i]!);
 
+const barX = (i: number) => 2 * i + 2;
 /** Diagramme en barres : une barre par jour (x = 1 à 5), quadrillage gradué de 0 à 10. */
 function barChart(values: (number | null)[]): Scene & { grid: Grid } {
   return {
-    grid: { minX: 0, maxX: 6, minY: 0, maxY: 10 },
-    points: { O: { x: 0, y: 0 }, X: { x: 6, y: 0 }, Y: { x: 0, y: 10 } },
+    // Barres espacées de 2 : le diagramme est plus large que haut et tient sur un écran de téléphone.
+    grid: { minX: 0, maxX: 12, minY: 0, maxY: 10 },
+    points: { O: { x: 0, y: 0 }, X: { x: 12, y: 0 }, Y: { x: 0, y: 10 } },
     hidden: ['O', 'X', 'Y'],
-    segments: [{ id: 'ox', a: 'O', b: 'X', style: 'bold' }, { id: 'oy', a: 'O', b: 'Y', style: 'bold' }],
-    rects: values.flatMap((v, i) => (v === null ? [] : [{ x: i + 1 - 0.3, y: 0, w: 0.6, h: v }])),
-    labels: [...SHORT.map((s, i) => ({ at: { x: i + 1, y: -0.8 }, text: s })), ...[0, 2, 4, 6, 8, 10].map(v => ({ at: { x: -0.6, y: v }, text: String(v) }))],
+    segments: [{ id: 'ox', a: 'O', b: 'X' }, { id: 'oy', a: 'O', b: 'Y' }],
+    rects: values.flatMap((v, i) => (v === null ? [] : [{ x: barX(i) - 0.6, y: 0, w: 1.2, h: v }])),
+    labels: [...SHORT.map((s, i) => ({ at: { x: barX(i), y: -0.8 }, text: s })), ...[2, 4, 6, 8, 10].map(v => ({ at: { x: -0.7, y: v }, text: String(v) }))],
   };
 }
 
@@ -169,15 +171,15 @@ function dataLine(seed: number): Activity {
   const hours = [8, 10, 12, 14, 16, 18];
   let temps: number[];
   do { const peak = int(rng, 2, 4); temps = hours.map((_, i) => 12 - Math.abs(i - peak) * int(rng, 1, 3) + (i === peak ? 1 : 0)); } while (temps.some(v => v < 1 || v > 13) || temps.filter(v => v === Math.max(...temps)).length > 1);
-  const g: Grid = { minX: 0, maxX: 6, minY: 0, maxY: 14 };
-  const pts = temps.map((v, i) => ({ x: i + 0.5, y: v }));
+  const g: Grid = { minX: 0, maxX: 12, minY: 0, maxY: 14 };
+  const pts = temps.map((v, i) => ({ x: 2 * i + 1, y: v }));
   const scene: Scene & { grid: Grid } = {
     grid: g,
-    points: { O: { x: 0, y: 0 }, X: { x: 6, y: 0 }, Y: { x: 0, y: 14 }, ...Object.fromEntries(pts.map((p, i) => [`h${i}`, p])) },
+    points: { O: { x: 0, y: 0 }, X: { x: 12, y: 0 }, Y: { x: 0, y: 14 }, ...Object.fromEntries(pts.map((p, i) => [`h${i}`, p])) },
     hidden: ['O', 'X', 'Y', ...pts.map((_, i) => `h${i}`)],
-    segments: [{ id: 'ox', a: 'O', b: 'X', style: 'bold' }, { id: 'oy', a: 'O', b: 'Y', style: 'bold' }],
+    segments: [{ id: 'ox', a: 'O', b: 'X' }, { id: 'oy', a: 'O', b: 'Y' }],
     curves: [pts],
-    labels: [...hours.map((h, i) => ({ at: { x: i + 0.5, y: -0.9 }, text: `${h} h` })), ...[0, 2, 4, 6, 8, 10, 12, 14].map(v => ({ at: { x: -0.6, y: v }, text: String(v) }))],
+    labels: [...hours.map((h, i) => ({ at: { x: 2 * i + 1, y: -0.9 }, text: `${h} h` })), ...[2, 4, 6, 8, 10, 12, 14].map(v => ({ at: { x: -0.7, y: v }, text: String(v) }))],
   };
   const k = int(rng, 0, 5), hot = temps.indexOf(Math.max(...temps));
   return {
@@ -201,7 +203,7 @@ function dataBuild(seed: number): Activity {
     title: t('Compléter un diagramme', 'Completing a chart', 'إتمام مخطط', 'Completar un diagrama'),
     summary: `barre du ${DAYS[k]![0].toLowerCase()} : hauteur ${values[k]}`,
     steps: [
-      { type: 'grid', scene: { ...barChart(values.map((v, i) => (i === k ? null : v))), points: { O: { x: 0, y: 0 }, X: { x: 6, y: 0 }, Y: { x: 0, y: 10 } } }, label: '●', start: { x: k + 1, y: 0 }, answer: { x: k + 1, y: values[k]! }, prompt: t(`Le ${DAYS[k]![0].toLowerCase()}, ${values[k]} livres ont été empruntés. Place le haut de la barre manquante.`, `On ${DAYS[k]![1]}, ${values[k]} books were borrowed. Place the top of the missing bar.`, `يوم ${DAYS[k]![2]} استُعير ${values[k]} كتب. ضع أعلى العمود الناقص.`, `El ${DAYS[k]![3].toLowerCase()} se prestaron ${values[k]} libros. Coloca la parte alta de la barra que falta.`), hint: t('Monte le point au-dessus du bon jour jusqu’à la graduation qui correspond au nombre de livres.', 'Move the point above the right day up to the matching number.', 'ارفع النقطة فوق اليوم المناسب حتى التدريجة المناسبة.', 'Sube el punto sobre el día correcto hasta el número.') },
+      { type: 'grid', scene: barChart(values.map((v, i) => (i === k ? null : v))), label: '', heightOnly: true, start: { x: barX(k), y: 0 }, answer: { x: barX(k), y: values[k]! }, prompt: t(`Le ${DAYS[k]![0].toLowerCase()}, ${values[k]} livres ont été empruntés. Place le haut de la barre manquante.`, `On ${DAYS[k]![1]}, ${values[k]} books were borrowed. Place the top of the missing bar.`, `يوم ${DAYS[k]![2]} استُعير ${values[k]} كتب. ضع أعلى العمود الناقص.`, `El ${DAYS[k]![3].toLowerCase()} se prestaron ${values[k]} libros. Coloca la parte alta de la barra que falta.`), hint: t('Monte le point au-dessus du bon jour jusqu’à la graduation qui correspond au nombre de livres.', 'Move the point above the right day up to the matching number.', 'ارفع النقطة فوق اليوم المناسب حتى التدريجة المناسبة.', 'Sube el punto sobre el día correcto hasta el número.') },
       { type: 'choice', options, answer: options.indexOf(line), prompt: t('Pour montrer comment la température évolue heure par heure dans la journée, on choisit plutôt…', 'To show how the temperature changes hour by hour, it is best to use…', 'لإظهار تطور درجة الحرارة ساعة بساعة، نختار…', 'Para mostrar cómo cambia la temperatura hora a hora, se elige…'), hint: t('Une évolution dans le temps se lit mieux sur une courbe ; des catégories à comparer, sur des barres.', 'Change over time reads best as a line; categories to compare, as bars.', 'التطور عبر الزمن يُقرأ أفضل بمنحنى؛ ومقارنة الفئات بالأعمدة.', 'Una evolución en el tiempo se lee mejor en una curva.') },
     ],
   };

@@ -464,7 +464,7 @@ describe('6e', () => {
       const build = getSkill('data-build')!.build(seed).steps[0]!;
       if (build.type !== 'grid') throw new Error('grille');
       expect(build.scene.rects).toHaveLength(4);
-      expect(build.scene.rects!.some(r => Math.abs(r.x + 0.3 - build.answer.x) < 1e-9)).toBe(false);
+      expect(build.scene.rects!.some(r => Math.abs(r.x + 0.6 - build.answer.x) < 1e-9)).toBe(false);
       const order = getSkill('rel-compare')!.build(seed).steps.find(s => s.type === 'chips')!;
       if (order.type !== 'chips') throw new Error();
       const values = order.groups[0]!.map(v => Number(v.replace('−', '-').replace(',', '.')));

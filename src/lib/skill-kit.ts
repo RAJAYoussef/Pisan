@@ -61,7 +61,7 @@ export type Step =
   | ({ type: 'number'; prompt: L; answer: number; tolerance: number; hint: L; unit?: string } & Shown)
   | ({ type: 'sentence'; prompt: L; parts: (L | Blank)[]; hint: L } & Shown)
   /** Placer le point `label` sur un nœud du quadrillage (au doigt ou aux flèches du clavier). */
-  | { type: 'grid'; prompt: L; scene: Scene & { grid: Grid }; label: string; start: P; answer: P; hint: L }
+  | { type: 'grid'; prompt: L; scene: Scene & { grid: Grid }; label: string; start: P; answer: P; hint: L; /** Diagrammes : n'afficher que la hauteur atteinte. */ heightOnly?: boolean }
   | { type: 'widget'; prompt: L; hint: L; widget: Widget };
 export type Widget =
   | { kind: 'fraction-bars'; left: { n: number; d: number }; right: { n: number; d: number } }

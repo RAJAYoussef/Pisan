@@ -307,7 +307,7 @@ function StepView({ lang, step, solved, onAnswer, onFractionInteraction }: { lan
       const at = cursor ?? step.start;
       return <>
         <GeoScene lang={lang} scene={step.scene} locked={solved} cursor={{ label: step.label, at, onMove: setCursor }} />
-        <p className="mt-1 text-center text-xs text-muted-foreground" dir="ltr">{step.label} ({minusSign(fmt(at.x))} ; {minusSign(fmt(at.y))}) · {say(lang, 'touche le quadrillage ou utilise les flèches', 'tap the grid or use the arrow keys', 'المس الشبكة أو استعمل الأسهم', 'toca la cuadrícula o usa las flechas')}</p>
+        <p className="mt-1 text-center text-xs text-muted-foreground" dir="ltr">{step.heightOnly ? `${say(lang, 'hauteur', 'height', 'الارتفاع', 'altura')} : ${minusSign(fmt(at.y))}` : <>{step.label} ({minusSign(fmt(at.x))} ; {minusSign(fmt(at.y))})</>} · {say(lang, 'touche le quadrillage ou utilise les flèches', 'tap the grid or use the arrow keys', 'المس الشبكة أو استعمل الأسهم', 'toca la cuadrícula o usa las flechas')}</p>
         {!solved && <Button className="mt-4 w-full" onClick={() => onAnswer({ type: 'grid', x: at.x, y: at.y })}>{checkLabel(lang)}<ArrowRight /></Button>}
         {solved && <Solved lang={lang} />}
       </>;
