@@ -7,6 +7,7 @@ describe('Fraction transfer challenge', () => {
       const task = buildFractionTransferTask('fraction-scale-one-term', seed);
       expect(task.options).toHaveLength(3);
       expect(task.options.some(option => option.value === task.correctValue)).toBe(true);
+      expect(task.options.findIndex(option => option.value === task.correctValue)).toBe(seed);
       expect(evaluateFractionTransfer(task, task.correctValue)).toBe('transfer-success');
       expect(evaluateFractionTransfer(task, task.errorValues[0]!)).toBe('error-reproduced');
       expect(evaluateFractionTransfer(task, '0/1')).toBe('other-error');
