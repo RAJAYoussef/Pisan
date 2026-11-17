@@ -8,6 +8,7 @@ import { seeded } from './exercises';
 import { FIGURE_NOTIONS, inscribedProblem, thalesProblem, type FigureKind } from './figures';
 import { fmt, pick, t, type Activity, type Blank, type P, type Rng, type Scene, type Segment, type Skill, type Step } from './skill-kit';
 import { NUMBER_SKILLS } from './skills-numbers';
+import { LYCEE_SKILLS } from './skills-lycee';
 import type { L } from './curriculum';
 
 export * from './skill-kit';
@@ -529,7 +530,7 @@ const GEOMETRY_SKILLS: Skill[] = [
   { id: 'inscribed-same-arc', review: 2, chapter: 'inscribed', build: inscribedSameArc, title: t('Même arc, demi-cercle', 'Same arc, semicircle', 'نفس القوس، نصف الدائرة', 'Mismo arco, semicírculo'), desc: t('Angles égaux ; angle droit dans un demi-cercle.', 'Equal angles; right angle in a semicircle.', 'زوايا متساوية؛ زاوية قائمة في نصف دائرة.', 'Ángulos iguales; ángulo recto en un semicírculo.') },
 ];
 
-export const SKILLS: Skill[] = [...GEOMETRY_SKILLS, ...NUMBER_SKILLS];
+export const SKILLS: Skill[] = [...GEOMETRY_SKILLS, ...NUMBER_SKILLS, ...LYCEE_SKILLS];
 export const skillsFor = (chapter: FigureKind) => SKILLS.filter(s => s.chapter === chapter);
 export const getSkill = (id: string) => SKILLS.find(s => s.id === id) ?? null;
 export const skillNotion = (skill: Skill): NotionId => FIGURE_NOTIONS[skill.chapter][0]!;

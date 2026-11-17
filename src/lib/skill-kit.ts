@@ -39,6 +39,8 @@ export type Scene = {
   hidden?: string[];
   caption?: L;
   grid?: Grid;
+  /** Courbes tracées point par point (repère du quadrillage). */
+  curves?: P[][];
 };
 
 // ───────────── Étapes ─────────────
@@ -62,7 +64,9 @@ export type Widget =
   /** Régler a et b pour que la droite y = ax + b passe par A et B. */
   | { kind: 'line'; a: number; b: number; A: P; B: P }
   /** Égaliser des colonnes de cubes : la hauteur commune est la moyenne. */
-  | { kind: 'level'; values: number[] };
+  | { kind: 'level'; values: number[] }
+  /** Point mobile sur la parabole y = a x² + b x + c : la tangente doit devenir horizontale en x = target. */
+  | { kind: 'tangent'; a: number; b: number; c: number; target: number };
 export type Activity = { title: L; steps: Step[]; summary: string };
 /** `review` : étape (indice, négatif depuis la fin) reprise dans les mini-contrôles ; elle doit se suffire à elle-même. */
 export type Skill = { id: string; chapter: FigureKind; title: L; desc: L; build: (seed: number) => Activity; review: number };

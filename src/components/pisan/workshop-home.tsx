@@ -9,7 +9,7 @@ import { skillsFor, skillStatus, type Skill, type SkillStatus } from '@/lib/skil
 import { CHAPTER_NAMES } from './skills';
 
 /** Couleur de chaque chapitre (mêmes variables que les modules de l'accueil). */
-export const KIND_TONE: Record<FigureKind, string> = { pythagoras: 'module-teal', thales: 'module-coral', trigo: 'module-sky', inscribed: 'module-sun', vectors: 'module-coral', affine: 'module-teal', stats: 'module-sky' };
+export const KIND_TONE: Record<FigureKind, string> = { pythagoras: 'module-teal', thales: 'module-coral', trigo: 'module-sky', inscribed: 'module-sun', vectors: 'module-coral', affine: 'module-teal', stats: 'module-sky', seq: 'module-sun', deriv: 'module-coral', proba: 'module-teal' };
 
 /** Petit dessin propre à chaque chapitre. */
 export function ChapterGlyph({ kind }: { kind: FigureKind }) {
@@ -21,6 +21,9 @@ export function ChapterGlyph({ kind }: { kind: FigureKind }) {
     vectors: <><path d="M6 32 L30 10" /><path d="M22 10 L30 10 L30 18" /><path d="M8 20 L20 20" className="glyph-accent" /><path d="M16 16 L20 20 L16 24" className="glyph-accent" /></>,
     affine: <><path d="M6 34 V6 M4 30 H36" className="glyph-thin" /><path d="M6 32 L34 10" className="glyph-accent" /></>,
     stats: <><path d="M6 34 H34" className="glyph-thin" /><rect x="8" y="20" width="5" height="14" /><rect x="17" y="10" width="5" height="24" className="glyph-fill" /><rect x="26" y="16" width="5" height="18" /></>,
+    seq: <><path d="M6 34 V6 M4 32 H36" className="glyph-thin" /><circle cx="10" cy="28" r="2" className="glyph-fill" /><circle cx="17" cy="20" r="2" className="glyph-fill" /><circle cx="24" cy="15" r="2" className="glyph-fill" /><circle cx="31" cy="12" r="2" className="glyph-fill" /><path d="M6 10 H36" className="glyph-thin" strokeDasharray="2 3" /></>,
+    deriv: <><path d="M6 34 V6 M4 32 H36" className="glyph-thin" /><path d="M8 10 Q20 44 33 10" /><path d="M11 26 L29 26" className="glyph-accent" /></>,
+    proba: <><circle cx="8" cy="20" r="2.5" className="glyph-fill" /><path d="M10 19 L28 9 M10 21 L28 31" /><path d="M30 9 L35 6 M30 9 L35 12 M30 31 L35 28 M30 31 L35 34" className="glyph-thin" /></>,
   };
   return <svg viewBox="0 0 40 40" className="chapter-glyph" aria-hidden>{g[kind]}</svg>;
 }

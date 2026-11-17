@@ -15,14 +15,14 @@ const named = (text: string) => text.replace(VEC_RE, 'vecteur $1');
 const filled = (l: L) => LANGS.every(k => l[k].trim().length > 0);
 /** La réponse qu'un élève taperait : arrondie comme demandé par l'énoncé. */
 const typed = (step: Extract<Step, { type: 'number' }>) => {
-  const digits = step.tolerance >= 0.05 ? 1 : step.tolerance > 1e-5 ? 2 : 6;
+  const digits = step.tolerance >= 0.05 ? 1 : step.tolerance >= 0.005 ? 2 : step.tolerance >= 0.0005 ? 3 : 6;
   return String(Math.round(step.answer * 10 ** digits) / 10 ** digits).replace('.', ',');
 };
 const chipsSolution = (step: Extract<Step, { type: 'chips' }>) => step.ordered ? step.groups[0]! : step.groups.flatMap((g, i) => [...(i ? ['='] : []), ...g.flatMap((tok, j) => j ? ['+', tok] : [tok])]);
 
 describe('Parcours de compétences : contenu', () => {
-  it('covers the seven chapters with the agreed skills', () => {
-    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4]);
+  it('covers the ten chapters with the agreed skills', () => {
+    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4]);
     expect(new Set(SKILLS.map(s => s.id)).size).toBe(SKILLS.length);
     for (const s of SKILLS) { expect(s.id).toMatch(/^[a-z]+(-[a-z]+){1,2}$/); expect(filled(s.title) && filled(s.desc)).toBe(true); }
   });
@@ -208,6 +208,7 @@ function solveOnScreen(activity: Activity) {
       }
       case 'widget':
         if (step.widget.kind === 'line') { fireEvent.change(screen.getByLabelText(/^a = /), { target: { value: String(step.widget.a) } }); fireEvent.change(screen.getByLabelText(/^b = /), { target: { value: String(step.widget.b) } }); }
+        if (step.widget.kind === 'tangent') fireEvent.change(screen.getByLabelText(/^x = /), { target: { value: String(step.widget.target) } });
         if (step.widget.kind === 'level') {
           const v = step.widget.values, mean = v.reduce((t, x) => t + x, 0) / v.length;
           v.forEach((x, k) => { for (let n = 0; n < x - mean; n++) fireEvent.click(screen.getByRole('button', { name: `Prendre un cube de la colonne ${k + 1}` })); });
@@ -327,5 +328,49 @@ describe('Écriture des vecteurs', () => {
   });
   it('no vector text is left with the old combining arrow', () => {
     for (const skill of SKILLS) expect(JSON.stringify(skill.build(1)).includes('\u20d7') || JSON.stringify(skill.build(1)).includes('⃗')).toBe(false);
+  });
+});
+
+describe('Terminale', () => {
+  it('each Terminale programme offers sequences, derivatives and probability', async () => {
+    const { figuresFor } = await import('@/lib/figures');
+    const { programmesFor, programmeNotions } = await import('@/lib/programmes');
+    for (const [country, grade] of [['fr', 6], ['ma', 5], ['ci', 6], ['sn', 6], ['us', 6]] as const) for (const p of programmesFor(country, grade)) {
+      const kinds = figuresFor(p, programmeNotions(p).map(n => n.id), grade);
+      for (const k of ['seq', 'deriv', 'proba'] as const) expect(kinds, `${country} ${p.track?.id ?? ''}`).toContain(k);
+      expect(kinds.filter(k => ['pythagoras', 'thales', 'vectors', 'stats'].includes(k))).toEqual([]);
+    }
+  });
+  it('functions are written cleanly (no « 1x », no « + 0 »)', async () => {
+    const { quadText } = await import('@/lib/skills-lycee');
+    expect(quadText(1, -2, 0)).toBe('x² − 2x');
+    expect(quadText(0.5, 1, -3)).toBe('0,5x² + x − 3');
+    expect(quadText(-1, 0, 4)).toBe('−x² + 4');
+    for (const skill of SKILLS.filter(s => ['seq', 'deriv', 'proba'].includes(s.chapter))) for (let seed = 0; seed < 30; seed++) expect(JSON.stringify(skill.build(seed))).not.toMatch(/[^0-9,]1x|x \+ 0\b|− −|\+ −/);
+  });
+  it('the tangent widget is solved only where the tangent is horizontal', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(5);
+    const skill = getSkill('deriv-slope')!;
+    const step = skill.build(5).steps[0]!;
+    if (step.type !== 'widget' || step.widget.kind !== 'tangent') throw new Error();
+    render(<SkillActivity lang="fr" skill={skill} onSave={async () => {}} onBack={() => {}} />);
+    fireEvent.change(screen.getByLabelText(/^x = /), { target: { value: String(step.widget.target + 1) } });
+    expect(screen.getByText(/pente de la tangente : [^0]/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
+    expect(screen.queryByText('C’est juste !')).toBeNull();
+    fireEvent.change(screen.getByLabelText(/^x = /), { target: { value: String(step.widget.target) } });
+    expect(screen.getByText('pente de la tangente : 0')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
+    expect(screen.getByText('C’est juste !')).toBeTruthy();
+    vi.restoreAllMocks();
+  });
+});
+
+describe('Signe moins', () => {
+  it('a hyphen before a number becomes a real minus sign, words are untouched', async () => {
+    const { minusSign } = await import('@/components/pisan/math-text');
+    expect(minusSign('f(-3) = -11 ; x = -2,5')).toBe('f(−3) = −11 ; x = −2,5');
+    expect(minusSign('(-0,5)ⁿ')).toBe('(−0,5)ⁿ');
+    expect(minusSign('Au-delà de 3-4 points')).toBe('Au-delà de 3-4 points');
   });
 });

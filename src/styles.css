@@ -704,3 +704,15 @@ nav + .sidebar-label { margin-top: 28px; }
 .journey-group[open] > .journey-group-title::after { transform: rotate(90deg); }
 .journey-mini { display: block; flex-shrink: 0; width: 44px; height: 6px; overflow: hidden; border-radius: 3px; background: var(--muted); }
 .journey-mini > span { display: block; height: 100%; background: var(--primary); border-radius: 3px; }
+.quiz-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.quiz-quit { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 999px; color: var(--muted-foreground); cursor: pointer; }
+.quiz-quit:hover { background: var(--muted); color: var(--foreground); }
+.quiz-quit:focus-visible { outline: 3px solid var(--ring); }
+.quiz-track { height: 10px; overflow: hidden; border-radius: 999px; background: var(--muted); }
+.quiz-track > span { display: block; height: 100%; border-radius: 999px; background: var(--primary); transition: width .3s; }
+.exam-icon { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 14px; background: var(--sky-soft); color: var(--sky); }
+.exam-choice { display: flex; width: 100%; align-items: center; gap: 12px; padding: 12px 14px; border: 2px solid var(--border); border-radius: 14px; background: var(--card); cursor: pointer; }
+.exam-choice[aria-checked="true"] { border-color: var(--primary); background: var(--primary-soft); }
+.exam-choice:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }
+.skill-curve { fill: none; stroke: var(--sky); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.skill-label-small { font-size: 14px; }

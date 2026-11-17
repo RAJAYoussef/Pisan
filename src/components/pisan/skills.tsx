@@ -7,9 +7,11 @@ import { localizeMath, type L } from '@/lib/curriculum';
 import type { Lang } from '@/lib/i18n';
 import { say, type Attempt } from '@/lib/pisan';
 import { clipLine, fx } from '@/lib/skills-numbers';
-import { chipsOk, fmt, numberOk, reviewStep, spoken, VEC_RE, VECTOR_WORD, sentenceOk, skillNotion, skillsFor, skillStatus, type Blank, type SkillStatus, type Table, type P, type Scene, type Skill, type Step } from '@/lib/skills';
+import { curvePoints } from '@/lib/skills-lycee';
+import { chipsOk, fmt, numberOk, reviewStep, spoken,  sentenceOk, skillNotion, skillsFor, skillStatus, type Blank, type SkillStatus, type Table, type P, type Scene, type Skill, type Step } from '@/lib/skills';
 import { InscribedFigure, ThalesFigure, inscribedRange } from './figures';
 import { Speaker, Tutor } from './shared';
+import { minusSign, Rich } from './math-text';
 
 type Props = { lang: Lang; skill: Skill; onSave: (a: Attempt) => Promise<void>; onBack: () => void };
 
@@ -113,12 +115,7 @@ export function ReviewActivity({ lang, skills, onSave, onBack }: { lang: Lang; s
   </section>;
 }
 
-/** Texte avec vecteurs ⟦AB⟧ dessinés avec leur flèche ; lu « vecteur AB » par les lecteurs d'écran. */
-export function Rich({ lang, text }: { lang: Lang; text: string }) {
-  const parts = text.split(VEC_RE);
-  if (parts.length === 1) return <>{text}</>;
-  return <>{parts.map((part, i) => i % 2 ? <span key={i} className="vec"><span className="sr-only">{VECTOR_WORD[lang]} </span>{part}</span> : part)}</>;
-}
+export { Rich } from './math-text';
 
 const checkLabel = (lang: Lang) => say(lang, 'Vérifier', 'Check', 'تحقق', 'Comprobar');
 const Solved = ({ lang }: { lang: Lang }) => <p role="status" className="mt-4 flex items-center justify-center gap-2 font-bold text-primary-deep"><Check className="h-5 w-5" />{say(lang, 'C’est juste !', 'That’s right!', 'صحيح!', '¡Correcto!')}</p>;
@@ -186,7 +183,7 @@ function StepView({ lang, step, solved, onAnswer }: { lang: Lang; step: Step; so
       const at = cursor ?? step.start;
       return <>
         <GeoScene lang={lang} scene={step.scene} locked={solved} cursor={{ label: step.label, at, onMove: setCursor }} />
-        <p className="mt-1 text-center text-xs text-muted-foreground" dir="ltr">{step.label} ({fmt(at.x)} ; {fmt(at.y)}) · {say(lang, 'touche le quadrillage ou utilise les flèches', 'tap the grid or use the arrow keys', 'المس الشبكة أو استعمل الأسهم', 'toca la cuadrícula o usa las flechas')}</p>
+        <p className="mt-1 text-center text-xs text-muted-foreground" dir="ltr">{step.label} ({minusSign(fmt(at.x))} ; {minusSign(fmt(at.y))}) · {say(lang, 'touche le quadrillage ou utilise les flèches', 'tap the grid or use the arrow keys', 'المس الشبكة أو استعمل الأسهم', 'toca la cuadrícula o usa las flechas')}</p>
         {!solved && <Button className="mt-4 w-full" onClick={() => onAnswer(at.x === step.answer.x && at.y === step.answer.y)}>{checkLabel(lang)}<ArrowRight /></Button>}
         {solved && <Solved lang={lang} />}
       </>;
@@ -194,6 +191,7 @@ function StepView({ lang, step, solved, onAnswer }: { lang: Lang; step: Step; so
     case 'widget':
       return <>
         {step.widget.kind === 'line' && <LineWidget lang={lang} target={step.widget} locked={solved} onState={setWidgetOk} />}
+        {step.widget.kind === 'tangent' && <TangentWidget lang={lang} target={step.widget} locked={solved} onState={setWidgetOk} />}
         {step.widget.kind === 'level' && <LevelWidget lang={lang} values={step.widget.values} locked={solved} onState={setWidgetOk} />}
         {step.widget.kind === 'squares' && <SquaresWidget lang={lang} ab={step.widget.ab} ac={step.widget.ac} locked={solved} onState={setWidgetOk} />}
         {step.widget.kind === 'thales' && <ThalesWidget lang={lang} problem={step.widget.problem} locked={solved} onState={setWidgetOk} />}
@@ -206,7 +204,7 @@ function StepView({ lang, step, solved, onAnswer }: { lang: Lang; step: Step; so
 
 function Shown({ lang, scene, table }: { lang: Lang; scene?: Scene | undefined; table?: Table | undefined }) {
   return <>
-    {table && <div className="data-table-wrap" dir="ltr"><table className="data-table"><tbody>{table.head.map((h, i) => <tr key={i}><th scope="row">{h[lang]}</th>{(table.rows[i] ?? []).map((c, j) => <td key={j}>{localizeMath(c, lang)}</td>)}</tr>)}</tbody></table></div>}
+    {table && <div className="data-table-wrap" dir="ltr"><table className="data-table"><tbody>{table.head.map((h, i) => <tr key={i}><th scope="row">{h[lang]}</th>{(table.rows[i] ?? []).map((c, j) => <td key={j}><Rich lang={lang} text={localizeMath(c, lang)} /></td>)}</tr>)}</tbody></table></div>}
     {scene && <GeoScene lang={lang} scene={scene} />}
   </>;
 }
@@ -228,6 +226,23 @@ export function LineWidget({ lang, target, locked, onState }: { lang: Lang; targ
     <label htmlFor="line-b" className="field-label mt-2">b = {fmt(b)}</label>
     <input id="line-b" type="range" min={-5} max={5} step={1} value={b} disabled={locked} className="w-full accent-[var(--primary)]" onChange={e => update(a, Number(e.target.value))} />
     <div className="mt-2 flex justify-center gap-2 text-sm" dir="ltr"><span className="pill">A {on(target.A) ? '✓' : '✗'}</span><span className="pill">B {on(target.B) ? '✓' : '✗'}</span></div>
+  </div>;
+}
+
+/** Un point glisse sur la parabole ; la tangente suit, avec sa pente. Réussi quand elle est horizontale en x = target. */
+export function TangentWidget({ lang, target, locked, onState }: { lang: Lang; target: { a: number; b: number; c: number; target: number }; locked: boolean; onState: (ok: boolean) => void }) {
+  const grid = { minX: -4, maxX: 5, minY: -3, maxY: 6, axes: true };
+  const start = target.target + (target.target + 2 <= grid.maxX - 1 ? 2 : -2);
+  const [x0, setX0] = useState(start);
+  const f = (x: number) => target.a * x * x + target.b * x + target.c;
+  const slope = 2 * target.a * x0 + target.b;
+  const tan = (x: number) => f(x0) + slope * (x - x0);
+  const scene: Scene = { grid, curves: [curvePoints(f, grid)], points: { M: { x: x0, y: f(x0) }, T1: { x: x0 - 1.8, y: tan(x0 - 1.8) }, T2: { x: x0 + 1.8, y: tan(x0 + 1.8) } }, hidden: ['T1', 'T2'], segments: [{ id: 't', a: 'T1', b: 'T2', style: 'bold' }] };
+  return <div>
+    <GeoScene lang={lang} scene={scene} />
+    <label htmlFor="tangent-x" className="field-label mt-2">x = {fmt(x0)}</label>
+    <input id="tangent-x" type="range" min={grid.minX + 1} max={grid.maxX - 1} step={0.5} value={x0} disabled={locked} className="w-full accent-[var(--primary)]" onChange={e => { const x = Number(e.target.value); setX0(x); onState(x === target.target); }} />
+    <p className="mt-2 text-center font-display text-lg" dir="ltr">{say(lang, 'pente de la tangente', 'tangent slope', 'ميل المماس', 'pendiente de la tangente')} : {fmt(slope)}</p>
   </div>;
 }
 
@@ -382,8 +397,8 @@ export function GeoScene({ lang, scene, tapped, answer, locked, onTap, cursor }:
     {Array.from({ length: g.maxX - g.minX + 1 }, (_, i) => g.minX + i).map(x => { const a = v({ x, y: g.minY }), b = v({ x, y: g.maxY }); return <line key={`x${x}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} className={g.axes && x === 0 ? 'skill-axis' : 'figure-grid'} />; })}
     {Array.from({ length: g.maxY - g.minY + 1 }, (_, i) => g.minY + i).map(y => { const a = v({ x: g.minX, y }), b = v({ x: g.maxX, y }); return <line key={`y${y}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} className={g.axes && y === 0 ? 'skill-axis' : 'figure-grid'} />; })}
     {g.axes && <>
-      {Array.from({ length: g.maxX - g.minX + 1 }, (_, i) => g.minX + i).filter(x => x !== 0).map(x => { const q = v({ x, y: 0 }); return <text key={`tx${x}`} x={q.x} y={q.y + 13} className="skill-tick">{x}</text>; })}
-      {Array.from({ length: g.maxY - g.minY + 1 }, (_, i) => g.minY + i).filter(y => y !== 0).map(y => { const q = v({ x: 0, y }); return <text key={`ty${y}`} x={q.x - 9} y={q.y + 4} className="skill-tick">{y}</text>; })}
+      {Array.from({ length: g.maxX - g.minX + 1 }, (_, i) => g.minX + i).filter(x => x !== 0).map(x => { const q = v({ x, y: 0 }); return <text key={`tx${x}`} x={q.x} y={q.y + 13} className="skill-tick">{minusSign(String(x))}</text>; })}
+      {Array.from({ length: g.maxY - g.minY + 1 }, (_, i) => g.minY + i).filter(y => y !== 0).map(y => { const q = v({ x: 0, y }); return <text key={`ty${y}`} x={q.x - 9} y={q.y + 4} className="skill-tick">{minusSign(String(y))}</text>; })}
       {(() => { const q = v({ x: 0, y: 0 }); return <text x={q.x - 9} y={q.y + 13} className="skill-tick">0</text>; })()}
     </>}
   </g>;
@@ -404,6 +419,7 @@ export function GeoScene({ lang, scene, tapped, answer, locked, onTap, cursor }:
   return <div>
     <svg ref={svgRef} viewBox={`0 0 ${width} ${height}`} className={`figure-svg skill-scene${cursor && !locked ? ' skill-pickable' : ''}`} direction="ltr" role="group" aria-label={say(lang, 'Figure', 'Figure', 'الشكل', 'Figura')} onClick={pickNode}>
       {gridLines}
+      {scene.curves?.map((c, i) => <polyline key={`c${i}`} points={c.map(p => { const q = v(p); return `${q.x},${q.y}`; }).join(' ')} className="skill-curve" />)}
       {scene.circle && <circle cx={center.x} cy={center.y} r={r * s} className="figure-circle" />}
       {scene.arcs?.map(arc => <g key={arc.id} {...(arc.tappable && onTap && !locked ? { role: 'button', tabIndex: 0, 'aria-label': say(lang, `Arc ${arc.text}`, `Arc ${arc.text}`, `القوس ${arc.text}`, `Arco ${arc.text}`), onClick: () => onTap(arc.id), onKeyDown: key(arc.id), className: 'skill-tappable' } : {})}>
         <path d={arcPath(arc.start, arc.end, r)} className={`skill-arc${state(arc.id)}`} />
@@ -418,7 +434,7 @@ export function GeoScene({ lang, scene, tapped, answer, locked, onTap, cursor }:
           <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} className={`skill-seg skill-seg-${seg.style ?? 'normal'}${state(seg.id)}`} />
           {seg.style === 'vector' && (() => { const u = unit(a, b), k = 12; return <polygon points={`${b.x},${b.y} ${b.x - u.x * k - u.y * k * 0.5},${b.y - u.y * k + u.x * k * 0.5} ${b.x - u.x * k + u.y * k * 0.5},${b.y - u.y * k - u.x * k * 0.5}`} className="skill-arrowhead" />; })()}
           {tap && <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} className="skill-hit" />}
-          {seg.text && <text x={m.x} y={m.y + 5} textAnchor="middle" className="skill-length">{localizeMath(seg.text, lang)}</text>}
+          {seg.text && <text x={m.x} y={m.y + 5} textAnchor="middle" className="skill-length">{minusSign(localizeMath(seg.text, lang))}</text>}
         </g>;
       })}
       {scene.rightAngles?.map(([a, vtx, b], i) => { const o = P_(vtx), u = unit(o, P_(a)), w = unit(o, P_(b)), k = 12; return <polyline key={`r${i}`} points={`${o.x + u.x * k},${o.y + u.y * k} ${o.x + (u.x + w.x) * k},${o.y + (u.y + w.y) * k} ${o.x + w.x * k},${o.y + w.y * k}`} className="figure-right-angle" />; })}
@@ -428,7 +444,7 @@ export function GeoScene({ lang, scene, tapped, answer, locked, onTap, cursor }:
         return <path key={`m${i}`} d={`M ${o.x + u.x * k} ${o.y + u.y * k} A ${k} ${k} 0 0 ${sweep} ${o.x + w.x * k} ${o.y + w.y * k}`} className="figure-angle-arc" />;
       })}
       {equerre}
-      {names.filter(n => !scene.hidden?.includes(n)).map(n => { const q = P_(n); const l = n === scene.circle?.c ? { x: q.x + 8, y: q.y - 8 } : away(q, 16); return <g key={n}><circle cx={q.x} cy={q.y} r={3} className="figure-point" /><text x={l.x - 5} y={l.y + 5} className="figure-label">{n}</text></g>; })}
+      {names.filter(n => !scene.hidden?.includes(n)).map(n => { const q = P_(n); const l = n === scene.circle?.c ? { x: q.x + 8, y: q.y - 8 } : g ? { x: q.x + 11, y: q.y - 11 } : away(q, 16); return <g key={n}><circle cx={q.x} cy={q.y} r={g ? 4.5 : 3} className="figure-point" /><text x={l.x - 5} y={l.y + 5} className={g ? 'figure-label skill-label-small' : 'figure-label'}>{n}</text></g>; })}
       {scene.equerre && scene.polygon && !locked && scene.polygon.map(n => { const q = P_(n); return <circle key={`e${n}`} cx={q.x} cy={q.y} r={18} role="button" tabIndex={0} aria-pressed={square === n} aria-label={say(lang, `Poser l’équerre en ${n}`, `Put the set square at ${n}`, `ضع الكوس في ${n}`, `Poner la escuadra en ${n}`)} className={`skill-vertex${square === n ? ' skill-vertex-on' : ''}`} onClick={() => setSquare(square === n ? null : n)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSquare(square === n ? null : n); } }} />; })}
       {cursor && (() => { const q = v(cursor.at); return <g role="slider" tabIndex={locked ? -1 : 0} aria-label={cursor.label} aria-valuetext={`(${cursor.at.x} ; ${cursor.at.y})`} aria-valuenow={cursor.at.x} onKeyDown={cursorKey} className={locked ? '' : 'figure-handle'}>
         {!locked && <circle cx={q.x} cy={q.y} r={16} className="figure-handle-halo" />}
@@ -451,6 +467,9 @@ export const CHAPTER_NAMES: Record<FigureKind, L> = {
   vectors: { fr: 'Vecteurs', en: 'Vectors', ar: 'المتجهات', es: 'Vectores' },
   affine: { fr: 'Fonctions affines', en: 'Affine functions', ar: 'الدوال التآلفية', es: 'Funciones afines' },
   stats: { fr: 'Statistiques', en: 'Statistics', ar: 'الإحصاء', es: 'Estadística' },
+  seq: { fr: 'Suites', en: 'Sequences', ar: 'المتتاليات', es: 'Sucesiones' },
+  deriv: { fr: 'Dérivation', en: 'Derivatives', ar: 'الاشتقاق', es: 'Derivadas' },
+  proba: { fr: 'Probabilités', en: 'Probability', ar: 'الاحتمالات', es: 'Probabilidad' },
 };
 const STATUS: Record<SkillStatus, (lang: Lang) => string> = {
   mastered: lang => say(lang, 'Acquis', 'Mastered', 'مكتسبة', 'Adquirida'),
