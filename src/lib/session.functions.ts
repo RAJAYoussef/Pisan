@@ -6,6 +6,7 @@ import { isTimeZone, localDay, resolveTimeZone } from './plan';
 import { checkChallenge, challengeNotions, dailyChallenge } from './challenge';
 import type { Attempt, StreakResult } from './pisan';
 import { getSkill, skillNotion } from './skills';
+import { FRACTION_JOURNAL_EVENT_TYPES } from './fraction-journal';
 
 const credential = z.string().regex(/^[a-f0-9]{64}$/);
 const PARTNER_CODE_FORMAT = /^[A-Za-z0-9-]{4,40}$/;
@@ -115,4 +116,63 @@ export const todayChallenge = createServerFn({ method: 'POST' })
     const challenge = dailyChallenge(day, challengeNotions(row.profile.country, row.profile.grade, row.profile.track));
     if (!challenge) return null;
     return { day, notion: challenge.notion, index: challenge.index, done: row.challenge_day === day, correct: row.challenge_day === day ? row.challenge_correct ?? null : null };
+  });
+
+
+const fractionJournalEventSchema = z.object({
+  eventId: z.string().uuid(),
+  activityId: z.string().min(1).max(100),
+  skillId: z.string().min(1).max(80).refine(id => getSkill(id) !== null, 'Unknown skill'),
+  type: z.enum(FRACTION_JOURNAL_EVENT_TYPES),
+  payload: z.record(z.string(), z.unknown()).refine(value => JSON.stringify(value).length <= 12000, 'Payload too large'),
+  clientOccurredAt: z.string().datetime().optional(),
+}).strict();
+
+/** Append-only journal. Browser evidence is stored as unverified client input. */
+export const appendFractionJournal = createServerFn({ method: 'POST' })
+  .inputValidator(z.object({ token: credential, events: z.array(fractionJournalEventSchema).min(1).max(100) }).strict())
+  .handler(async ({ data }) => {
+    const hash = await hashToken(data.token);
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    const session = await supabaseAdmin.from('learning_sessions').select('token_hash').eq('token_hash', hash).maybeSingle();
+    if (session.error || !session.data) throw new Error('Session introuvable.');
+    const rows = data.events.map(event => ({
+      token_hash: hash,
+      event_id: event.eventId,
+      activity_id: event.activityId,
+      skill_id: event.skillId,
+      event_type: event.type,
+      evidence_status: 'unverified_client_input',
+      payload: event.payload,
+      client_occurred_at: event.clientOccurredAt ?? null,
+    }));
+    const journal = supabaseAdmin.from('fraction_learning_journal' as never) as unknown as {
+      upsert: (values: Record<string, unknown>[], options: { onConflict: string; ignoreDuplicates: boolean }) => Promise<{ error: { message: string } | null }>;
+    };
+    const saved = await journal.upsert(rows, { onConflict: 'token_hash,event_id', ignoreDuplicates: true });
+    if (saved.error) throw new Error('Le journal pédagogique n’a pas pu être sauvegardé.');
+    return { accepted: data.events.length };
+  });
+
+/** Read the current learner's own timeline; never accepts a learner identifier. */
+export const getFractionJournal = createServerFn({ method: 'POST' })
+  .inputValidator(z.object({ token: credential, activityId: z.string().max(100).optional(), limit: z.number().int().min(1).max(200).default(100) }).strict())
+  .handler(async ({ data }) => {
+    const hash = await hashToken(data.token);
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    const session = await supabaseAdmin.from('learning_sessions').select('token_hash').eq('token_hash', hash).maybeSingle();
+    if (session.error || !session.data) throw new Error('Session introuvable.');
+    let query = (supabaseAdmin.from('fraction_learning_journal' as never) as unknown as {
+      select: (columns: string) => {
+        eq: (column: string, value: string) => {
+          order: (column: string, options: { ascending: boolean }) => {
+            limit: (count: number) => Promise<{ data: Record<string, unknown>[] | null; error: { message: string } | null }>;
+          };
+        };
+      };
+    }).select('event_id, activity_id, skill_id, event_type, evidence_status, payload, client_occurred_at, recorded_at').eq('token_hash', hash);
+    if (data.activityId) query = query.eq('activity_id', data.activityId) as typeof query;
+    const result = await query.order('recorded_at', { ascending: true }).limit(data.limit);
+    if (result.error) throw new Error('Le journal pédagogique est indisponible.');
+    return result.data ?? [];
   });
