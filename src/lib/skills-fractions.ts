@@ -215,7 +215,7 @@ function visualAddition(seed: number): Activity {
       hint: t('Les dénominateurs sont identiques : les parts ont la même taille. On additionne leur nombre.', 'The denominators are equal: the parts have the same size. Add their counts.', 'المقامات متساوية، أي إن الأجزاء لها الحجم نفسه. اجمع عددها.', 'Los denominadores son iguales: las partes tienen el mismo tamaño. Suma su cantidad.'),
     }, {
       type: 'choice',
-      options: [t(`${n1 + n2}/${d}`, `${n1 + n2}/${d}`, `${n1 + n2}/${d}`, `${n1 + n2}/${d}`), t(`${n1 + n2}/${d * 2}`, `${n1 + n2}/${d * 2}`, `${n1 + n2}/${d * 2}`, `${n1 + n2}/${d * 2}`), t(`${n1 + n2}/${(d + d)}`, `${n1 + n2}/${(d + d)}`, `${n1 + n2}/${(d + d)}`, `${n1 + n2}/${(d + d)}`)],
+      options: [t(`${n1 + n2}/${d}`, `${n1 + n2}/${d}`, `${n1 + n2}/${d}`, `${n1 + n2}/${d}`), t(`${n1 + n2}/${d * 2}`, `${n1 + n2}/${d * 2}`, `${n1 + n2}/${d * 2}`, `${n1 + n2}/${d * 2}`), t(`${n1}/${d}`, `${n1}/${d}`, `${n1}/${d}`, `${n1}/${d}`)],
       answer: 0,
       prompt: t('Quelle écriture traduit cette représentation ?', 'Which expression matches this representation?', 'أي كتابة توافق هذا التمثيل؟', '¿Qué expresión corresponde a esta representación?'),
       hint: t('On compte les parts de même taille sans changer le dénominateur.', 'Count equal-sized parts without changing the denominator.', 'نعد الأجزاء المتساوية دون تغيير المقام.', 'Cuenta las partes del mismo tamaño sin cambiar el denominador.'),
