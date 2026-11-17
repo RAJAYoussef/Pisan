@@ -228,6 +228,7 @@ export const PROGRAMMES: Programme[] = [
     chapters: [
       ch.decimals,
       ch.fractions,
+      ch.relative,
       c('Proportionnalité', 'Proportionality', 'التناسبية', 'Proporcionalidad', ['proportion']),
       c('Droites, segments et angles', 'Lines, segments and angles', 'المستقيمات والقطع والزوايا', 'Rectas, segmentos y ángulos', ['geometry']),
       c('Cercle', 'Circles', 'الدائرة', 'Circunferencia', ['areas']),

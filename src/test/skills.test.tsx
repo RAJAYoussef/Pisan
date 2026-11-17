@@ -426,7 +426,7 @@ describe('6e', () => {
       fr: ['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures', 'data'],
       ma: ['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures', 'relatives'],
       ci: ['stats', 'fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures', 'relatives'],
-      sn: ['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures'],
+      sn: ['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures', 'relatives'],
       us: ['stats', 'fractions', 'decimals', 'proportion', 'measures', 'relatives'],
     };
     for (const [country, kinds] of Object.entries(expected)) {
