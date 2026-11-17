@@ -1,12 +1,13 @@
 // Parcours de compétences : déroule les étapes d'une activité (src/lib/skills.ts) et dessine les figures.
-import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { ArrowRight, Check, CheckCircle2, Delete, RefreshCw } from 'lucide-react';
+import { useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
+import { ArrowRight, Check, CheckCircle2, Delete, RefreshCw, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { INSCRIBED_SPAN, type FigureKind, type InscribedProblem, type ThalesProblem } from '@/lib/figures';
 import { localizeMath, type L } from '@/lib/curriculum';
 import type { Lang } from '@/lib/i18n';
 import { say, type Attempt } from '@/lib/pisan';
-import { chipsOk, fmt, numberOk, sentenceOk, skillNotion, skillsFor, skillStatus, type Blank, type SkillStatus, type P, type Scene, type Skill, type Step } from '@/lib/skills';
+import { clipLine, fx } from '@/lib/skills-numbers';
+import { chipsOk, fmt, numberOk, reviewStep, spoken, VEC_RE, VECTOR_WORD, sentenceOk, skillNotion, skillsFor, skillStatus, type Blank, type SkillStatus, type Table, type P, type Scene, type Skill, type Step } from '@/lib/skills';
 import { InscribedFigure, ThalesFigure, inscribedRange } from './figures';
 import { Speaker, Tutor } from './shared';
 
@@ -50,16 +51,73 @@ export function SkillActivity({ lang, skill, onSave, onBack }: Props) {
     </div>
     <div className="activity-panel">
       {done
-        ? <div className="text-center"><CheckCircle2 className="mx-auto h-12 w-12 text-primary" /><p className="my-4 text-xl font-bold">{done.correct === done.total ? say(lang, 'Compétence acquise !', 'Skill mastered!', 'تم اكتساب الكفاية!', '¡Competencia adquirida!') : say(lang, `${done.correct} étapes sur ${done.total} du premier coup. Recommence pour l’acquérir.`, `${done.correct} of ${done.total} steps at the first try. Go again to master it.`, `${done.correct} من ${done.total} مراحل من المحاولة الأولى. أعد للاكتساب.`, `${done.correct} de ${done.total} pasos al primer intento. Repite para adquirirla.`)}</p><p className="mb-5 text-sm text-muted-foreground" dir="ltr">{localizeMath(activity.summary, lang)}</p><Button onClick={restart}><RefreshCw />{say(lang, 'Nouvel énoncé', 'New exercise', 'تمرين جديد', 'Nuevo enunciado')}</Button></div>
+        ? <div className="text-center"><CheckCircle2 className="mx-auto h-12 w-12 text-primary" /><p className="my-4 text-xl font-bold">{done.correct === done.total ? say(lang, 'Compétence acquise !', 'Skill mastered!', 'تم اكتساب الكفاية!', '¡Competencia adquirida!') : say(lang, `${done.correct} étapes sur ${done.total} du premier coup. Recommence pour l’acquérir.`, `${done.correct} of ${done.total} steps at the first try. Go again to master it.`, `${done.correct} من ${done.total} مراحل من المحاولة الأولى. أعد للاكتساب.`, `${done.correct} de ${done.total} pasos al primer intento. Repite para adquirirla.`)}</p><p className="mb-5 text-sm text-muted-foreground" dir="ltr"><Rich lang={lang} text={localizeMath(activity.summary, lang)} /></p><Button onClick={restart}><RefreshCw />{say(lang, 'Nouvel énoncé', 'New exercise', 'تمرين جديد', 'Nuevo enunciado')}</Button></div>
         : <>
-          <div className="mb-5 flex items-start justify-between gap-4"><p className="text-lg font-semibold leading-snug">{show(step.prompt)}</p><Speaker text={show(step.prompt)} lang={lang} /></div>
+          <div className="mb-5 flex items-start justify-between gap-4"><p className="text-lg font-semibold leading-snug"><Rich lang={lang} text={show(step.prompt)} /></p><Speaker text={spoken(show(step.prompt), lang)} lang={lang} /></div>
           <StepView key={`${seed}-${index}`} lang={lang} step={step} solved={solved} onAnswer={answer} />
           {solved && <Button className="mt-5 w-full" disabled={busy} onClick={() => void next()}>{index + 1 < total ? say(lang, 'Étape suivante', 'Next step', 'المرحلة التالية', 'Paso siguiente') : say(lang, 'Terminer', 'Finish', 'إنهاء', 'Terminar')}<ArrowRight /></Button>}
-          {hint && !solved && <div className="mt-4"><Tutor>{hint}</Tutor></div>}
+          {hint && !solved && <div className="mt-4"><Tutor><Rich lang={lang} text={hint} /></Tutor></div>}
           {saveError && <p role="alert" className="mt-3 text-destructive">{saveError}</p>}
         </>}
     </div>
   </section>;
+}
+
+/** Mini-contrôle : une étape par compétence acquise à revérifier ; chaque compétence est enregistrée à part. */
+export function ReviewActivity({ lang, skills, onSave, onBack }: { lang: Lang; skills: Skill[]; onSave: (a: Attempt) => Promise<void>; onBack: () => void }) {
+  const [seed] = useState(() => Date.now() % 100000);
+  const steps = useMemo(() => skills.map((s, i) => reviewStep(s, seed + i * 7)), [skills, seed]);
+  const [index, setIndex] = useState(0);
+  const [missed, setMissed] = useState<number[]>([]);
+  const [solved, setSolved] = useState(false);
+  const [hint, setHint] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const show = (l: L) => localizeMath(l[lang], lang);
+  const step = steps[index]!;
+  const skill = skills[index]!;
+  function answer(ok: boolean) {
+    if (ok) { setSolved(true); return; }
+    setMissed(m => m.includes(index) ? m : [...m, index]);
+    setHint(show(step.hint));
+  }
+  async function next() {
+    if (index + 1 < steps.length) { setIndex(index + 1); setSolved(false); setHint(''); return; }
+    setBusy(true); setSaveError('');
+    try {
+      for (const [i, s] of skills.entries()) await onSave({ kind: 'workshop', notion: skillNotion(s), skill: s.id, review: true, correct: missed.includes(i) ? 0 : 1, total: 1, date: new Date().toISOString(), minutes: 2 });
+      setDone(true);
+    } catch { setSaveError(say(lang, 'Résultat non sauvegardé. Réessaie.', 'Result not saved. Try again.', 'لم تُحفظ النتيجة. حاول مجددًا.', 'Resultado no guardado. Reintenta.')); }
+    finally { setBusy(false); }
+  }
+  return <section className="mx-auto max-w-4xl">
+    <Button variant="ghost" onClick={onBack} className="mb-4">← {say(lang, 'Retour', 'Back', 'رجوع', 'Volver')}</Button>
+    <div className="section-heading"><span className="eyebrow">{say(lang, 'Mini-contrôle', 'Quick check', 'مراقبة قصيرة', 'Mini control')}</span><h1>{say(lang, 'Est-ce que ça tient ?', 'Does it stick?', 'هل ما زلت تتذكر؟', '¿Lo recuerdas?')}</h1></div>
+    <div className="skill-progress" aria-hidden>{steps.map((_, i) => <span key={i} className={done || i < index ? (missed.includes(i) ? 'skill-dot skill-dot-missed' : 'skill-dot skill-dot-done') : i === index ? 'skill-dot skill-dot-active' : 'skill-dot'} />)}</div>
+    <div className="activity-panel">
+      {done
+        ? <div><CheckCircle2 className="mx-auto h-12 w-12 text-primary" /><p className="my-4 text-center text-xl font-bold">{missed.length === 0 ? say(lang, 'Tout est solide !', 'All solid!', 'كل شيء متين!', '¡Todo sólido!') : say(lang, 'Quelques compétences sont à revoir.', 'Some skills need reviewing.', 'بعض الكفايات تحتاج مراجعة.', 'Algunas competencias hay que repasarlas.')}</p>
+          <ul className="skill-list">{skills.map((s, i) => <li key={s.id} className="skill-item"><span className={`skill-status skill-status-${missed.includes(i) ? 'review' : 'mastered'}`} aria-hidden>{missed.includes(i) ? <RotateCcw className="h-3.5 w-3.5" /> : <Check className="h-4 w-4" />}</span><span className="flex-1"><span className="block text-xs text-muted-foreground">{CHAPTER_NAMES[s.chapter][lang]}</span><span className="font-semibold">{s.title[lang]}</span></span><span className={`text-xs font-bold skill-status-text-${missed.includes(i) ? 'review' : 'mastered'}`}>{missed.includes(i) ? STATUS.review(lang) : STATUS.mastered(lang)}</span></li>)}</ul>
+          {missed.length > 0 && <p className="mt-4 text-sm text-muted-foreground">{say(lang, 'Refais ces parcours à l’atelier pour les acquérir à nouveau.', 'Redo these pathways in the workshop to master them again.', 'أعد هذه المسارات في الورشة لاكتسابها من جديد.', 'Repite estos itinerarios en el taller para volver a adquirirlos.')}</p>}
+          <Button className="mt-5 w-full" onClick={onBack}>{say(lang, 'Retour à l’atelier', 'Back to the workshop', 'العودة إلى الورشة', 'Volver al taller')}</Button></div>
+        : <>
+          <p className="mb-2 text-xs font-bold text-primary-deep">{CHAPTER_NAMES[skill.chapter][lang]} · {skill.title[lang]}</p>
+          <div className="mb-5 flex items-start justify-between gap-4"><p className="text-lg font-semibold leading-snug"><Rich lang={lang} text={show(step.prompt)} /></p><Speaker text={spoken(show(step.prompt), lang)} lang={lang} /></div>
+          <StepView key={`${seed}-${index}`} lang={lang} step={step} solved={solved} onAnswer={answer} />
+          {solved && <Button className="mt-5 w-full" disabled={busy} onClick={() => void next()}>{index + 1 < steps.length ? say(lang, 'Question suivante', 'Next question', 'السؤال التالي', 'Siguiente pregunta') : say(lang, 'Terminer', 'Finish', 'إنهاء', 'Terminar')}<ArrowRight /></Button>}
+          {hint && !solved && <div className="mt-4"><Tutor><Rich lang={lang} text={hint} /></Tutor></div>}
+          {saveError && <p role="alert" className="mt-3 text-destructive">{saveError}</p>}
+        </>}
+    </div>
+  </section>;
+}
+
+/** Texte avec vecteurs ⟦AB⟧ dessinés avec leur flèche ; lu « vecteur AB » par les lecteurs d'écran. */
+export function Rich({ lang, text }: { lang: Lang; text: string }) {
+  const parts = text.split(VEC_RE);
+  if (parts.length === 1) return <>{text}</>;
+  return <>{parts.map((part, i) => i % 2 ? <span key={i} className="vec"><span className="sr-only">{VECTOR_WORD[lang]} </span>{part}</span> : part)}</>;
 }
 
 const checkLabel = (lang: Lang) => say(lang, 'Vérifier', 'Check', 'تحقق', 'Comprobar');
@@ -73,12 +131,13 @@ function StepView({ lang, step, solved, onAnswer }: { lang: Lang; step: Step; so
   const [text, setText] = useState('');
   const [blanks, setBlanks] = useState<number[]>([]);
   const [widgetOk, setWidgetOk] = useState(false);
+  const [cursor, setCursor] = useState<P | null>(step.type === 'grid' ? step.start : null);
 
   switch (step.type) {
     case 'choice':
       return <>
-        {step.scene && <GeoScene lang={lang} scene={step.scene} />}
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">{step.options.map((o, i) => <Button key={i} variant={picked === i ? (i === step.answer ? 'default' : 'destructive') : 'soft'} className="h-auto min-h-11 whitespace-normal" disabled={solved} aria-pressed={picked === i} onClick={() => { setPicked(i); onAnswer(i === step.answer); }}>{show(o)}</Button>)}</div>
+        <Shown lang={lang} scene={step.scene} table={step.table} />
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">{step.options.map((o, i) => <Button key={i} variant={picked === i ? (i === step.answer ? 'default' : 'destructive') : 'soft'} className="h-auto min-h-11 whitespace-normal" disabled={solved} aria-pressed={picked === i} onClick={() => { setPicked(i); onAnswer(i === step.answer); }}><Rich lang={lang} text={show(o)} /></Button>)}</div>
         {solved && <Solved lang={lang} />}
       </>;
     case 'tap':
@@ -89,17 +148,17 @@ function StepView({ lang, step, solved, onAnswer }: { lang: Lang; step: Step; so
     case 'chips': {
       const used = new Set(seq);
       return <>
-        {step.scene && <GeoScene lang={lang} scene={step.scene} />}
-        <div className="chip-line" dir="ltr" aria-live="polite" aria-label={say(lang, 'Ton égalité', 'Your equality', 'متساويتك', 'Tu igualdad')}>{seq.length ? seq.map((i, k) => <span key={k} className="chip chip-placed">{step.tokens[i]}</span>) : <span className="text-sm text-muted-foreground">{say(lang, 'Touche les étiquettes dans l’ordre.', 'Tap the labels in order.', 'المس البطاقات بالترتيب.', 'Toca las etiquetas en orden.')}</span>}</div>
-        <div className="mt-3 flex flex-wrap justify-center gap-2" dir="ltr">{step.tokens.map((tok, i) => <button key={i} type="button" className="chip" disabled={solved || used.has(i)} onClick={() => setSeq([...seq, i])}>{tok}</button>)}</div>
-        {!solved && <div className="mt-4 flex gap-2"><Button variant="ghost" disabled={!seq.length} onClick={() => setSeq(seq.slice(0, -1))}><Delete />{say(lang, 'Effacer', 'Undo', 'مسح', 'Borrar')}</Button><Button className="flex-1" disabled={!seq.length} onClick={() => onAnswer(chipsOk(seq.map(i => step.tokens[i]!), step.groups))}>{checkLabel(lang)}<ArrowRight /></Button></div>}
+        <Shown lang={lang} scene={step.scene} table={step.table} />
+        <div className="chip-line" dir="ltr" aria-live="polite" aria-label={say(lang, 'Ton égalité', 'Your equality', 'متساويتك', 'Tu igualdad')}>{seq.length ? seq.map((i, k) => <span key={k} className="chip chip-placed"><Rich lang={lang} text={step.tokens[i]!} /></span>) : <span className="text-sm text-muted-foreground">{say(lang, 'Touche les étiquettes dans l’ordre.', 'Tap the labels in order.', 'المس البطاقات بالترتيب.', 'Toca las etiquetas en orden.')}</span>}</div>
+        <div className="mt-3 flex flex-wrap justify-center gap-2" dir="ltr">{step.tokens.map((tok, i) => <button key={i} type="button" className="chip" disabled={solved || used.has(i)} onClick={() => setSeq([...seq, i])}><Rich lang={lang} text={tok} /></button>)}</div>
+        {!solved && <div className="mt-4 flex gap-2"><Button variant="ghost" disabled={!seq.length} onClick={() => setSeq(seq.slice(0, -1))}><Delete />{say(lang, 'Effacer', 'Undo', 'مسح', 'Borrar')}</Button><Button className="flex-1" disabled={!seq.length} onClick={() => onAnswer(chipsOk(seq.map(i => step.tokens[i]!), step.groups, step.ordered))}>{checkLabel(lang)}<ArrowRight /></Button></div>}
         {solved && <Solved lang={lang} />}
       </>;
     }
     case 'number': {
       const check = () => { if (text.trim()) onAnswer(numberOk(text, step.answer, step.tolerance)); };
       return <>
-        {step.scene && <GeoScene lang={lang} scene={step.scene} />}
+        <Shown lang={lang} scene={step.scene} table={step.table} />
         <label htmlFor="skill-answer" className="field-label mt-4">{say(lang, 'Ta réponse', 'Your answer', 'جوابك', 'Tu respuesta')}</label>
         <input id="skill-answer" dir="ltr" inputMode="decimal" className="form-input text-center font-display text-2xl" value={text} autoComplete="off" disabled={solved} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') check(); }} />
         {!solved && <Button className="mt-4 w-full" disabled={!text.trim()} onClick={check}>{checkLabel(lang)}<ArrowRight /></Button>}
@@ -110,7 +169,7 @@ function StepView({ lang, step, solved, onAnswer }: { lang: Lang; step: Step; so
       let b = -1;
       const count = step.parts.filter(p => 'options' in p).length;
       return <>
-        {step.scene && <GeoScene lang={lang} scene={step.scene} />}
+        <Shown lang={lang} scene={step.scene} table={step.table} />
         <p className="sentence-line mt-4">{step.parts.map((part, k) => {
           if (!('options' in part)) return <span key={k}>{show(part)} </span>;
           const i = ++b;
@@ -123,8 +182,19 @@ function StepView({ lang, step, solved, onAnswer }: { lang: Lang; step: Step; so
         {solved && <Solved lang={lang} />}
       </>;
     }
+    case 'grid': {
+      const at = cursor ?? step.start;
+      return <>
+        <GeoScene lang={lang} scene={step.scene} locked={solved} cursor={{ label: step.label, at, onMove: setCursor }} />
+        <p className="mt-1 text-center text-xs text-muted-foreground" dir="ltr">{step.label} ({fmt(at.x)} ; {fmt(at.y)}) · {say(lang, 'touche le quadrillage ou utilise les flèches', 'tap the grid or use the arrow keys', 'المس الشبكة أو استعمل الأسهم', 'toca la cuadrícula o usa las flechas')}</p>
+        {!solved && <Button className="mt-4 w-full" onClick={() => onAnswer(at.x === step.answer.x && at.y === step.answer.y)}>{checkLabel(lang)}<ArrowRight /></Button>}
+        {solved && <Solved lang={lang} />}
+      </>;
+    }
     case 'widget':
       return <>
+        {step.widget.kind === 'line' && <LineWidget lang={lang} target={step.widget} locked={solved} onState={setWidgetOk} />}
+        {step.widget.kind === 'level' && <LevelWidget lang={lang} values={step.widget.values} locked={solved} onState={setWidgetOk} />}
         {step.widget.kind === 'squares' && <SquaresWidget lang={lang} ab={step.widget.ab} ac={step.widget.ac} locked={solved} onState={setWidgetOk} />}
         {step.widget.kind === 'thales' && <ThalesWidget lang={lang} problem={step.widget.problem} locked={solved} onState={setWidgetOk} />}
         {step.widget.kind === 'inscribed' && <InscribedWidget lang={lang} problem={step.widget.problem} locked={solved} onState={setWidgetOk} />}
@@ -132,6 +202,55 @@ function StepView({ lang, step, solved, onAnswer }: { lang: Lang; step: Step; so
         {solved && <Solved lang={lang} />}
       </>;
   }
+}
+
+function Shown({ lang, scene, table }: { lang: Lang; scene?: Scene | undefined; table?: Table | undefined }) {
+  return <>
+    {table && <div className="data-table-wrap" dir="ltr"><table className="data-table"><tbody>{table.head.map((h, i) => <tr key={i}><th scope="row">{h[lang]}</th>{(table.rows[i] ?? []).map((c, j) => <td key={j}>{localizeMath(c, lang)}</td>)}</tr>)}</tbody></table></div>}
+    {scene && <GeoScene lang={lang} scene={scene} />}
+  </>;
+}
+
+/** Régler a et b : la droite y = ax + b doit passer par A et B. */
+export function LineWidget({ lang, target, locked, onState }: { lang: Lang; target: { a: number; b: number; A: P; B: P }; locked: boolean; onState: (ok: boolean) => void }) {
+  const [a, setA] = useState(1);
+  const [b, setB] = useState(0);
+  const grid = { minX: -5, maxX: 5, minY: -5, maxY: 5, axes: true };
+  const [P1, P2] = clipLine(a, b, grid);
+  const scene: Scene = { grid, points: { A: target.A, B: target.B, P: P1, Q: P2 }, hidden: ['P', 'Q'], segments: [{ id: 'd', a: 'P', b: 'Q', style: 'bold' }] };
+  const update = (na: number, nb: number) => { setA(na); setB(nb); onState(na === target.a && nb === target.b); };
+  const on = (p: P) => Math.abs(a * p.x + b - p.y) < 1e-9;
+  return <div>
+    <GeoScene lang={lang} scene={scene} />
+    <p className="mt-2 text-center font-display text-xl" dir="ltr">y = {fx(a, b)}</p>
+    <label htmlFor="line-a" className="field-label mt-2">a = {fmt(a)}</label>
+    <input id="line-a" type="range" min={-3} max={3} step={0.5} value={a} disabled={locked} className="w-full accent-[var(--primary)]" onChange={e => update(Number(e.target.value), b)} />
+    <label htmlFor="line-b" className="field-label mt-2">b = {fmt(b)}</label>
+    <input id="line-b" type="range" min={-5} max={5} step={1} value={b} disabled={locked} className="w-full accent-[var(--primary)]" onChange={e => update(a, Number(e.target.value))} />
+    <div className="mt-2 flex justify-center gap-2 text-sm" dir="ltr"><span className="pill">A {on(target.A) ? '✓' : '✗'}</span><span className="pill">B {on(target.B) ? '✓' : '✗'}</span></div>
+  </div>;
+}
+
+/** Colonnes de cubes à égaliser : la hauteur commune est la moyenne. */
+export function LevelWidget({ lang, values, locked, onState }: { lang: Lang; values: number[]; locked: boolean; onState: (ok: boolean) => void }) {
+  const [cols, setCols] = useState(values);
+  const [hand, setHand] = useState(0);
+  const max = Math.max(...values) + 1;
+  const move = (i: number, d: 1 | -1) => {
+    const next = cols.map((c, k) => k === i ? c + d : c);
+    const h = hand - d;
+    setCols(next); setHand(h); onState(h === 0 && next.every(c => c === next[0]));
+  };
+  const sum = values.reduce((t, v) => t + v, 0);
+  return <div>
+    <div className="level-board" dir="ltr">{cols.map((c, i) => <div key={i} className="level-col">
+      <Button size="sm" variant="soft" aria-label={say(lang, `Poser un cube sur la colonne ${i + 1}`, `Put a cube on column ${i + 1}`, `ضع مكعبًا على العمود ${i + 1}`, `Poner un cubo en la columna ${i + 1}`)} disabled={locked || hand === 0 || c >= max + 3} onClick={() => move(i, 1)}>▲</Button>
+      <div className="level-stack" style={{ height: `${(max + 2) * 22}px` }}>{Array.from({ length: c }, (_, k) => <span key={k} className="level-cube" />)}</div>
+      <span className="text-sm font-bold">{c}</span>
+      <Button size="sm" variant="soft" aria-label={say(lang, `Prendre un cube de la colonne ${i + 1}`, `Take a cube from column ${i + 1}`, `خذ مكعبًا من العمود ${i + 1}`, `Quitar un cubo de la columna ${i + 1}`)} disabled={locked || c === 0} onClick={() => move(i, -1)}>▼</Button>
+    </div>)}</div>
+    <p role="status" className="mt-3 text-center text-sm font-semibold">{hand > 0 ? say(lang, `Cubes en main : ${hand}`, `Cubes in hand: ${hand}`, `مكعبات في اليد: ${hand}`, `Cubos en la mano: ${hand}`) : cols.every(c => c === cols[0]) ? say(lang, `Toutes les colonnes ont ${cols[0]} cubes : ${sum} ÷ ${cols.length} = ${cols[0]}.`, `Every column has ${cols[0]} cubes: ${sum} ÷ ${cols.length} = ${cols[0]}.`, `كل الأعمدة فيها ${cols[0]} مكعبات: ${sum} ÷ ${cols.length} = ${cols[0]}.`, `Todas las columnas tienen ${cols[0]} cubos: ${sum} ÷ ${cols.length} = ${cols[0]}.`) : say(lang, `Total : ${sum} cubes.`, `Total: ${sum} cubes.`, `المجموع: ${sum} مكعبًا.`, `Total: ${sum} cubos.`)}</p>
+  </div>;
 }
 
 // ───────────── Manipulations ─────────────
@@ -222,14 +341,18 @@ export function SquaresWidget({ lang, ab, ac, locked, onState }: { lang: Lang; a
 // ───────────── Figures ─────────────
 
 /** Dessine une figure de src/lib/skills.ts ; côtés, arcs et sommets (équerre) peuvent se toucher. */
-export function GeoScene({ lang, scene, tapped, answer, locked, onTap }: { lang: Lang; scene: Scene; tapped?: string | null; answer?: string; locked?: boolean; onTap?: (id: string) => void }) {
+type Cursor = { label: string; at: P; onMove: (p: P) => void };
+
+export function GeoScene({ lang, scene, tapped, answer, locked, onTap, cursor }: { lang: Lang; scene: Scene; tapped?: string | null; answer?: string; locked?: boolean; onTap?: (id: string) => void; cursor?: Cursor }) {
+  const svgRef = useRef<SVGSVGElement>(null);
   const [square, setSquare] = useState<string | null>(null);
   const names = Object.keys(scene.points);
   const pts = Object.values(scene.points);
   const r = scene.circle?.r ?? 0;
-  const xs = pts.map(p => p.x).concat(scene.circle ? [-r, r] : []), ys = pts.map(p => p.y).concat(scene.circle ? [-r, r] : []);
+  const g = scene.grid;
+  const xs = pts.map(p => p.x).concat(scene.circle ? [-r, r] : [], g ? [g.minX, g.maxX] : []), ys = pts.map(p => p.y).concat(scene.circle ? [-r, r] : [], g ? [g.minY, g.maxY] : []);
   const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-  const s = 260 / Math.max(maxX - minX, maxY - minY, 1), pad = 40;
+  const s = (g ? 300 : 260) / Math.max(maxX - minX, maxY - minY, 1), pad = g ? 24 : 40;
   const v = (p: P) => ({ x: (p.x - minX) * s + pad, y: (maxY - p.y) * s + pad });
   const P_ = (n: string) => v(scene.points[n]!);
   const center = scene.circle ? v(scene.points[scene.circle.c]!) : (() => { const c = pts.reduce((t, p) => ({ x: t.x + p.x / pts.length, y: t.y + p.y / pts.length }), { x: 0, y: 0 }); return v(c); })();
@@ -255,8 +378,32 @@ export function GeoScene({ lang, scene, tapped, answer, locked, onTap }: { lang:
     return <g aria-hidden className="skill-equerre"><polygon points={`${vtx.x},${vtx.y} ${vtx.x + u.x * L1},${vtx.y + u.y * L1} ${vtx.x + w.x * L2},${vtx.y + w.y * L2}`} /><polyline points={`${vtx.x + u.x * 12},${vtx.y + u.y * 12} ${vtx.x + u.x * 12 + w.x * 12},${vtx.y + u.y * 12 + w.y * 12} ${vtx.x + w.x * 12},${vtx.y + w.y * 12}`} /></g>;
   })();
   const width = (maxX - minX) * s + 2 * pad, height = (maxY - minY) * s + 2 * pad;
+  const gridLines = g && <g aria-hidden>
+    {Array.from({ length: g.maxX - g.minX + 1 }, (_, i) => g.minX + i).map(x => { const a = v({ x, y: g.minY }), b = v({ x, y: g.maxY }); return <line key={`x${x}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} className={g.axes && x === 0 ? 'skill-axis' : 'figure-grid'} />; })}
+    {Array.from({ length: g.maxY - g.minY + 1 }, (_, i) => g.minY + i).map(y => { const a = v({ x: g.minX, y }), b = v({ x: g.maxX, y }); return <line key={`y${y}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} className={g.axes && y === 0 ? 'skill-axis' : 'figure-grid'} />; })}
+    {g.axes && <>
+      {Array.from({ length: g.maxX - g.minX + 1 }, (_, i) => g.minX + i).filter(x => x !== 0).map(x => { const q = v({ x, y: 0 }); return <text key={`tx${x}`} x={q.x} y={q.y + 13} className="skill-tick">{x}</text>; })}
+      {Array.from({ length: g.maxY - g.minY + 1 }, (_, i) => g.minY + i).filter(y => y !== 0).map(y => { const q = v({ x: 0, y }); return <text key={`ty${y}`} x={q.x - 9} y={q.y + 4} className="skill-tick">{y}</text>; })}
+      {(() => { const q = v({ x: 0, y: 0 }); return <text x={q.x - 9} y={q.y + 13} className="skill-tick">0</text>; })()}
+    </>}
+  </g>;
+  const clampGrid = (p: P): P => g ? { x: Math.max(g.minX, Math.min(g.maxX, p.x)), y: Math.max(g.minY, Math.min(g.maxY, p.y)) } : p;
+  const pickNode = (e: ReactMouseEvent<SVGSVGElement>) => {
+    if (!cursor || locked || !svgRef.current) return;
+    const ctm = svgRef.current.getScreenCTM(); if (!ctm) return;
+    const q = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse());
+    cursor.onMove(clampGrid({ x: Math.round((q.x - pad) / s + minX), y: Math.round(maxY - (q.y - pad) / s) }));
+  };
+  const cursorKey = (e: KeyboardEvent) => {
+    if (!cursor || locked) return;
+    const d = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
+    if (!d) return;
+    e.preventDefault();
+    cursor.onMove(clampGrid({ x: cursor.at.x + d[0]!, y: cursor.at.y + d[1]! }));
+  };
   return <div>
-    <svg viewBox={`0 0 ${width} ${height}`} className="figure-svg skill-scene" direction="ltr" role="group" aria-label={say(lang, 'Figure', 'Figure', 'الشكل', 'Figura')}>
+    <svg ref={svgRef} viewBox={`0 0 ${width} ${height}`} className={`figure-svg skill-scene${cursor && !locked ? ' skill-pickable' : ''}`} direction="ltr" role="group" aria-label={say(lang, 'Figure', 'Figure', 'الشكل', 'Figura')} onClick={pickNode}>
+      {gridLines}
       {scene.circle && <circle cx={center.x} cy={center.y} r={r * s} className="figure-circle" />}
       {scene.arcs?.map(arc => <g key={arc.id} {...(arc.tappable && onTap && !locked ? { role: 'button', tabIndex: 0, 'aria-label': say(lang, `Arc ${arc.text}`, `Arc ${arc.text}`, `القوس ${arc.text}`, `Arco ${arc.text}`), onClick: () => onTap(arc.id), onKeyDown: key(arc.id), className: 'skill-tappable' } : {})}>
         <path d={arcPath(arc.start, arc.end, r)} className={`skill-arc${state(arc.id)}`} />
@@ -269,6 +416,7 @@ export function GeoScene({ lang, scene, tapped, answer, locked, onTap }: { lang:
         const m = away({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, 16);
         return <g key={seg.id} {...(tap ? { role: 'button', tabIndex: 0, 'aria-label': `[${seg.id}]`, onClick: () => onTap(seg.id), onKeyDown: key(seg.id), className: 'skill-tappable' } : {})}>
           <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} className={`skill-seg skill-seg-${seg.style ?? 'normal'}${state(seg.id)}`} />
+          {seg.style === 'vector' && (() => { const u = unit(a, b), k = 12; return <polygon points={`${b.x},${b.y} ${b.x - u.x * k - u.y * k * 0.5},${b.y - u.y * k + u.x * k * 0.5} ${b.x - u.x * k + u.y * k * 0.5},${b.y - u.y * k - u.x * k * 0.5}`} className="skill-arrowhead" />; })()}
           {tap && <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} className="skill-hit" />}
           {seg.text && <text x={m.x} y={m.y + 5} textAnchor="middle" className="skill-length">{localizeMath(seg.text, lang)}</text>}
         </g>;
@@ -282,6 +430,11 @@ export function GeoScene({ lang, scene, tapped, answer, locked, onTap }: { lang:
       {equerre}
       {names.filter(n => !scene.hidden?.includes(n)).map(n => { const q = P_(n); const l = n === scene.circle?.c ? { x: q.x + 8, y: q.y - 8 } : away(q, 16); return <g key={n}><circle cx={q.x} cy={q.y} r={3} className="figure-point" /><text x={l.x - 5} y={l.y + 5} className="figure-label">{n}</text></g>; })}
       {scene.equerre && scene.polygon && !locked && scene.polygon.map(n => { const q = P_(n); return <circle key={`e${n}`} cx={q.x} cy={q.y} r={18} role="button" tabIndex={0} aria-pressed={square === n} aria-label={say(lang, `Poser l’équerre en ${n}`, `Put the set square at ${n}`, `ضع الكوس في ${n}`, `Poner la escuadra en ${n}`)} className={`skill-vertex${square === n ? ' skill-vertex-on' : ''}`} onClick={() => setSquare(square === n ? null : n)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSquare(square === n ? null : n); } }} />; })}
+      {cursor && (() => { const q = v(cursor.at); return <g role="slider" tabIndex={locked ? -1 : 0} aria-label={cursor.label} aria-valuetext={`(${cursor.at.x} ; ${cursor.at.y})`} aria-valuenow={cursor.at.x} onKeyDown={cursorKey} className={locked ? '' : 'figure-handle'}>
+        {!locked && <circle cx={q.x} cy={q.y} r={16} className="figure-handle-halo" />}
+        <circle cx={q.x} cy={q.y} r={6} className="figure-point" />
+        <text x={q.x + 9} y={q.y - 9} className="figure-label">{cursor.label}</text>
+      </g>; })()}
     </svg>
     {scene.caption && <p className="mt-1 text-center text-xs text-muted-foreground">{scene.caption[lang]}</p>}
     {scene.equerre && <p className="mt-1 text-center text-xs text-muted-foreground">{say(lang, 'Touche un sommet pour y poser l’équerre.', 'Tap a corner to put the set square there.', 'المس رأسًا لوضع الكوس عليه.', 'Toca un vértice para poner la escuadra.')}</p>}
@@ -295,10 +448,14 @@ export const CHAPTER_NAMES: Record<FigureKind, L> = {
   thales: { fr: 'Théorème de Thalès', en: 'Intercept theorem', ar: 'مبرهنة طاليس', es: 'Teorema de Tales' },
   trigo: { fr: 'Trigonométrie', en: 'Trigonometry', ar: 'حساب المثلثات', es: 'Trigonometría' },
   inscribed: { fr: 'Angles inscrits', en: 'Inscribed angles', ar: 'الزوايا المحيطية', es: 'Ángulos inscritos' },
+  vectors: { fr: 'Vecteurs', en: 'Vectors', ar: 'المتجهات', es: 'Vectores' },
+  affine: { fr: 'Fonctions affines', en: 'Affine functions', ar: 'الدوال التآلفية', es: 'Funciones afines' },
+  stats: { fr: 'Statistiques', en: 'Statistics', ar: 'الإحصاء', es: 'Estadística' },
 };
 const STATUS: Record<SkillStatus, (lang: Lang) => string> = {
   mastered: lang => say(lang, 'Acquis', 'Mastered', 'مكتسبة', 'Adquirida'),
   started: lang => say(lang, 'Commencé', 'Started', 'بدأت', 'Empezada'),
+  review: lang => say(lang, 'À revoir', 'To review', 'للمراجعة', 'Por repasar'),
   todo: lang => say(lang, 'À faire', 'To do', 'للإنجاز', 'Por hacer'),
 };
 
@@ -307,7 +464,7 @@ export function SkillList({ lang, kind, attempts, onOpen, disabled }: { lang: La
   return <ol className="skill-list">{skillsFor(kind).map(skill => {
     const status = skillStatus(attempts, skill.id);
     return <li key={skill.id} className="skill-item">
-      <span className={`skill-status skill-status-${status}`} aria-hidden>{status === 'mastered' ? <Check className="h-4 w-4" /> : status === 'started' ? <span className="h-2 w-2 rounded-full bg-current" /> : null}</span>
+      <span className={`skill-status skill-status-${status}`} aria-hidden>{status === 'mastered' ? <Check className="h-4 w-4" /> : status === 'started' ? <span className="h-2 w-2 rounded-full bg-current" /> : status === 'review' ? <RotateCcw className="h-3.5 w-3.5" /> : null}</span>
       <span className="min-w-0 flex-1"><span className="block font-semibold">{skill.title[lang]}</span>{onOpen && <span className="block text-xs text-muted-foreground">{skill.desc[lang]}</span>}<span className="sr-only"> · {STATUS[status](lang)}</span></span>
       {onOpen ? <Button size="sm" variant={status === 'mastered' ? 'ghost' : 'soft'} disabled={disabled} onClick={() => onOpen(skill)} aria-label={`${skill.title[lang]} · ${STATUS[status](lang)}`}>{status === 'mastered' ? say(lang, 'Revoir', 'Review', 'مراجعة', 'Repasar') : say(lang, 'Commencer', 'Start', 'ابدأ', 'Empezar')}<ArrowRight /></Button>
         : <span className={`text-xs font-bold skill-status-text-${status}`}>{STATUS[status](lang)}</span>}

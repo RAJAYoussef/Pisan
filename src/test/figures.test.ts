@@ -99,19 +99,19 @@ describe('Figures : angles inscrits', () => {
 describe('Figures proposées selon le programme', () => {
   const at = (country: string, grade: number) => { const p = programmeFor(country, grade)!; return figuresFor(p, programmeNotions(p).map(n => n.id), 0); };
   it('Maroc 3e année collège : Pythagore (rappel), Thalès, trigonométrie et angles inscrits', () => {
-    expect(at('ma', 2)).toEqual(['pythagoras', 'thales', 'trigo', 'inscribed']);
+    expect(at('ma', 2)).toEqual(['pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'affine', 'stats']);
     expect(figureChapter(programmeFor('ma', 2), 'pythagoras')).toBeNull(); // Pythagore est vu en 2AC : « rappel »
     expect(figureChapter(programmeFor('ma', 2), 'inscribed')?.fr).toBe('Angles inscrits et angles au centre');
   });
   it('France 3e : pas d’angles inscrits (hors programme)', () => {
-    expect(at('fr', 3)).toEqual(['pythagoras', 'thales', 'trigo']);
+    expect(at('fr', 3)).toEqual(['pythagoras', 'thales', 'trigo', 'affine', 'stats']);
   });
   it('France 6e : aucune de ces figures, même si la 6e a un chapitre de géométrie', () => {
     expect(at('fr', 0)).toEqual([]);
   });
   it('Côte d’Ivoire 3e : le chapitre « Triangle rectangle » sert à Pythagore et à la trigonométrie', () => {
     const p = programmeFor('ci', 3);
-    expect(at('ci', 3)).toEqual(['pythagoras', 'thales', 'trigo', 'inscribed']);
+    expect(at('ci', 3)).toEqual(['pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'affine', 'stats']);
     expect(figureChapter(p, 'pythagoras')?.fr).toBe('Triangle rectangle');
     expect(figureChapter(p, 'trigo')?.fr).toBe('Triangle rectangle');
   });

@@ -29,6 +29,7 @@ import { Tutor } from './shared';
 import { DysButton, DysPanel, DysProvider } from './dys';
 import { CoachTokenProvider } from './coach';
 import { DailyChallenge } from './daily-challenge';
+import { dueReviews } from '@/lib/skills';
 import { StreakBadge, browserTimeZone } from './streak';
 import { Speaker } from './shared';
 import { CHALLENGE_STARS } from '@/lib/challenge';
@@ -171,6 +172,7 @@ function HomePage({ session, token, onChallenge, lang, left, onNavigate, onUpgra
           <div className="mt-4 flex flex-wrap items-center gap-3"><Button size="lg" className="w-full sm:w-auto" onClick={() => onPractice(notionToPractise(chapter, session.progress))}>{chapter.started ? say(lang, 'Continuer', 'Continue', 'متابعة', 'Continuar') : say(lang, 'Commencer ce chapitre', 'Start this chapter', 'ابدأ هذا الفصل', 'Empezar este capítulo')}<ArrowRight /></Button><Button variant="link" onClick={() => onNavigate('journey')}>{say(lang, 'Voir tout mon parcours', 'See my whole path', 'عرض مساري كاملًا', 'Ver todo mi recorrido')}</Button></div></>}
     </div>
     <DailyChallenge lang={lang} token={token} onSaved={onChallenge} />
+    {dueReviews(session.progress.attempts).length > 0 && <div className="review-card mt-4"><div className="min-w-0 flex-1"><p className="font-bold">{say(lang, 'Mini-contrôle disponible', 'Quick check available', 'مراقبة قصيرة متاحة', 'Mini control disponible')}</p><p className="text-sm text-muted-foreground">{say(lang, 'Vérifie que tes compétences acquises tiennent toujours.', 'Check your mastered skills still stick.', 'تحقق من أن كفاياتك المكتسبة ما زالت متينة.', 'Comprueba que tus competencias siguen firmes.')}</p></div><Button variant="soft" onClick={() => onNavigate('workshop')}>{say(lang, 'À l’atelier', 'Workshop', 'إلى الورشة', 'Al taller')}<ArrowRight /></Button></div>}
     <div className="home-summary"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-full bg-sun-soft"><Star className="h-5 w-5 text-sun-deep" /></span><div><p className="text-lg font-bold">{success * 3 + challengeWins * CHALLENGE_STARS} <span className="text-sm font-normal text-muted-foreground">{d.home.stars}</span></p></div></div><span className="hidden h-10 border-s border-border sm:block" /><StreakBadge lang={lang} streak={{ count: session.streak_count, lastDay: session.streak_last_day, freezes: session.freezes, timezone: session.profile.timezone }} />{left !== null && <div className="ms-auto text-end"><p className="text-sm font-bold text-primary-deep">{d.plan.left.replace('{n}', String(left))}</p><Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={onUpgrade}>{say(lang, 'Passer à PiSan Illimité', 'Go PiSan Unlimited', 'انتقل إلى PiSan بلا حدود', 'Pasar a PiSan Ilimitado')}<ArrowRight /></Button></div>}</div>
   </section>;
 }

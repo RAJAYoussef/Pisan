@@ -608,3 +608,27 @@ nav + .sidebar-label { margin-top: 28px; }
 .skill-status-text-mastered { color: var(--primary-deep); }
 .skill-status-text-started { color: var(--sun-foreground); }
 .skill-status-text-todo { color: var(--muted-foreground); }
+.skill-status-review { border-color: var(--destructive); color: var(--destructive); }
+.skill-status-text-review { color: var(--destructive); }
+.skill-axis { stroke: var(--foreground); stroke-width: 1.6; }
+.skill-tick { font: 600 10px var(--font-display); fill: var(--muted-foreground); text-anchor: middle; }
+.skill-seg-vector { stroke: var(--accent-deep); stroke-width: 3; }
+.skill-arrowhead { fill: var(--accent-deep); }
+.skill-pickable { cursor: crosshair; }
+.data-table-wrap { max-width: 100%; overflow-x: auto; margin-bottom: 12px; }
+.data-table { margin: 0 auto; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.data-table th, .data-table td { border: 1px solid var(--border); padding: 6px 10px; text-align: center; min-width: 40px; }
+.data-table th { background: var(--muted); font-size: .8rem; text-align: start; white-space: nowrap; }
+.level-board { display: flex; justify-content: center; align-items: flex-end; gap: 12px; }
+.level-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.level-stack { display: flex; flex-direction: column-reverse; justify-content: flex-start; gap: 2px; width: 38px; }
+.level-cube { display: block; height: 20px; border-radius: 4px; background: var(--primary); box-shadow: inset 0 -3px 0 var(--primary-deep); }
+.review-card { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 16px; border: 2px solid var(--sun-deep); border-radius: var(--radius); background: var(--sun-soft); }
+.skill-cell { text-align: center; }
+.skill-cell-mastered { background: var(--primary-soft); color: var(--primary-deep); }
+.skill-cell-started { background: var(--sun-soft); color: var(--sun-foreground); }
+.skill-cell-review { background: color-mix(in oklab, var(--destructive) 15%, transparent); color: var(--destructive); }
+.skill-cell-todo { color: var(--muted-foreground); }
+.teacher-skills { border-top: 1px solid var(--border); }
+.vec { position: relative; display: inline-block; padding-top: .3em; line-height: 1; }
+.vec::before { content: ''; position: absolute; left: 0; right: -.05em; top: 0; height: .32em; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 8' preserveAspectRatio='none'%3E%3Cpath d='M1 4H22M17 1L22.5 4L17 7' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center / 100% 100%; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 8' preserveAspectRatio='none'%3E%3Cpath d='M1 4H22M17 1L22.5 4L17 7' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center / 100% 100%; }

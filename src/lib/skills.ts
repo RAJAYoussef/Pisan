@@ -1,87 +1,16 @@
-// Parcours de compétences des ateliers de géométrie : Pythagore, Thalès, trigonométrie, angles inscrits.
-// Chaque chapitre est découpé selon le référentiel en compétences ; chaque compétence est une activité
-// faite d'étapes (choisir, toucher la figure, assembler une égalité, taper un nombre, rédiger une phrase,
-// manipuler). Tout est pur et déterministe (une graine = un énoncé) : couvert par src/test/skills.test.ts.
-import type { L, NotionId } from './curriculum';
-import { parse } from './answer-check';
+// Parcours de compétences des ateliers : Pythagore, Thalès, trigonométrie, angles inscrits (ici), vecteurs,
+// fonctions affines et statistiques (src/lib/skills-numbers.ts). Chaque chapitre est découpé selon le référentiel
+// en compétences ; chaque compétence est une activité faite d'étapes (choisir, toucher la figure, assembler une
+// égalité, taper un nombre, rédiger une phrase, placer un point, manipuler). Tout est pur et déterministe
+// (une graine = un énoncé) : couvert par src/test/skills.test.tsx.
+import type { NotionId } from './curriculum';
 import { seeded } from './exercises';
-import { FIGURE_NOTIONS, inscribedProblem, thalesProblem, type FigureKind, type InscribedProblem, type ThalesProblem } from './figures';
+import { FIGURE_NOTIONS, inscribedProblem, thalesProblem, type FigureKind } from './figures';
+import { fmt, pick, t, type Activity, type Blank, type P, type Rng, type Scene, type Segment, type Skill, type Step } from './skill-kit';
+import { NUMBER_SKILLS } from './skills-numbers';
+import type { L } from './curriculum';
 
-const t = (fr: string, en: string, ar: string, es: string): L => ({ fr, en, ar, es });
-type Rng = () => number;
-const pick = <T,>(rng: Rng, list: readonly T[]): T => list[Math.floor(rng() * list.length)]!;
-/** Nombre écrit à la française (virgule), arrondi à 2 décimales au plus. */
-export const fmt = (v: number) => String(Math.round(v * 100) / 100).replace('.', ',');
-
-// ───────────── Figures (données pures, dessinées par src/components/pisan/geo.tsx) ─────────────
-
-export type P = { x: number; y: number };
-export type Segment = { id: string; a: string; b: string; text?: string; tappable?: boolean; style?: 'bold' | 'dashed' | 'soft' };
-export type Scene = {
-  points: Record<string, P>;
-  segments: Segment[];
-  /** Sommets du triangle sur lequel on peut poser l'équerre (toucher un sommet). */
-  polygon?: string[];
-  equerre?: boolean;
-  rightAngles?: [string, string, string][];
-  angleMarks?: [string, string, string][];
-  circle?: { c: string; r: number };
-  /** Arcs du cercle (en degrés, sens direct de start à end), éventuellement à toucher. */
-  arcs?: { id: string; start: number; end: number; text: string; tappable?: boolean }[];
-  hidden?: string[];
-  caption?: L;
-};
-
-// ───────────── Étapes ─────────────
-
-export type Blank = { options: L[]; answer: number[] };
-export type Step =
-  | { type: 'choice'; prompt: L; options: L[]; answer: number; hint: L; scene?: Scene }
-  | { type: 'tap'; prompt: L; scene: Scene; answer: string; hint: L }
-  | { type: 'chips'; prompt: L; tokens: string[]; groups: string[][]; hint: L; scene?: Scene }
-  | { type: 'number'; prompt: L; answer: number; tolerance: number; hint: L; scene?: Scene; unit?: string }
-  | { type: 'sentence'; prompt: L; parts: (L | Blank)[]; hint: L; scene?: Scene }
-  | { type: 'widget'; prompt: L; hint: L; widget: Widget };
-export type Widget =
-  | { kind: 'squares'; ab: number; ac: number }
-  | { kind: 'thales'; problem: ThalesProblem }
-  | { kind: 'inscribed'; problem: InscribedProblem };
-export type Activity = { title: L; steps: Step[]; summary: string };
-export type Skill = { id: string; chapter: FigureKind; title: L; desc: L; build: (seed: number) => Activity };
-
-// ───────────── Vérifications ─────────────
-
-/** Nombre tapé : virgule ou point, fraction acceptée, à la tolérance près. */
-export function numberOk(input: string, answer: number, tolerance: number): boolean {
-  const p = parse(input.replace(/°/g, ''));
-  if (!p || p.usesX) return false;
-  const v = p.fn(0);
-  return Number.isFinite(v) && Math.abs(v - answer) <= tolerance + 1e-9;
-}
-
-/**
- * Égalité assemblée avec des étiquettes. On compare des membres (séparés par « = ») sans tenir compte de
- * leur ordre, ni de l'ordre des termes d'une somme : « BC² = AB² + AC² » vaut « AC² + AB² = BC² ».
- */
-export function chipsOk(sequence: string[], groups: string[][]): boolean {
-  const members: string[][] = [[]];
-  for (const token of sequence) {
-    if (token === '=') members.push([]);
-    else if (token !== '+') members[members.length - 1]!.push(token);
-  }
-  if (members.some(m => m.length === 0) || members.length !== groups.length) return false;
-  const key = (m: string[]) => [...m].sort().join('|');
-  const want = groups.map(key).sort();
-  const got = members.map(key).sort();
-  // un « + » doit séparer les termes d'un même membre : pas deux termes collés
-  const plusOk = sequence.every((tok, i) => tok === '=' || tok === '+' || i === 0 || sequence[i - 1] === '=' || sequence[i - 1] === '+');
-  return plusOk && want.every((w, i) => w === got[i]);
-}
-
-export function sentenceOk(parts: (L | Blank)[], chosen: number[]): boolean {
-  const blanks = parts.filter((p): p is Blank => 'options' in p);
-  return blanks.length === chosen.length && blanks.every((b, i) => b.answer.includes(chosen[i]!));
-}
+export * from './skill-kit';
 
 // ───────────── Géométrie ─────────────
 
@@ -495,7 +424,7 @@ function trigoLength(seed: number): Activity {
     steps.push(
       { type: 'choice', scene, options: ratioNames, answer: 0, prompt: t(`${tr.v}̂ = ${angle}°. On connaît ${name[known]} et on cherche ${name[wanted]}. Quel rapport ?`, `${tr.v}̂ = ${angle}°. We know ${name[known]} and want ${name[wanted]}. Which ratio?`, `${tr.v}̂ = ${angle}°. نعرف ${name[known]} ونبحث عن ${name[wanted]}. ما النسبة؟`, `${tr.v}̂ = ${angle}°. Conocemos ${name[known]} y buscamos ${name[wanted]}. ¿Qué razón?`), hint: sohcahtoa },
       { type: 'chips', scene, tokens: [cos, `${tr.adj}/${tr.hyp}`, `${tr.opp}/${tr.hyp}`, `${tr.opp}/${tr.adj}`, '='], groups: [[cos], [`${tr.adj}/${tr.hyp}`]], prompt: t('Écris la formule.', 'Write the formula.', 'اكتب الصيغة.', 'Escribe la fórmula.'), hint: sohcahtoa },
-      { type: 'number', scene, answer: result, tolerance: 0.06, prompt: t(`Calcule ${name[wanted]}, arrondi au dixième.`, `Work out ${name[wanted]} to one decimal place.`, `احسب ${name[wanted]} مقربًا إلى الجزء من عشرة.`, `Calcula ${name[wanted]} redondeado a las décimas.`), hint: known === 'hyp' ? t(`${name.adj} = ${name.hyp} × cos ${angle}° = ${fmt(value)} × cos ${angle}°.`, `${name.adj} = ${name.hyp} × cos ${angle}°.`, `${name.adj} = ${name.hyp} × cos ${angle}°.`, `${name.adj} = ${name.hyp} × cos ${angle}°.`) : t(`${name.hyp} = ${name.adj} ÷ cos ${angle}° = ${fmt(value)} ÷ cos ${angle}°.`, `${name.hyp} = ${name.adj} ÷ cos ${angle}°.`, `${name.hyp} = ${name.adj} ÷ cos ${angle}°.`, `${name.hyp} = ${name.adj} ÷ cos ${angle}°.`) },
+      { type: 'number', scene, answer: result, tolerance: 0.06, prompt: t(`${tr.v}̂ = ${angle}°. Calcule ${name[wanted]}, arrondi au dixième.`, `${tr.v}̂ = ${angle}°. Work out ${name[wanted]} to one decimal place.`, `${tr.v}̂ = ${angle}°. احسب ${name[wanted]} مقربًا إلى الجزء من عشرة.`, `${tr.v}̂ = ${angle}°. Calcula ${name[wanted]} redondeado a las décimas.`), hint: known === 'hyp' ? t(`${name.adj} = ${name.hyp} × cos ${angle}° = ${fmt(value)} × cos ${angle}°.`, `${name.adj} = ${name.hyp} × cos ${angle}°.`, `${name.adj} = ${name.hyp} × cos ${angle}°.`, `${name.adj} = ${name.hyp} × cos ${angle}°.`) : t(`${name.hyp} = ${name.adj} ÷ cos ${angle}° = ${fmt(value)} ÷ cos ${angle}°.`, `${name.hyp} = ${name.adj} ÷ cos ${angle}°.`, `${name.hyp} = ${name.adj} ÷ cos ${angle}°.`, `${name.hyp} = ${name.adj} ÷ cos ${angle}°.`) },
     );
     summaries.push(`${name[wanted]} ≈ ${fmt(Math.round(result * 10) / 10)}`);
   }
@@ -580,35 +509,67 @@ function inscribedSameArc(seed: number): Activity {
 
 // ═════════════ Registre ═════════════
 
-export const SKILLS: Skill[] = [
-  { id: 'pyth-recognise', chapter: 'pythagoras', build: pythRecognise, title: t('Reconnaître un triangle rectangle', 'Recognise a right triangle', 'التعرف على مثلث قائم', 'Reconocer un triángulo rectángulo'), desc: t('L’équerre, l’angle droit, l’hypoténuse.', 'Set square, right angle, hypotenuse.', 'الكوس، الزاوية القائمة، الوتر.', 'Escuadra, ángulo recto, hipotenusa.') },
-  { id: 'pyth-discover', chapter: 'pythagoras', build: pythDiscover, title: t('Découvrir l’égalité', 'Discover the equality', 'اكتشاف المتساوية', 'Descubrir la igualdad'), desc: t('Remplir le grand carré avec les deux petits.', 'Fill the big square with the two small ones.', 'ملء المربع الكبير بالمربعين الصغيرين.', 'Llenar el cuadrado grande con los dos pequeños.') },
-  { id: 'pyth-compute', chapter: 'pythagoras', build: pythCompute, title: t('Calculer une longueur', 'Find a length', 'حساب طول', 'Calcular una longitud'), desc: t('L’hypoténuse ou un autre côté.', 'The hypotenuse or another side.', 'الوتر أو ضلع آخر.', 'La hipotenusa u otro lado.') },
-  { id: 'pyth-converse', chapter: 'pythagoras', build: pythConverse, title: t('La réciproque', 'The converse', 'المبرهنة العكسية', 'El recíproco'), desc: t('Prouver qu’un triangle est rectangle… ou pas.', 'Prove a triangle is right-angled… or not.', 'إثبات أن مثلثًا قائم… أو لا.', 'Probar que un triángulo es rectángulo… o no.') },
-  { id: 'pyth-problem', chapter: 'pythagoras', build: pythProblem, title: t('Problème en situation', 'Real-life problem', 'مسألة من الحياة', 'Problema contextualizado'), desc: t('Échelle, écran, raccourci.', 'Ladder, screen, shortcut.', 'سلم، شاشة، طريق مختصر.', 'Escalera, pantalla, atajo.') },
-  { id: 'thales-recognise', chapter: 'thales', build: thalesRecognise, title: t('Reconnaître la configuration', 'Recognise the configuration', 'التعرف على التشكيل', 'Reconocer la configuración'), desc: t('Triangle emboîté ou papillon.', 'Nested triangles or butterfly.', 'مثلث متداخل أو فراشة.', 'Triángulos encajados o mariposa.') },
-  { id: 'thales-equality', chapter: 'thales', build: thalesEquality, title: t('Écrire l’égalité', 'Write the equality', 'كتابة المتساوية', 'Escribir la igualdad'), desc: t('Les trois rapports qui se correspondent.', 'The three matching ratios.', 'النسب الثلاث المتوافقة.', 'Las tres razones que se corresponden.') },
-  { id: 'thales-compute', chapter: 'thales', build: thalesCompute, title: t('Calculer une longueur', 'Find a length', 'حساب طول', 'Calcular una longitud'), desc: t('Produit en croix, aussi en papillon.', 'Cross-multiplying, butterfly too.', 'الجداء التقاطعي، والفراشة أيضًا.', 'Producto cruzado, también en mariposa.') },
-  { id: 'thales-converse', chapter: 'thales', build: thalesConverse, title: t('La réciproque', 'The converse', 'المبرهنة العكسية', 'El recíproco'), desc: t('Prouver que deux droites sont parallèles… ou pas.', 'Prove two lines are parallel… or not.', 'إثبات أن مستقيمين متوازيان… أو لا.', 'Probar que dos rectas son paralelas… o no.') },
-  { id: 'thales-scale', chapter: 'thales', build: thalesScale, title: t('Agrandir et réduire', 'Enlarge and reduce', 'التكبير والتصغير', 'Ampliar y reducir'), desc: t('Longueurs × k, aires × k².', 'Lengths × k, areas × k².', 'الأطوال × k، المساحات × k².', 'Longitudes × k, áreas × k².') },
-  { id: 'trigo-vocabulary', chapter: 'trigo', build: trigoVocabulary, title: t('Opposé, adjacent, hypoténuse', 'Opposite, adjacent, hypotenuse', 'المقابل، المجاور، الوتر', 'Opuesto, contiguo, hipotenusa'), desc: t('Nommer les côtés selon l’angle.', 'Name the sides from the angle.', 'تسمية الأضلاع حسب الزاوية.', 'Nombrar los lados según el ángulo.') },
-  { id: 'trigo-choose', chapter: 'trigo', build: trigoChoose, title: t('Choisir cos, sin ou tan', 'Choose cos, sin or tan', 'اختيار cos أو sin أو tan', 'Elegir cos, sen o tan'), desc: t('Selon ce qu’on connaît et ce qu’on cherche.', 'From what we know and what we want.', 'حسب المعطى والمطلوب.', 'Según lo que conocemos y buscamos.') },
-  { id: 'trigo-length', chapter: 'trigo', build: trigoLength, title: t('Calculer une longueur', 'Find a length', 'حساب طول', 'Calcular una longitud'), desc: t('Multiplier ou diviser par le cosinus.', 'Multiply or divide by the cosine.', 'الضرب أو القسمة على جيب التمام.', 'Multiplicar o dividir por el coseno.') },
-  { id: 'trigo-angle', chapter: 'trigo', build: trigoAngle, title: t('Calculer un angle', 'Find an angle', 'حساب زاوية', 'Calcular un ángulo'), desc: t('Avec cos⁻¹, sin⁻¹ ou tan⁻¹.', 'With cos⁻¹, sin⁻¹ or tan⁻¹.', 'باستعمال cos⁻¹ أو sin⁻¹ أو tan⁻¹.', 'Con cos⁻¹, sen⁻¹ o tan⁻¹.') },
-  { id: 'inscribed-recognise', chapter: 'inscribed', build: inscribedRecognise, title: t('Reconnaître les angles', 'Recognise the angles', 'التعرف على الزوايا', 'Reconocer los ángulos'), desc: t('Inscrit, au centre, arc intercepté.', 'Inscribed, central, intercepted arc.', 'محيطية، مركزية، القوس المحصور.', 'Inscrito, central, arco abarcado.') },
-  { id: 'inscribed-property', chapter: 'inscribed', build: inscribedProperty, title: t('La propriété', 'The property', 'الخاصية', 'La propiedad'), desc: t('Inscrit = moitié de l’angle au centre.', 'Inscribed = half the central angle.', 'المحيطية = نصف المركزية.', 'Inscrito = mitad del central.') },
-  { id: 'inscribed-same-arc', chapter: 'inscribed', build: inscribedSameArc, title: t('Même arc, demi-cercle', 'Same arc, semicircle', 'نفس القوس، نصف الدائرة', 'Mismo arco, semicírculo'), desc: t('Angles égaux ; angle droit dans un demi-cercle.', 'Equal angles; right angle in a semicircle.', 'زوايا متساوية؛ زاوية قائمة في نصف دائرة.', 'Ángulos iguales; ángulo recto en un semicírculo.') },
+const GEOMETRY_SKILLS: Skill[] = [
+  { id: 'pyth-recognise', review: 0, chapter: 'pythagoras', build: pythRecognise, title: t('Reconnaître un triangle rectangle', 'Recognise a right triangle', 'التعرف على مثلث قائم', 'Reconocer un triángulo rectángulo'), desc: t('L’équerre, l’angle droit, l’hypoténuse.', 'Set square, right angle, hypotenuse.', 'الكوس، الزاوية القائمة، الوتر.', 'Escuadra, ángulo recto, hipotenusa.') },
+  { id: 'pyth-discover', review: 2, chapter: 'pythagoras', build: pythDiscover, title: t('Découvrir l’égalité', 'Discover the equality', 'اكتشاف المتساوية', 'Descubrir la igualdad'), desc: t('Remplir le grand carré avec les deux petits.', 'Fill the big square with the two small ones.', 'ملء المربع الكبير بالمربعين الصغيرين.', 'Llenar el cuadrado grande con los dos pequeños.') },
+  { id: 'pyth-compute', review: 5, chapter: 'pythagoras', build: pythCompute, title: t('Calculer une longueur', 'Find a length', 'حساب طول', 'Calcular una longitud'), desc: t('L’hypoténuse ou un autre côté.', 'The hypotenuse or another side.', 'الوتر أو ضلع آخر.', 'La hipotenusa u otro lado.') },
+  { id: 'pyth-converse', review: -1, chapter: 'pythagoras', build: pythConverse, title: t('La réciproque', 'The converse', 'المبرهنة العكسية', 'El recíproco'), desc: t('Prouver qu’un triangle est rectangle… ou pas.', 'Prove a triangle is right-angled… or not.', 'إثبات أن مثلثًا قائم… أو لا.', 'Probar que un triángulo es rectángulo… o no.') },
+  { id: 'pyth-problem', review: -1, chapter: 'pythagoras', build: pythProblem, title: t('Problème en situation', 'Real-life problem', 'مسألة من الحياة', 'Problema contextualizado'), desc: t('Échelle, écran, raccourci.', 'Ladder, screen, shortcut.', 'سلم، شاشة، طريق مختصر.', 'Escalera, pantalla, atajo.') },
+  { id: 'thales-recognise', review: 0, chapter: 'thales', build: thalesRecognise, title: t('Reconnaître la configuration', 'Recognise the configuration', 'التعرف على التشكيل', 'Reconocer la configuración'), desc: t('Triangle emboîté ou papillon.', 'Nested triangles or butterfly.', 'مثلث متداخل أو فراشة.', 'Triángulos encajados o mariposa.') },
+  { id: 'thales-equality', review: 1, chapter: 'thales', build: thalesEquality, title: t('Écrire l’égalité', 'Write the equality', 'كتابة المتساوية', 'Escribir la igualdad'), desc: t('Les trois rapports qui se correspondent.', 'The three matching ratios.', 'النسب الثلاث المتوافقة.', 'Las tres razones que se corresponden.') },
+  { id: 'thales-compute', review: 3, chapter: 'thales', build: thalesCompute, title: t('Calculer une longueur', 'Find a length', 'حساب طول', 'Calcular una longitud'), desc: t('Produit en croix, aussi en papillon.', 'Cross-multiplying, butterfly too.', 'الجداء التقاطعي، والفراشة أيضًا.', 'Producto cruzado, también en mariposa.') },
+  { id: 'thales-converse', review: 2, chapter: 'thales', build: thalesConverse, title: t('La réciproque', 'The converse', 'المبرهنة العكسية', 'El recíproco'), desc: t('Prouver que deux droites sont parallèles… ou pas.', 'Prove two lines are parallel… or not.', 'إثبات أن مستقيمين متوازيان… أو لا.', 'Probar que dos rectas son paralelas… o no.') },
+  { id: 'thales-scale', review: 0, chapter: 'thales', build: thalesScale, title: t('Agrandir et réduire', 'Enlarge and reduce', 'التكبير والتصغير', 'Ampliar y reducir'), desc: t('Longueurs × k, aires × k².', 'Lengths × k, areas × k².', 'الأطوال × k، المساحات × k².', 'Longitudes × k, áreas × k².') },
+  { id: 'trigo-vocabulary', review: 1, chapter: 'trigo', build: trigoVocabulary, title: t('Opposé, adjacent, hypoténuse', 'Opposite, adjacent, hypotenuse', 'المقابل، المجاور، الوتر', 'Opuesto, contiguo, hipotenusa'), desc: t('Nommer les côtés selon l’angle.', 'Name the sides from the angle.', 'تسمية الأضلاع حسب الزاوية.', 'Nombrar los lados según el ángulo.') },
+  { id: 'trigo-choose', review: 0, chapter: 'trigo', build: trigoChoose, title: t('Choisir cos, sin ou tan', 'Choose cos, sin or tan', 'اختيار cos أو sin أو tan', 'Elegir cos, sen o tan'), desc: t('Selon ce qu’on connaît et ce qu’on cherche.', 'From what we know and what we want.', 'حسب المعطى والمطلوب.', 'Según lo que conocemos y buscamos.') },
+  { id: 'trigo-length', review: 2, chapter: 'trigo', build: trigoLength, title: t('Calculer une longueur', 'Find a length', 'حساب طول', 'Calcular una longitud'), desc: t('Multiplier ou diviser par le cosinus.', 'Multiply or divide by the cosine.', 'الضرب أو القسمة على جيب التمام.', 'Multiplicar o dividir por el coseno.') },
+  { id: 'trigo-angle', review: 2, chapter: 'trigo', build: trigoAngle, title: t('Calculer un angle', 'Find an angle', 'حساب زاوية', 'Calcular un ángulo'), desc: t('Avec cos⁻¹, sin⁻¹ ou tan⁻¹.', 'With cos⁻¹, sin⁻¹ or tan⁻¹.', 'باستعمال cos⁻¹ أو sin⁻¹ أو tan⁻¹.', 'Con cos⁻¹, sen⁻¹ o tan⁻¹.') },
+  { id: 'inscribed-recognise', review: -1, chapter: 'inscribed', build: inscribedRecognise, title: t('Reconnaître les angles', 'Recognise the angles', 'التعرف على الزوايا', 'Reconocer los ángulos'), desc: t('Inscrit, au centre, arc intercepté.', 'Inscribed, central, intercepted arc.', 'محيطية، مركزية، القوس المحصور.', 'Inscrito, central, arco abarcado.') },
+  { id: 'inscribed-property', review: 2, chapter: 'inscribed', build: inscribedProperty, title: t('La propriété', 'The property', 'الخاصية', 'La propiedad'), desc: t('Inscrit = moitié de l’angle au centre.', 'Inscribed = half the central angle.', 'المحيطية = نصف المركزية.', 'Inscrito = mitad del central.') },
+  { id: 'inscribed-same-arc', review: 2, chapter: 'inscribed', build: inscribedSameArc, title: t('Même arc, demi-cercle', 'Same arc, semicircle', 'نفس القوس، نصف الدائرة', 'Mismo arco, semicírculo'), desc: t('Angles égaux ; angle droit dans un demi-cercle.', 'Equal angles; right angle in a semicircle.', 'زوايا متساوية؛ زاوية قائمة في نصف دائرة.', 'Ángulos iguales; ángulo recto en un semicírculo.') },
 ];
 
+export const SKILLS: Skill[] = [...GEOMETRY_SKILLS, ...NUMBER_SKILLS];
 export const skillsFor = (chapter: FigureKind) => SKILLS.filter(s => s.chapter === chapter);
 export const getSkill = (id: string) => SKILLS.find(s => s.id === id) ?? null;
 export const skillNotion = (skill: Skill): NotionId => FIGURE_NOTIONS[skill.chapter][0]!;
+/** L'étape d'une activité reprise dans les mini-contrôles. */
+export const reviewStep = (skill: Skill, seed: number): Step => { const steps = skill.build(seed).steps; return steps.at(skill.review)!; };
 
-export type SkillStatus = 'mastered' | 'started' | 'todo';
-/** Acquis : au moins une fois toutes les étapes réussies du premier coup ; commencé : tenté. */
-export function skillStatus(attempts: { skill?: string | undefined; correct: number; total: number }[], id: string): SkillStatus {
+// ───────────── Acquis, à revoir, mini-contrôles ─────────────
+
+export type SkillStatus = 'mastered' | 'started' | 'review' | 'todo';
+type SkillAttempt = { skill?: string | undefined; review?: boolean | undefined; correct: number; total: number; date: string };
+const DAY = 86400000;
+/** Premier mini-contrôle 3 jours après l'acquisition, puis l'écart double à chaque réussite (au plus 30 jours). */
+export const REVIEW_DAYS = 3;
+export type SkillState = { status: SkillStatus; due: boolean; since: string | null; reviews: number };
+
+/**
+ * Acquis : une activité complète réussie du premier coup. Un mini-contrôle raté fait passer la compétence
+ * « à revoir » jusqu'à la prochaine activité complète sans faute. Les tentatives sont dans l'ordre chronologique.
+ */
+export function skillState(attempts: SkillAttempt[], id: string, now = Date.now()): SkillState {
   const mine = attempts.filter(a => a.skill === id);
-  if (mine.some(a => a.correct === a.total)) return 'mastered';
-  return mine.length ? 'started' : 'todo';
+  let mastered = false, failed = false, since: string | null = null, reviews = 0;
+  for (const a of mine) {
+    const perfect = a.correct === a.total;
+    if (!a.review) { if (perfect) { mastered = true; failed = false; since = a.date; reviews = 0; } }
+    else if (perfect) { if (mastered) { reviews++; since = a.date; } }
+    else { mastered = false; failed = true; }
+  }
+  const status: SkillStatus = mastered ? 'mastered' : failed ? 'review' : mine.length ? 'started' : 'todo';
+  const wait = Math.min(30, REVIEW_DAYS * 2 ** reviews) * DAY;
+  return { status, due: mastered && since !== null && now - Date.parse(since) >= wait, since, reviews };
+}
+export const skillStatus = (attempts: SkillAttempt[], id: string): SkillStatus => skillState(attempts, id).status;
+
+/** Les compétences à revérifier, la plus anciennement validée d'abord (au plus `max`). */
+export function dueReviews(attempts: SkillAttempt[], now = Date.now(), max = 4): Skill[] {
+  return SKILLS
+    .map(s => ({ s, st: skillState(attempts, s.id, now) }))
+    .filter(x => x.st.due)
+    .sort((a, b) => Date.parse(a.st.since!) - Date.parse(b.st.since!))
+    .slice(0, max).map(x => x.s);
 }
 

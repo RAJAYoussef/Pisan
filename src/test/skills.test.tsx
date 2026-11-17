@@ -1,23 +1,28 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { anglesOf, chipsOk, getSkill, numberOk, SKILLS, skillsFor, skillStatus, sentenceOk, type Activity, type Blank, type Step } from '@/lib/skills';
+import { VEC_RE, anglesOf, chipsOk, dueReviews, getSkill, numberOk, reviewStep, SKILLS, skillsFor, skillState, skillStatus, sentenceOk, type Activity, type Blank, type Step } from '@/lib/skills';
 import { chapterSkillKinds, FIGURE_KINDS } from '@/lib/figures';
 import { programmeFor } from '@/lib/programmes';
-import { SkillActivity } from '@/components/pisan/skills';
+import { ReviewActivity, Rich, SkillActivity } from '@/components/pisan/skills';
+import { spoken, vec } from '@/lib/skills';
+import { ClassSkills, classSkillKinds } from '@/components/pisan/teacher-skills';
+import { blockingSkills } from '@/lib/classroom';
 import type { L } from '@/lib/curriculum';
 
 const LANGS = ['fr', 'en', 'ar', 'es'] as const;
+/** Nom accessible d'un texte : les vecteurs ⟦AB⟧ se lisent « vecteur AB ». */
+const named = (text: string) => text.replace(VEC_RE, 'vecteur $1');
 const filled = (l: L) => LANGS.every(k => l[k].trim().length > 0);
 /** La réponse qu'un élève taperait : arrondie comme demandé par l'énoncé. */
 const typed = (step: Extract<Step, { type: 'number' }>) => {
   const digits = step.tolerance >= 0.05 ? 1 : step.tolerance > 1e-5 ? 2 : 6;
   return String(Math.round(step.answer * 10 ** digits) / 10 ** digits).replace('.', ',');
 };
-const chipsSolution = (step: Extract<Step, { type: 'chips' }>) => step.groups.flatMap((g, i) => [...(i ? ['='] : []), ...g.flatMap((tok, j) => j ? ['+', tok] : [tok])]);
+const chipsSolution = (step: Extract<Step, { type: 'chips' }>) => step.ordered ? step.groups[0]! : step.groups.flatMap((g, i) => [...(i ? ['='] : []), ...g.flatMap((tok, j) => j ? ['+', tok] : [tok])]);
 
 describe('Parcours de compétences : contenu', () => {
-  it('covers the four chapters with the agreed skills', () => {
-    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3]);
+  it('covers the seven chapters with the agreed skills', () => {
+    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4]);
     expect(new Set(SKILLS.map(s => s.id)).size).toBe(SKILLS.length);
     for (const s of SKILLS) { expect(s.id).toMatch(/^[a-z]+(-[a-z]+){1,2}$/); expect(filled(s.title) && filled(s.desc)).toBe(true); }
   });
@@ -38,7 +43,7 @@ describe('Parcours de compétences : contenu', () => {
         switch (step.type) {
           case 'choice': expect(step.options[step.answer]).toBeTruthy(); step.options.forEach(o => expect(filled(o)).toBe(true)); break;
           case 'tap': expect([...step.scene.segments.filter(s => s.tappable).map(s => s.id), ...(step.scene.arcs ?? []).filter(x => x.tappable).map(x => x.id)]).toContain(step.answer); break;
-          case 'chips': expect(chipsOk(chipsSolution(step), step.groups), `${skill.id} #${seed}`).toBe(true); for (const tok of chipsSolution(step)) expect(step.tokens).toContain(tok); break;
+          case 'chips': expect(chipsOk(chipsSolution(step), step.groups, step.ordered), `${skill.id} #${seed}`).toBe(true); if (step.ordered) expect(chipsOk([...step.tokens], step.groups, true) && step.tokens.join() !== step.groups[0]!.join()).toBe(false); for (const tok of chipsSolution(step)) expect(step.tokens).toContain(tok); break;
           case 'number': expect(numberOk(typed(step), step.answer, step.tolerance), `${skill.id} #${seed} ${typed(step)}`).toBe(true); break;
           case 'sentence': {
             const blanks = step.parts.filter((p): p is Blank => 'options' in p);
@@ -46,7 +51,20 @@ describe('Parcours de compétences : contenu', () => {
             expect(sentenceOk(step.parts, blanks.map(b => (b.answer[0]! + 1) % b.options.length))).toBe(false);
             break;
           }
-          case 'widget': break;
+          case 'grid': {
+            const g = step.scene.grid;
+            for (const p of [step.start, step.answer]) expect(p.x >= g.minX && p.x <= g.maxX && p.y >= g.minY && p.y <= g.maxY, `${skill.id} #${seed}`).toBe(true);
+            expect(step.answer.x !== step.start.x || step.answer.y !== step.start.y).toBe(true);
+            break;
+          }
+          case 'widget':
+            if (step.widget.kind === 'line') {
+              const { a, b, A, B } = step.widget;
+              expect(Number.isInteger(a * 2) && Math.abs(a) <= 3 && Number.isInteger(b) && Math.abs(b) <= 5).toBe(true);
+              expect(A.y).toBe(a * A.x + b); expect(B.y).toBe(a * B.x + b); expect(A.x).not.toBe(B.x);
+            }
+            if (step.widget.kind === 'level') expect(step.widget.values.reduce((t, v) => t + v, 0) % step.widget.values.length).toBe(0);
+            break;
         }
       }
     }
@@ -104,17 +122,52 @@ describe('Vérifications', () => {
     expect(numberOk('x', 1, 1)).toBe(false);
   });
   it('a skill is mastered once all its steps were right at the first try', () => {
+    const at = (skill: string | undefined, correct: number, total: number, date = '2026-11-01T10:00:00Z', review?: boolean) => ({ skill, correct, total, date, review });
     expect(skillStatus([], 'pyth-compute')).toBe('todo');
-    expect(skillStatus([{ skill: 'pyth-compute', correct: 4, total: 6 }], 'pyth-compute')).toBe('started');
-    expect(skillStatus([{ skill: 'pyth-compute', correct: 4, total: 6 }, { skill: 'pyth-compute', correct: 6, total: 6 }], 'pyth-compute')).toBe('mastered');
-    expect(skillStatus([{ correct: 1, total: 1 }], 'pyth-compute')).toBe('todo');
+    expect(skillStatus([at('pyth-compute', 4, 6)], 'pyth-compute')).toBe('started');
+    expect(skillStatus([at('pyth-compute', 4, 6), at('pyth-compute', 6, 6)], 'pyth-compute')).toBe('mastered');
+    expect(skillStatus([at(undefined, 1, 1)], 'pyth-compute')).toBe('todo');
+  });
+});
+
+describe('Mini-contrôles', () => {
+  const day = (d: number) => new Date(Date.UTC(2026, 10, d, 10)).toISOString();
+  const now = (d: number) => Date.UTC(2026, 10, d, 12);
+  const full = (d: number, ok = true) => ({ skill: 'pyth-compute', correct: ok ? 6 : 4, total: 6, date: day(d) });
+  const quick = (d: number, ok: boolean) => ({ skill: 'pyth-compute', correct: ok ? 1 : 0, total: 1, date: day(d), review: true });
+  it('a mastered skill comes back 3 days later, then 6, 12… after each success', () => {
+    expect(skillState([full(1)], 'pyth-compute', now(3)).due).toBe(false);
+    expect(skillState([full(1)], 'pyth-compute', now(4)).due).toBe(true);
+    expect(skillState([full(1), quick(4, true)], 'pyth-compute', now(9)).due).toBe(false);
+    expect(skillState([full(1), quick(4, true)], 'pyth-compute', now(10)).due).toBe(true);
+    expect(skillState([full(1), quick(4, true), quick(10, true)], 'pyth-compute', now(21)).due).toBe(false);
+    expect(skillState([full(1), quick(4, true), quick(10, true)], 'pyth-compute', now(22)).due).toBe(true);
+  });
+  it('a failed quick check makes the skill « à revoir » until a full pathway is perfect again', () => {
+    expect(skillStatus([full(1), quick(4, false)], 'pyth-compute')).toBe('review');
+    expect(skillState([full(1), quick(4, false)], 'pyth-compute', now(30)).due).toBe(false);
+    expect(skillStatus([full(1), quick(4, false), full(5, false)], 'pyth-compute')).toBe('review');
+    expect(skillStatus([full(1), quick(4, false), full(5)], 'pyth-compute')).toBe('mastered');
+    expect(skillStatus([quick(4, true)], 'pyth-compute')).toBe('started');
+  });
+  it('lists the oldest mastered skills first, at most four', () => {
+    const attempts = ['vec-sum', 'stats-mean', 'pyth-compute', 'trigo-angle', 'affine-image'].map((skill, i) => ({ skill, correct: 3, total: 3, date: day(1 + i) }));
+    expect(dueReviews(attempts, now(20)).map(s => s.id)).toEqual(['vec-sum', 'stats-mean', 'pyth-compute', 'trigo-angle']);
+    expect(dueReviews(attempts, now(2))).toEqual([]);
+  });
+  it('every review step stands on its own and can be answered', () => {
+    for (const skill of SKILLS) for (let seed = 0; seed < 20; seed++) {
+      const step = reviewStep(skill, seed);
+      expect(step.type, skill.id).not.toBe('widget');
+      expect(step.prompt.fr.length, skill.id).toBeGreaterThan(8);
+    }
   });
 });
 
 describe('Chapitres du programme', () => {
   it('Maroc 3AC : Pythagore, Thalès, trigonométrie et angles inscrits chacun dans son chapitre', () => {
     const kinds = programmeFor('ma', 2)!.chapters.flatMap(chapterSkillKinds);
-    expect(new Set(kinds)).toEqual(new Set(['thales', 'trigo', 'inscribed']));
+    expect(new Set(kinds)).toEqual(new Set(['thales', 'trigo', 'inscribed', 'vectors', 'affine', 'stats']));
   });
   it('Côte d’Ivoire 3e : le chapitre « Triangle rectangle » donne Pythagore et la trigonométrie', () => {
     const chapter = programmeFor('ci', 3)!.chapters.find(c => c.title.fr.includes('Triangle rectangle'))!;
@@ -127,14 +180,14 @@ describe('Chapitres du programme', () => {
 function solveOnScreen(activity: Activity) {
   activity.steps.forEach((step, i) => {
     switch (step.type) {
-      case 'choice': fireEvent.click(screen.getByRole('button', { name: step.options[step.answer]!.fr })); break;
+      case 'choice': fireEvent.click(screen.getByRole('button', { name: named(step.options[step.answer]!.fr) })); break;
       case 'tap': {
         const arc = step.scene.arcs?.find(a => a.id === step.answer);
         fireEvent.keyDown(screen.getByRole('button', { name: arc ? `Arc ${arc.text}` : `[${step.answer}]` }), { key: 'Enter' });
         break;
       }
       case 'chips':
-        for (const tok of chipsSolution(step)) fireEvent.click(screen.getAllByRole('button', { name: tok }).find(b => !(b as HTMLButtonElement).disabled)!);
+        for (const tok of chipsSolution(step)) fireEvent.click(screen.getAllByRole('button', { name: named(tok) }).find(b => !(b as HTMLButtonElement).disabled)!);
         fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
         break;
       case 'number':
@@ -145,7 +198,21 @@ function solveOnScreen(activity: Activity) {
         step.parts.filter((p): p is Blank => 'options' in p).forEach((b, k) => fireEvent.change(screen.getByLabelText(`Trou ${k + 1}`), { target: { value: String(b.answer[0]) } }));
         fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
         break;
+      case 'grid': {
+        const h = screen.getByRole('slider', { name: step.label });
+        const dx = step.answer.x - step.start.x, dy = step.answer.y - step.start.y;
+        for (let k = 0; k < Math.abs(dx); k++) fireEvent.keyDown(h, { key: dx > 0 ? 'ArrowRight' : 'ArrowLeft' });
+        for (let k = 0; k < Math.abs(dy); k++) fireEvent.keyDown(h, { key: dy > 0 ? 'ArrowUp' : 'ArrowDown' });
+        fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
+        break;
+      }
       case 'widget':
+        if (step.widget.kind === 'line') { fireEvent.change(screen.getByLabelText(/^a = /), { target: { value: String(step.widget.a) } }); fireEvent.change(screen.getByLabelText(/^b = /), { target: { value: String(step.widget.b) } }); }
+        if (step.widget.kind === 'level') {
+          const v = step.widget.values, mean = v.reduce((t, x) => t + x, 0) / v.length;
+          v.forEach((x, k) => { for (let n = 0; n < x - mean; n++) fireEvent.click(screen.getByRole('button', { name: `Prendre un cube de la colonne ${k + 1}` })); });
+          v.forEach((x, k) => { for (let n = 0; n < mean - x; n++) fireEvent.click(screen.getByRole('button', { name: `Poser un cube sur la colonne ${k + 1}` })); });
+        }
         if (step.widget.kind === 'squares') { fireEvent.change(screen.getByLabelText(/Angle en A/), { target: { value: '90' } }); fireEvent.click(screen.getByRole('button', { name: 'Verser les carreaux' })); }
         if (step.widget.kind === 'thales') { const m = screen.getByRole('slider', { name: 'M' }); for (let v = 1; v < step.widget.problem.am; v++) fireEvent.keyDown(m, { key: 'ArrowRight' }); }
         if (step.widget.kind === 'inscribed') { const m = screen.getByRole('slider', { name: 'M' }); for (let k = 0; k < 14; k++) fireEvent.keyDown(m, { key: 'ArrowRight' }); }
@@ -199,5 +266,66 @@ describe('Parcours à l’écran', () => {
     expect(container.querySelector('.skill-equerre')).toBeTruthy();
     expect(within(container).getAllByRole('button', { name: /Oui, en|Non/ }).length).toBe(4);
     vi.restoreAllMocks();
+  });
+});
+
+describe('Mini-contrôle à l’écran', () => {
+  it('asks one step per skill and records each skill separately', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(5);
+    const onSave = vi.fn(async () => {});
+    const skills = [getSkill('stats-median')!, getSkill('vec-sum')!];
+    render(<ReviewActivity lang="fr" skills={skills} onSave={onSave} onBack={() => {}} />);
+    // 1re question ratée d'abord : l'indice s'affiche
+    const first = reviewStep(skills[0]!, 5);
+    if (first.type !== 'number') throw new Error(first.type);
+    fireEvent.change(screen.getByLabelText('Ta réponse'), { target: { value: '999' } });
+    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
+    expect(screen.getByText(first.hint.fr)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Ta réponse'), { target: { value: typed(first) } });
+    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Question suivante/ }));
+    const second = reviewStep(skills[1]!, 12);
+    if (second.type !== 'grid') throw new Error(second.type);
+    const h = screen.getByRole('slider', { name: 'D' });
+    const dx = second.answer.x - second.start.x, dy = second.answer.y - second.start.y;
+    for (let k = 0; k < Math.abs(dx); k++) fireEvent.keyDown(h, { key: dx > 0 ? 'ArrowRight' : 'ArrowLeft' });
+    for (let k = 0; k < Math.abs(dy); k++) fireEvent.keyDown(h, { key: dy > 0 ? 'ArrowUp' : 'ArrowDown' });
+    fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Terminer/ }));
+    expect(await screen.findByText('Quelques compétences sont à revoir.')).toBeTruthy();
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ skill: 'stats-median', review: true, correct: 0, total: 1, notion: 'statistics' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ skill: 'vec-sum', review: true, correct: 1, total: 1, notion: 'vectors' }));
+    vi.restoreAllMocks();
+  });
+});
+
+describe('Vue professeur', () => {
+  const student = (id: string, attempts: { skill: string; correct: number; total: number; review?: boolean }[]) => ({ id, profile: { nickname: id, country: 'ma', grade: 2, lang: 'fr' as const }, last_active_at: '2026-11-01', dys_default: null, progress: { unlocked: [], attempts: attempts.map(a => ({ kind: 'workshop' as const, notion: 'vectors' as const, date: '2026-11-01T10:00:00Z', minutes: 5, ...a })) } });
+  it('the class programme gives its pathways', () => {
+    expect(classSkillKinds('ma', 2)).toEqual(['pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'affine', 'stats']);
+    expect(classSkillKinds('fr', 0)).toEqual([]);
+  });
+  it('flags a skill when at least two students are stuck on it', () => {
+    const students = [student('a', [{ skill: 'vec-sum', correct: 2, total: 4 }]), student('b', [{ skill: 'vec-sum', correct: 4, total: 4 }, { skill: 'vec-sum', correct: 0, total: 1, review: true }]), student('c', [{ skill: 'vec-sum', correct: 4, total: 4 }])];
+    expect(blockingSkills(students, ['vectors']).map(b => [b.skill.id, b.count])).toEqual([['vec-sum', 2]]);
+  });
+  it('shows a students × skills table with the status of each cell', () => {
+    const students = [student('Nora', [{ skill: 'vec-sum', correct: 4, total: 4 }])];
+    render(<ClassSkills lang="fr" students={students} kinds={['vectors']} />);
+    const row = screen.getByRole('row', { name: /Nora/ });
+    expect(within(row).getAllByText('Acquis').length).toBe(1);
+    expect(within(row).getAllByText('Pas encore fait').length).toBe(4);
+  });
+});
+
+describe('Écriture des vecteurs', () => {
+  it('draws the arrow over the letters and reads « vecteur AB »', () => {
+    const { container } = render(<p><Rich lang="fr" text={`${vec('AB')} + ${vec('BC')} = ${vec('AC')}`} /></p>);
+    expect(container.querySelectorAll('.vec').length).toBe(3);
+    expect(container.textContent).toBe('vecteur AB + vecteur BC = vecteur AC');
+    expect(spoken(`${vec('AB')} = ${vec('CD')}`, 'en')).toBe('vector AB = vector CD');
+  });
+  it('no vector text is left with the old combining arrow', () => {
+    for (const skill of SKILLS) expect(JSON.stringify(skill.build(1)).includes('\u20d7') || JSON.stringify(skill.build(1)).includes('⃗')).toBe(false);
   });
 });

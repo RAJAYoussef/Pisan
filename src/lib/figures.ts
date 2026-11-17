@@ -6,11 +6,14 @@ import { seeded } from './exercises';
 import type { L, NotionId } from './curriculum';
 import type { Programme } from './programmes';
 
-export type FigureKind = 'pythagoras' | 'thales' | 'trigo' | 'inscribed';
-export const FIGURE_KINDS: FigureKind[] = ['pythagoras', 'thales', 'trigo', 'inscribed'];
-export const FIGURE_NOTIONS: Record<FigureKind, NotionId[]> = { pythagoras: ['pythagoras-thales'], thales: ['pythagoras-thales'], trigo: ['trigonometry'], inscribed: ['geometry'] };
-/** Mots de l'intitulé officiel du chapitre qui correspond à chaque figure (Pythagore et Thalès partagent une notion, les angles inscrits aussi avec d'autres chapitres de géométrie). */
-export const FIGURE_CHAPTER_WORDS: Record<FigureKind, string[]> = { pythagoras: ['Pythagore', 'Triangle rectangle'], thales: ['Thalès'], trigo: ['Trigonométrie', 'trigonométriques', 'Triangle rectangle'], inscribed: ['inscrits'] };
+/** Chapitres qui ont un parcours de compétences (src/lib/skills.ts). Les quatre premiers ont aussi des figures à manipuler. */
+export type FigureKind = 'pythagoras' | 'thales' | 'trigo' | 'inscribed' | 'vectors' | 'affine' | 'stats';
+export const FIGURE_KINDS: FigureKind[] = ['pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'affine', 'stats'];
+export const FIGURE_NOTIONS: Record<FigureKind, NotionId[]> = { pythagoras: ['pythagoras-thales'], thales: ['pythagoras-thales'], trigo: ['trigonometry'], inscribed: ['geometry'], vectors: ['vectors'], affine: ['functions'], stats: ['statistics'] };
+/** Mots de l'intitulé officiel du chapitre qui correspond à chaque parcours (plusieurs chapitres partagent une notion). */
+export const FIGURE_CHAPTER_WORDS: Record<FigureKind, string[]> = { pythagoras: ['Pythagore', 'Triangle rectangle'], thales: ['Thalès'], trigo: ['Trigonométrie', 'trigonométriques', 'Triangle rectangle'], inscribed: ['inscrits'], vectors: ['Vecteur', 'vecteur'], affine: ['affines', 'Fonctions linéaires'], stats: ['Statistiques'] };
+/** Parcours dont la notion est partagée avec d'autres chapitres : on exige l'intitulé officiel. */
+const NEEDS_TITLE: FigureKind[] = ['inscribed', 'vectors', 'affine', 'stats'];
 /** Taille du quadrillage (en carreaux) : les points se placent sur des nœuds entiers de 0 à GRID. */
 export const GRID = 12;
 
@@ -63,7 +66,7 @@ export function inscribedProblem(seed: number): InscribedProblem {
   return { kind: 'inscribed', central, askCentral, askInscribed: pick([25, 35, 40, 55, 65]) };
 }
 
-export function figureProblem(kind: FigureKind, seed: number): FigureProblem {
+export function figureProblem(kind: FigureProblem['kind'], seed: number): FigureProblem {
   switch (kind) {
     case 'pythagoras': return pythagorasProblem(seed);
     case 'thales': return thalesProblem(seed);
@@ -140,13 +143,13 @@ export function figureChapter(programme: Programme | null | undefined, kind: Fig
  */
 export function figuresFor(programme: Programme | null | undefined, notions: NotionId[] | undefined, level: number): FigureKind[] {
   return FIGURE_KINDS.filter(k => {
-    if (!notions) return k === 'inscribed' ? level === 3 : level >= 2 && level <= 4;
-    if (k === 'inscribed') return figureChapter(programme, k) !== null;
+    if (!notions) return k === 'inscribed' || k === 'vectors' || k === 'affine' ? level === 3 : k === 'stats' ? level >= 1 && level <= 3 : level >= 2 && level <= 4;
+    if (NEEDS_TITLE.includes(k)) return figureChapter(programme, k) !== null;
     return FIGURE_NOTIONS[k].some(n => notions.includes(n));
   });
 }
 
 /** Les parcours de compétences qui correspondent à un chapitre (titre officiel + notions). */
 export function chapterSkillKinds(chapter: { title: L; notions: NotionId[] }): FigureKind[] {
-  return FIGURE_KINDS.filter(k => chapter.notions.some(n => FIGURE_NOTIONS[k].includes(n)) && FIGURE_CHAPTER_WORDS[k].some(w => chapter.title.fr.includes(w)));
+  return FIGURE_KINDS.filter(k => chapter.notions.some(n => FIGURE_NOTIONS[k].includes(n)) && FIGURE_CHAPTER_WORDS[k].some(w => chapter.title.fr.includes(w)) && !chapter.title.fr.includes('espace'));
 }
