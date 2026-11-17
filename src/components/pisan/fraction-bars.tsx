@@ -49,7 +49,10 @@ export function FractionBars({ lang, left, right, locked = false, onDiagnosis, o
     const rightRepresented = rightShade.length === right.n;
     const correct = leftRepresented && rightRepresented && relation === expectedRelation;
     const task: FractionTask = { kind: 'compare', left, right, relation: expectedRelation };
-    const diagnosis = analyzeFractionResponse(task, relation ?? '');
+    const rawDiagnosis = analyzeFractionResponse(task, relation ?? '');
+    const diagnosis: FractionDiagnosis = leftRepresented && rightRepresented
+      ? rawDiagnosis
+      : { ...rawDiagnosis, correct: false, confidence: 'low', evidence: 'La représentation ne montre pas encore le bon nombre de parts coloriées dans chaque bande.', remediation: 'visualise-parts' };
     setDiagnosis(diagnosis);
     onDiagnosis?.(diagnosis);
     setFeedback(correct ? 'correct' : 'incorrect');
