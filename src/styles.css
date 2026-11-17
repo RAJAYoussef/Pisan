@@ -731,3 +731,23 @@ nav + .sidebar-label { margin-top: 28px; }
 .account-confirm { padding: 12px; border: 2px solid var(--destructive); border-radius: 12px; background: color-mix(in oklab, var(--destructive) 8%, var(--card)); }
 .profile-button { height: 40px; gap: 6px; padding-inline: 10px; font-weight: 700; }
 .profile-button svg { width: 22px; height: 22px; }
+
+/* Logo PiSan (src/components/pisan/brand.tsx) */
+:root { --brand-p: #2b2f86; --brand-teal: #16a596; --brand-brown: #b8643a; --brand-yellow: #e0a812; }
+html[data-dys-bg="dark"] { --brand-p: #8f93ff; }
+.brand-mark { display: inline-flex; flex-direction: column; align-items: center; line-height: 1; }
+.brand-mascot { display: block; object-fit: contain; }
+.brand-word { display: inline-flex; flex-direction: column; align-items: center; font-family: "Lilita One", var(--font-display); font-weight: 400; letter-spacing: .01em; }
+.brand-letters { display: inline-flex; }
+.brand-letters > span { display: inline-block; }
+.brand-letters > span:nth-child(1) { color: var(--brand-p); transform: rotate(-8deg); }
+.brand-letters > span:nth-child(2) { color: var(--brand-teal); transform: translateY(-.09em); }
+.brand-letters > span:nth-child(3) { color: var(--brand-brown); transform: rotate(6deg) translateY(.04em); }
+.brand-letters > span:nth-child(4) { color: var(--brand-yellow); transform: translateY(-.06em); }
+.brand-letters > span:nth-child(5) { color: var(--brand-teal); transform: rotate(-5deg); }
+.brand-wave { display: block; width: 100%; height: .3em; margin-top: .03em; overflow: visible; }
+.brand-header .brand-mascot { width: 46px; height: 40px; }
+.brand-header .brand-word { font-size: 19px; }
+.brand-large .brand-mascot { width: 104px; height: 92px; }
+.brand-large .brand-word { font-size: 42px; }
+@media (max-width: 640px) { .brand-header .brand-mascot { width: 40px; height: 35px; } .brand-header .brand-word { font-size: 17px; } }
