@@ -89,7 +89,8 @@ export function readFractionSequence(input: FractionReasoningEvent[]): FractionS
     message: `L'élève a recommencé ${resets.length} fois.`,
     evidenceSequences: evidence(...resets),
   });
-  if (failed.length && succeeded.length && succeeded.some(s => s.sequence > failed[0]!.sequence)) observations.push({
+  const correctedAfterFailure = failed.length > 0 && succeeded.some(s => s.sequence > failed[0]!.sequence && sequence.some(e => e.sequence > failed[0]!.sequence && e.sequence < s.sequence && (e.action === 'part-toggled' || e.action === 'position-changed' || e.action === 'reset')));
+  if (correctedAfterFailure) observations.push({
     code: 'self-correction', level: 'observation',
     message: 'Après une validation incorrecte, l’élève a modifié sa construction et obtenu ensuite une validation correcte.',
     evidenceSequences: evidence(failed[0]!, ...succeeded.filter(s => s.sequence > failed[0]!.sequence)),
@@ -99,7 +100,7 @@ export function readFractionSequence(input: FractionReasoningEvent[]): FractionS
     message: `Le point a été déplacé ${moves.length} fois avant la fin de la séquence.`,
     evidenceSequences: evidence(...moves),
   });
-  if (succeeded.length) observations.push({
+  if (checks.length && checks[checks.length - 1]!.state.correct === true) observations.push({
     code: 'verification-succeeded', level: 'observation',
     message: 'La dernière validation observée est correcte.',
     evidenceSequences: evidence(succeeded[succeeded.length - 1]!),
