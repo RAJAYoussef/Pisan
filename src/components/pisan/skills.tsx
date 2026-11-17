@@ -13,6 +13,7 @@ import { InscribedFigure, ThalesFigure, inscribedRange } from './figures';
 import { Speaker, Tutor } from './shared';
 import { minusSign, Rich } from './math-text';
 import { FractionBars } from './fraction-bars';
+import { FractionAdditionLab, FractionEquivalenceLab, FractionNumberLineLab } from './fraction-labs';
 
 type Props = { lang: Lang; skill: Skill; onSave: (a: Attempt) => Promise<void>; onBack: () => void };
 
@@ -192,13 +193,16 @@ function StepView({ lang, step, solved, onAnswer }: { lang: Lang; step: Step; so
     case 'widget':
       return <>
         {step.widget.kind === 'fraction-bars' && <FractionBars lang={lang} left={step.widget.left} right={step.widget.right} locked={solved} onComplete={onAnswer} />}
+        {step.widget.kind === 'fraction-equivalence' && <FractionEquivalenceLab lang={lang} source={step.widget.source} factor={step.widget.factor} locked={solved} onComplete={onAnswer} />}
+        {step.widget.kind === 'fraction-addition' && <FractionAdditionLab lang={lang} left={step.widget.left} right={step.widget.right} locked={solved} onComplete={onAnswer} />}
+        {step.widget.kind === 'fraction-numberline' && <FractionNumberLineLab lang={lang} target={step.widget.target} locked={solved} onComplete={onAnswer} />}
         {step.widget.kind === 'line' && <LineWidget lang={lang} target={step.widget} locked={solved} onState={setWidgetOk} />}
         {step.widget.kind === 'tangent' && <TangentWidget lang={lang} target={step.widget} locked={solved} onState={setWidgetOk} />}
         {step.widget.kind === 'level' && <LevelWidget lang={lang} values={step.widget.values} locked={solved} onState={setWidgetOk} />}
         {step.widget.kind === 'squares' && <SquaresWidget lang={lang} ab={step.widget.ab} ac={step.widget.ac} locked={solved} onState={setWidgetOk} />}
         {step.widget.kind === 'thales' && <ThalesWidget lang={lang} problem={step.widget.problem} locked={solved} onState={setWidgetOk} />}
         {step.widget.kind === 'inscribed' && <InscribedWidget lang={lang} problem={step.widget.problem} locked={solved} onState={setWidgetOk} />}
-        {!solved && step.widget.kind !== 'fraction-bars' && <Button className="mt-4 w-full" onClick={() => onAnswer(widgetOk)}>{checkLabel(lang)}<ArrowRight /></Button>}
+        {!solved && !['fraction-bars', 'fraction-equivalence', 'fraction-addition', 'fraction-numberline'].includes(step.widget.kind) && <Button className="mt-4 w-full" onClick={() => onAnswer(widgetOk)}>{checkLabel(lang)}<ArrowRight /></Button>}
         {solved && <Solved lang={lang} />}
       </>;
   }
