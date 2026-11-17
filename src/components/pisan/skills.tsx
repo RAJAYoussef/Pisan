@@ -15,9 +15,10 @@ import { minusSign, Rich } from './math-text';
 import { FractionBars } from './fraction-bars';
 import { FractionAdditionLab, FractionEquivalenceLab, FractionNumberLineLab, type FractionInteractionEvent } from './fraction-labs';
 import { readFractionSequence, verifyFractionHypothesis, type FractionReasoningEvent, type FractionSequenceAnalysis, type FractionWidgetSpec } from '@/lib/fraction-reasoning';
+import { buildFractionTransferTask, evaluateFractionTransfer } from '@/lib/fraction-transfer';
 
 export type FractionInteractionContext = FractionReasoningEvent;
-type Props = { lang: Lang; skill: Skill; onSave: (a: Attempt) => Promise<void>; onBack: () => void; onFractionInteraction?: (event: FractionInteractionContext) => void; onFractionAnalysis?: (analysis: FractionSequenceAnalysis) => void; onAdaptiveSkill?: (skillId: string) => void };
+type Props = { lang: Lang; skill: Skill; onSave: (a: Attempt) => Promise<void>; onBack: () => void; onFractionInteraction?: (event: FractionInteractionContext) => void; onFractionAnalysis?: (analysis: FractionSequenceAnalysis) => void; onAdaptiveSkill?: (skillId: string | null) => void };
 
 /** Une compétence : les étapes s'enchaînent ; une étape ratée au premier essai ne compte pas comme réussie. */
 export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteraction, onFractionAnalysis, onAdaptiveSkill }: Props) {
@@ -33,6 +34,7 @@ export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteracti
   const fractionEvents = useRef<FractionReasoningEvent[]>([]);
   const [fractionAnalysis, setFractionAnalysis] = useState<FractionSequenceAnalysis | null>(null);
   const [verificationAnswers, setVerificationAnswers] = useState<Record<string, string>>({});
+  const [transferAnswers, setTransferAnswers] = useState<Record<string, string>>({});
   function recordFractionInteraction(event: FractionInteractionContext) {
     const sameSequence = fractionEvents.current.filter(item =>
       item.skillId === event.skillId && item.activitySeed === event.activitySeed &&
@@ -43,6 +45,7 @@ export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteracti
     const analysis = readFractionSequence(fractionEvents.current);
     setFractionAnalysis(analysis);
     setVerificationAnswers({});
+    setTransferAnswers({});
     onFractionAnalysis?.(analysis);
   }
   const step = activity.steps[index]!;
@@ -56,14 +59,14 @@ export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteracti
     setHint(show(step.hint));
   }
   async function next() {
-    if (index + 1 < total) { fractionEvents.current = []; setFractionAnalysis(null); setVerificationAnswers({}); setIndex(index + 1); setSolved(false); setHint(''); return; }
+    if (index + 1 < total) { fractionEvents.current = []; setFractionAnalysis(null); setVerificationAnswers({}); setTransferAnswers({}); setIndex(index + 1); setSolved(false); setHint(''); return; }
     const result = { correct: total - missed.length, total };
     setBusy(true); setSaveError('');
     try { await onSave({ kind: 'workshop', notion: skillNotion(skill), skill: skill.id, ...result, date: new Date().toISOString(), minutes: Math.min(20, total * 2) }); setDone(result); }
     catch { setSaveError(say(lang, 'Résultat non sauvegardé. Réessaie.', 'Result not saved. Try again.', 'لم تُحفظ النتيجة. حاول مجددًا.', 'Resultado no guardado. Reintenta.')); }
     finally { setBusy(false); }
   }
-  const restart = () => { fractionEvents.current = []; setFractionAnalysis(null); setVerificationAnswers({}); setSeed(s => (s * 7919 + 13) % 100000); setIndex(0); setMissed([]); setSolved(false); setHint(''); setDone(null); };
+  const restart = () => { fractionEvents.current = []; setFractionAnalysis(null); setVerificationAnswers({}); setTransferAnswers({}); setSeed(s => (s * 7919 + 13) % 100000); setIndex(0); setMissed([]); setSolved(false); setHint(''); setDone(null); };
 
   return <section className="mx-auto max-w-4xl">
     <Button variant="ghost" onClick={onBack} className="mb-4">← {say(lang, 'Retour', 'Back', 'رجوع', 'Volver')}</Button>
@@ -90,7 +93,23 @@ export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteracti
               {complete && <div className="mt-4 rounded-lg bg-muted p-3" role="status">
                 <p className="font-semibold">{diagnostic.status === 'confirmed' ? say(lang, 'Une difficulté précise semble se confirmer.', 'A specific difficulty appears to be confirmed.', 'يبدو أن صعوبة محددة قد تأكدت.', 'Parece confirmarse una dificultad concreta.') : say(lang, 'Cette difficulté n’est pas confirmée.', 'This difficulty is not confirmed.', 'لم تتأكد هذه الصعوبة.', 'Esta dificultad no está confirmada.')}</p>
                 <p className="mt-1 text-sm">{diagnostic.explanation}</p>
-                {diagnostic.status === 'confirmed' && <Button className="mt-3" onClick={() => onAdaptiveSkill?.(hypothesis.code === 'fraction-scale-one-term' ? 'frac-equivalent' : 'frac-add-subtract')}>{say(lang, 'Adapter mon prochain exercice', 'Adapt my next exercise', 'تكييف التمرين التالي', 'Adaptar mi próximo ejercicio')}<ArrowRight /></Button>}
+                {diagnostic.status === 'confirmed' && (() => {
+                  const task = buildFractionTransferTask(hypothesis.code, seed + index);
+                  const selected = transferAnswers[hypothesis.code] ?? '';
+                  const result = selected ? evaluateFractionTransfer(task, selected) : null;
+                  const transferText = result === 'transfer-success' ? task.feedback.success : result === 'error-reproduced' ? task.feedback.error : result === 'other-error' ? task.feedback.other : null;
+                  return <div className="mt-4 border-t pt-4">
+                    <p className="font-semibold">{say(lang, 'Épreuve de transfert', 'Transfer challenge', 'مهمة نقل التعلم', 'Prueba de transferencia')}</p>
+                    <p className="mt-2 text-sm">{show(task.prompt)}</p>
+                    <div className="mt-3 grid gap-2">{task.options.map(option => <Button key={option.value} type="button" variant={selected === option.value ? 'default' : 'soft'} className="h-auto min-h-10 justify-start whitespace-normal text-start" aria-pressed={selected === option.value} onClick={() => setTransferAnswers(previous => ({ ...previous, [hypothesis.code]: option.value }))}>{show(option.label)}</Button>)}</div>
+                    {transferText && <div className="mt-3 rounded-lg bg-muted p-3" role="status">
+                      <p className="text-sm">{show(transferText)}</p>
+                      {result === 'error-reproduced'
+                        ? <Button className="mt-3" onClick={() => { onAdaptiveSkill?.(hypothesis.code === 'fraction-scale-one-term' ? 'frac-equivalence-visual' : 'frac-add-visual'); onBack(); }}>{say(lang, 'Travailler cette difficulté', 'Practise this difficulty', 'تدرب على هذه الصعوبة', 'Practicar esta dificultad')}<ArrowRight /></Button>
+                        : <Button className="mt-3" variant="soft" onClick={() => { onAdaptiveSkill?.(null); onBack(); }}>{say(lang, 'Poursuivre mon parcours', 'Continue my pathway', 'متابعة المسار', 'Continuar mi recorrido')}<ArrowRight /></Button>}
+                    </div>}
+                  </div>;
+                })()}
               </div>}
             </section>;
           })}
