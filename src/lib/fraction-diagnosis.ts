@@ -15,7 +15,7 @@ export type FractionMisconception =
   | 'fraction-scale-one-term'
   | 'fraction-larger-denominator-larger-value'
   | 'fraction-compare-numerators-only'
-  | 'fraction-divide-without-inverting'
+  | 'fraction-divide-by-multiplying'
   | 'fraction-wrong-whole'
   | 'unknown';
 
@@ -146,12 +146,12 @@ export function analyzeFractionResponse(task: FractionTask, raw: string): Fracti
     remediation = 'compare-on-number-line';
     evidence = 'La relation choisie est incorrecte ; la stratégie de comparaison doit être explorée par une question complémentaire.';
   } else if (!correct && task.kind === 'divide') {
-    const rawWrong = { n: task.left.n / task.right.n, d: task.left.d / task.right.d };
+    const rawWrong = product(task.left, task.right);
     const wrong = Number.isSafeInteger(rawWrong.n) && Number.isSafeInteger(rawWrong.d) && rawWrong.d !== 0 ? normalizeFraction(rawWrong) : null;
     if (parsed && wrong && equal(parsed, wrong)) {
       misconception = 'fraction-divide-without-inverting';
       remediation = 'invert-divisor';
-      evidence = 'La réponse est compatible avec une division terme à terme sans inversion du diviseur.';
+      evidence = 'La réponse est compatible avec une multiplication par le diviseur au lieu de son inverse.';
       confidence = 'medium';
     }
   } else if (!correct && task.kind === 'fraction-of') {
