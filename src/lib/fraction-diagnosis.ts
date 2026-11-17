@@ -142,9 +142,9 @@ export function analyzeFractionResponse(task: FractionTask, raw: string): Fracti
       confidence = 'medium';
     }
   } else if (!correct && task.kind === 'compare') {
-    misconception = 'fraction-compare-numerators-only';
+    misconception = 'unknown';
     remediation = 'compare-on-number-line';
-    evidence = 'Une comparaison erronée ne permet pas à elle seule d’identifier la stratégie utilisée.';
+    evidence = 'La relation choisie est incorrecte ; la stratégie de comparaison doit être explorée par une question complémentaire.';
   } else if (!correct && task.kind === 'divide') {
     const rawWrong = { n: task.left.n / task.right.n, d: task.left.d / task.right.d };
     const wrong = Number.isSafeInteger(rawWrong.n) && Number.isSafeInteger(rawWrong.d) && rawWrong.d !== 0 ? normalizeFraction(rawWrong) : null;
@@ -155,9 +155,9 @@ export function analyzeFractionResponse(task: FractionTask, raw: string): Fracti
       confidence = 'medium';
     }
   } else if (!correct && task.kind === 'fraction-of') {
-    misconception = 'fraction-wrong-whole';
+    misconception = 'unknown';
     remediation = 'identify-whole';
-    evidence = 'Le résultat ne correspond pas à la fraction de la quantité de référence.';
+    evidence = 'Le résultat est incorrect ; vérifier avec une représentation si le tout de référence a été identifié.';
   }
 
   return { correct, observed, expected: expectedText, misconception, confidence, confirmed: false, evidence, remediation };
