@@ -104,9 +104,8 @@ export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteracti
                     <div className="mt-3 grid gap-2">{task.options.map(option => <Button key={option.value} type="button" variant={selected === option.value ? 'default' : 'soft'} className="h-auto min-h-10 justify-start whitespace-normal text-start" aria-pressed={selected === option.value} onClick={() => setTransferAnswers(previous => ({ ...previous, [hypothesis.code]: option.value }))}>{show(option.label)}</Button>)}</div>
                     {transferText && <div className="mt-3 rounded-lg bg-muted p-3" role="status">
                       <p className="text-sm">{show(transferText)}</p>
-                      {result === 'error-reproduced'
-                        ? <Button className="mt-3" onClick={() => { onAdaptiveSkill?.(hypothesis.code === 'fraction-scale-one-term' ? 'frac-equivalence-visual' : 'frac-add-visual'); onBack(); }}>{say(lang, 'Travailler cette difficulté', 'Practise this difficulty', 'تدرب على هذه الصعوبة', 'Practicar esta dificultad')}<ArrowRight /></Button>
-                        : <Button className="mt-3" variant="soft" onClick={() => { onAdaptiveSkill?.(null); onBack(); }}>{say(lang, 'Poursuivre mon parcours', 'Continue my pathway', 'متابعة المسار', 'Continuar mi recorrido')}<ArrowRight /></Button>}
+                      {result === 'error-reproduced' && <Button className="mt-3" onClick={() => { onAdaptiveSkill?.(hypothesis.code === 'fraction-scale-one-term' ? 'frac-equivalence-visual' : 'frac-add-visual'); onBack(); }}>{say(lang, 'Travailler cette difficulté', 'Practise this difficulty', 'تدرب على هذه الصعوبة', 'Practicar esta dificultad')}<ArrowRight /></Button>}
+                      {result === 'transfer-success' && <p className="mt-2 text-xs text-muted-foreground">{say(lang, 'Tu peux maintenant poursuivre l’activité avec l’étape suivante.', 'You can now continue with the next step.', 'يمكنك الآن متابعة النشاط إلى المرحلة التالية.', 'Ahora puedes continuar con el siguiente paso.')}</p>}
                     </div>}
                   </div>;
                 })()}
