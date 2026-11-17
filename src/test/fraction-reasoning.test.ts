@@ -38,17 +38,17 @@ describe('Fraction reasoning sequence reader', () => {
     expect(analysis.diagnostic).toBeNull();
   });
 
-  it('does not confirm a hypothesis until both complementary checks are answered', () => {
+  it('confirms a hypothesis only when both checks reproduce the targeted error', () => {
     const analysis = readFractionSequence([
       equivalenceEvent(1, 'verified', { selectedParts: [0], correct: false }),
     ]);
     const hypothesis = analysis.hypotheses[0]!;
-    const pending = verifyFractionHypothesis(hypothesis, { 'scale-both-terms': 'both' });
+    const pending = verifyFractionHypothesis(hypothesis, { 'scale-both-terms': 'bottom' });
     expect(pending.status).toBe('inconclusive');
 
     const confirmed = verifyFractionHypothesis(hypothesis, {
-      'scale-both-terms': 'both',
-      'scale-transfer': 'a',
+      'scale-both-terms': 'bottom',
+      'scale-transfer': 'b',
     });
     expect(confirmed).toMatchObject({ level: 'diagnostic', status: 'confirmed', hypothesisCode: 'fraction-scale-one-term' });
   });
@@ -58,8 +58,8 @@ describe('Fraction reasoning sequence reader', () => {
       equivalenceEvent(1, 'verified', { selectedParts: [0], correct: false }),
     ]);
     const diagnostic = verifyFractionHypothesis(analysis.hypotheses[0]!, {
-      'scale-both-terms': 'both',
-      'scale-transfer': 'c',
+      'scale-both-terms': 'top',
+      'scale-transfer': 'a',
     });
     expect(diagnostic.status).toBe('not-confirmed');
   });
