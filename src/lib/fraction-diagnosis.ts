@@ -95,7 +95,7 @@ export function analyzeFractionResponse(task: FractionTask, raw: string): Fracti
   const correct = task.kind === 'compare'
     ? ['<', '>', '='].includes(observed) && observed === task.relation
     : task.kind === 'fraction-of'
-      ? parsed !== null && parsed.n / parsed.d === task.expected
+      ? parsed !== null && Math.abs(parsed.n / parsed.d - task.expected) < 1e-9
       : parsed !== null && typeof expected !== 'string' && typeof expected !== 'number' && equal(parsed, expected);
   let misconception: FractionMisconception = 'unknown';
   let remediation: FractionDiagnosis['remediation'] = 'review-method';
@@ -146,8 +146,9 @@ export function analyzeFractionResponse(task: FractionTask, raw: string): Fracti
     remediation = 'compare-on-number-line';
     evidence = 'Une comparaison erronée ne permet pas à elle seule d’identifier la stratégie utilisée.';
   } else if (!correct && task.kind === 'divide') {
-    const wrong = normalizeFraction({ n: task.left.n / task.right.n, d: task.left.d / task.right.d });
-    if (parsed && equal(parsed, wrong)) {
+    const rawWrong = { n: task.left.n / task.right.n, d: task.left.d / task.right.d };
+    const wrong = Number.isSafeInteger(rawWrong.n) && Number.isSafeInteger(rawWrong.d) && rawWrong.d !== 0 ? normalizeFraction(rawWrong) : null;
+    if (parsed && wrong && equal(parsed, wrong)) {
       misconception = 'fraction-divide-without-inverting';
       remediation = 'invert-divisor';
       evidence = 'La réponse est compatible avec une division terme à terme sans inversion du diviseur.';
