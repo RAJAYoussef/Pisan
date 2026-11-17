@@ -26,3 +26,5 @@ CREATE INDEX IF NOT EXISTS fraction_learning_journal_activity
 ALTER TABLE public.fraction_learning_journal ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.fraction_learning_journal FROM PUBLIC, anon, authenticated;
 GRANT ALL ON public.fraction_learning_journal TO service_role;
+
+GRANT USAGE, SELECT ON SEQUENCE public.fraction_learning_journal_id_seq TO service_role;
