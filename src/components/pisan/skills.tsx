@@ -14,13 +14,13 @@ import { Speaker, Tutor } from './shared';
 import { minusSign, Rich } from './math-text';
 import { FractionBars } from './fraction-bars';
 import { FractionAdditionLab, FractionEquivalenceLab, FractionNumberLineLab, type FractionInteractionEvent } from './fraction-labs';
-import type { FractionReasoningEvent, FractionWidgetSpec } from '@/lib/fraction-reasoning';
+import { readFractionSequence, type FractionReasoningEvent, type FractionSequenceAnalysis, type FractionWidgetSpec } from '@/lib/fraction-reasoning';
 
 export type FractionInteractionContext = FractionReasoningEvent;
-type Props = { lang: Lang; skill: Skill; onSave: (a: Attempt) => Promise<void>; onBack: () => void; onFractionInteraction?: (event: FractionInteractionContext) => void };
+type Props = { lang: Lang; skill: Skill; onSave: (a: Attempt) => Promise<void>; onBack: () => void; onFractionInteraction?: (event: FractionInteractionContext) => void; onFractionAnalysis?: (analysis: FractionSequenceAnalysis) => void };
 
 /** Une compétence : les étapes s'enchaînent ; une étape ratée au premier essai ne compte pas comme réussie. */
-export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteraction }: Props) {
+export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteraction, onFractionAnalysis }: Props) {
   const [seed, setSeed] = useState(() => Date.now() % 100000);
   const activity = useMemo(() => skill.build(seed), [skill, seed]);
   const [index, setIndex] = useState(0);
@@ -30,6 +30,16 @@ export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteracti
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<null | { correct: number; total: number }>(null);
   const [saveError, setSaveError] = useState('');
+  const fractionEvents = useRef<FractionReasoningEvent[]>([]);
+  function recordFractionInteraction(event: FractionInteractionContext) {
+    const sameSequence = fractionEvents.current.filter(item =>
+      item.skillId === event.skillId && item.activitySeed === event.activitySeed &&
+      item.stepIndex === event.stepIndex && item.widgetKind === event.widgetKind,
+    );
+    fractionEvents.current = [...sameSequence, event];
+    onFractionInteraction?.(event);
+    onFractionAnalysis?.(readFractionSequence(fractionEvents.current));
+  }
   const step = activity.steps[index]!;
   const total = activity.steps.length;
   const show = (l: L) => localizeMath(l[lang], lang);
@@ -60,7 +70,7 @@ export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteracti
         ? <div className="text-center"><CheckCircle2 className="mx-auto h-12 w-12 text-primary" /><p className="my-4 text-xl font-bold">{done.correct === done.total ? say(lang, 'Compétence acquise !', 'Skill mastered!', 'تم اكتساب الكفاية!', '¡Competencia adquirida!') : say(lang, `${done.correct} étapes sur ${done.total} du premier coup. Recommence pour l’acquérir.`, `${done.correct} of ${done.total} steps at the first try. Go again to master it.`, `${done.correct} من ${done.total} مراحل من المحاولة الأولى. أعد للاكتساب.`, `${done.correct} de ${done.total} pasos al primer intento. Repite para adquirirla.`)}</p><p className="mb-5 text-sm text-muted-foreground" dir="ltr"><Rich lang={lang} text={localizeMath(activity.summary, lang)} /></p><Button onClick={restart}><RefreshCw />{say(lang, 'Nouvel énoncé', 'New exercise', 'تمرين جديد', 'Nuevo enunciado')}</Button></div>
         : <>
           <div className="mb-5 flex items-start justify-between gap-4"><p className="text-lg font-semibold leading-snug"><Rich lang={lang} text={show(step.prompt)} /></p><Speaker text={spoken(show(step.prompt), lang)} lang={lang} /></div>
-          <StepView key={`${seed}-${index}`} lang={lang} step={step} solved={solved} onAnswer={answer} onFractionInteraction={(event, widget) => onFractionInteraction?.({ ...event, skillId: skill.id, activitySeed: seed, stepIndex: index, widget })} />
+          <StepView key={`${seed}-${index}`} lang={lang} step={step} solved={solved} onAnswer={answer} onFractionInteraction={(event, widget) => recordFractionInteraction({ ...event, skillId: skill.id, activitySeed: seed, stepIndex: index, widget })} />
           {solved && <Button className="mt-5 w-full" disabled={busy} onClick={() => void next()}>{index + 1 < total ? say(lang, 'Étape suivante', 'Next step', 'المرحلة التالية', 'Paso siguiente') : say(lang, 'Terminer', 'Finish', 'إنهاء', 'Terminar')}<ArrowRight /></Button>}
           {hint && !solved && <div className="mt-4"><Tutor><Rich lang={lang} text={hint} /></Tutor></div>}
           {saveError && <p role="alert" className="mt-3 text-destructive">{saveError}</p>}
