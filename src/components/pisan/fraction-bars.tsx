@@ -25,12 +25,15 @@ export function FractionBars({ lang, left, right, locked = false, onDiagnosis, o
   const [rightShade, setRightShade] = useState<number[]>([]);
   const [relation, setRelation] = useState<'<' | '>' | '=' | null>(null);
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
+  const [diagnosis, setDiagnosis] = useState<FractionDiagnosis | null>(null);
   const copy = labels[lang];
   const expected = useMemo(() => Math.sign(left.n * right.d - right.n * left.d), [left.n, left.d, right.n, right.d]);
   const expectedRelation = expected > 0 ? '>' : expected < 0 ? '<' : '=';
   const toggle = (values: number[], set: (v: number[]) => void, index: number) => {
     if (locked || feedback === 'correct') return;
     set(values.includes(index) ? values.filter(x => x !== index) : [...values, index].sort((a, b) => a - b));
+    setFeedback(null);
+    setDiagnosis(null);
   };
   const bar = (name: string, fraction: { n: number; d: number }, selected: number[], set: (v: number[]) => void) => (
     <div className="space-y-2" dir="ltr">
@@ -47,6 +50,7 @@ export function FractionBars({ lang, left, right, locked = false, onDiagnosis, o
     const correct = leftRepresented && rightRepresented && relation === expectedRelation;
     const task: FractionTask = { kind: 'compare', left, right, relation: expectedRelation };
     const diagnosis = analyzeFractionResponse(task, relation ?? '');
+    setDiagnosis(diagnosis);
     onDiagnosis?.(diagnosis);
     setFeedback(correct ? 'correct' : 'incorrect');
     onComplete?.(correct);
@@ -63,8 +67,8 @@ export function FractionBars({ lang, left, right, locked = false, onDiagnosis, o
     </div>
     <div className="flex flex-wrap gap-2">
       <Button type="button" onClick={verify} disabled={locked || !relation}>{copy.check}</Button>
-      <Button type="button" variant="outline" disabled={locked} onClick={() => { setLeftShade([]); setRightShade([]); setRelation(null); setFeedback(null); }}>{copy.reset}</Button>
+      <Button type="button" variant="outline" disabled={locked} onClick={() => { setLeftShade([]); setRightShade([]); setRelation(null); setFeedback(null); setDiagnosis(null); }}>{copy.reset}</Button>
     </div>
-    {feedback && <p role="status" className={feedback === 'correct' ? 'font-semibold text-primary' : 'font-semibold text-destructive'}>{feedback === 'correct' ? copy.correct : copy.incorrect}</p>}
+    {feedback && <div role="status" className={feedback === 'correct' ? 'space-y-1 font-semibold text-primary' : 'space-y-1 font-semibold text-destructive'}><p>{feedback === 'correct' ? copy.correct : copy.incorrect}</p>{feedback === 'incorrect' && diagnosis && <p className="text-sm font-normal text-foreground">{diagnosis.evidence} {diagnosis.remediation === 'compare-on-number-line' ? 'Essaie de situer les deux fractions sur une droite graduée.' : ''}</p>}</div>}
   </section>;
 }
