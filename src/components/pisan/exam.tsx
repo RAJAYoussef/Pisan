@@ -9,9 +9,10 @@ import { AskPi } from './coach';
 import { SheetButton, Why } from './learning-aids';
 import { Meter, Tutor } from './shared';
 import { MathText } from './math-text';
+import type { Grader } from '@/lib/grading';
 import { QuizBar } from './quiz-bar';
 
-export function Exam({ lang, level, onSave, onStart, notions, initialNotion }: { lang: Lang; level: number; onSave: (a: Attempt) => Promise<void>; onStart: () => Promise<boolean>; notions?: Notion[] | undefined; initialNotion?: NotionId | undefined }) {
+export function Exam({ lang, level, grade, onStart, notions, initialNotion }: { lang: Lang; level: number; grade: Grader; onStart: () => Promise<boolean>; notions?: Notion[] | undefined; initialNotion?: NotionId | undefined }) {
   const chapters = notions ?? chaptersForLevel(level);
   // Par défaut : la notion du chapitre en cours (« Ton prochain petit pas »), sinon le premier chapitre.
   const [chapter, setChapter] = useState<NotionId>(initialNotion && chapters.some(c => c.id === initialNotion) ? initialNotion : chapters[0]?.id ?? 'integers');
@@ -34,7 +35,7 @@ export function Exam({ lang, level, onSave, onStart, notions, initialNotion }: {
     const nextAnswers = [...answers, selected];
     if (nextAnswers.length === questions.length) {
       setBusy(true);
-      try { await onSave({ kind: 'exam', notion: chapter, correct: nextAnswers.filter((a, i) => a === questions[i]?.answer).length, total: questions.length, date: new Date().toISOString(), minutes: 5 }); }
+      try { await grade.exam(chapter, nextAnswers); }
       catch { setError(say(lang, 'Résultat non sauvegardé. Réessaie.', 'Result not saved. Try again.', 'لم تُحفظ النتيجة.', 'Resultado no guardado.')); setBusy(false); return; }
       setBusy(false);
     }

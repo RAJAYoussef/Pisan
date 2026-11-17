@@ -13,7 +13,7 @@ const credential = z.string().regex(/^[a-f0-9]{64}$/);
 const PARTNER_CODE_FORMAT = /^[A-Za-z0-9-]{4,40}$/;
 const profileSchema = z.object({ nickname: z.string().trim().min(1).max(40), country: z.string().max(10), grade: z.number().int().min(0).max(6), lang: z.enum(['fr', 'en', 'ar', 'es']), track: z.string().regex(/^[a-z0-9-]{1,20}$/).optional(), timezone: z.string().max(64).refine(isTimeZone, 'Unknown time zone').optional() });
 const FIELDS = 'profile, progress, partner, usage_count, usage_date, dys_default, dys_updated_at, streak_count, streak_last_day, freezes, challenge_day, challenge_correct';
-async function hashToken(token: string) {
+export async function hashToken(token: string) {
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
   return Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2, '0')).join('');
 }
@@ -60,26 +60,26 @@ const notion = z.custom<NotionId>((value) => typeof value === 'string' && isNoti
 
 type Admin = (typeof import('@/integrations/supabase/client.server'))['supabaseAdmin'];
 /** Ajout atomique (verrou SQL) de la tentative + flamme, sur le jour local du fuseau enregistré dans le profil. */
-async function recordAttempt(admin: Admin, hash: string, attempt: Attempt, timezone: string | undefined) {
+export async function recordAttempt(admin: Admin, hash: string, attempt: Attempt, timezone: string | undefined) {
   const res = await admin.rpc('append_pisan_attempt', { p_hash: hash, p_attempt: attempt as never, p_day: localDay(new Date(), timezone) });
   if (res.error || !res.data) throw new Error('Le résultat n’a pas pu être sauvegardé.');
   return res.data as unknown as { progress: LearningSession['progress']; streak: StreakResult };
 }
 
+/**
+ * Seules les petites activités sans score détaillé (problèmes en barres, graphiques) s'enregistrent encore ainsi,
+ * pour 1 point au plus. Contrôle, diagnostic, consolidation, parcours et mini-contrôles sont corrigés par le serveur
+ * (src/lib/grading.functions.ts) : le navigateur n'y envoie que ses réponses.
+ */
 export const saveAttempt = createServerFn({ method: 'POST' })
-  .inputValidator(z.object({ token: credential, attempt: z.object({ kind: z.enum(['diagnostic', 'workshop', 'exam', 'consolidation']), notion, correct: z.number().int().min(0).max(20), total: z.number().int().min(1).max(20), date: z.string().max(50), minutes: z.number().min(0).max(120), skill: z.string().max(40).refine(id => getSkill(id) !== null, 'Unknown skill').optional(), review: z.boolean().optional() }).strict() }).strict())
+  .inputValidator(z.object({ token: credential, attempt: z.object({ kind: z.literal('workshop'), notion, correct: z.number().int().min(0).max(1), total: z.literal(1), date: z.string().max(50), minutes: z.number().min(0).max(30) }).strict() }).strict())
   .handler(async ({ data }) => {
     if (data.attempt.correct > data.attempt.total) throw new Error('Résultat invalide.');
-    const skill = data.attempt.skill ? getSkill(data.attempt.skill) : null;
-    if (skill && (data.attempt.kind !== 'workshop' || skillNotion(skill) !== data.attempt.notion)) throw new Error('Résultat invalide.');
-    if (data.attempt.review && (!skill || data.attempt.total !== 1)) throw new Error('Résultat invalide.');
     const hash = await hashToken(data.token);
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
-    return (async () => {
-      const current = await supabaseAdmin.from('learning_sessions').select('profile').eq('token_hash', hash).single();
-      if (current.error) throw new Error('Session introuvable.');
-      return recordAttempt(supabaseAdmin, hash, data.attempt, (current.data as unknown as LearningSession).profile.timezone);
-    })();
+    const current = await supabaseAdmin.from('learning_sessions').select('profile').eq('token_hash', hash).single();
+    if (current.error) throw new Error('Session introuvable.');
+    return recordAttempt(supabaseAdmin, hash, data.attempt, (current.data as unknown as LearningSession).profile.timezone);
   });
 
 /** Défi du jour : le serveur choisit la question et corrige ; une seule tentative par jour local. */

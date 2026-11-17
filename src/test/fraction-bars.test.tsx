@@ -8,7 +8,7 @@ describe('FractionBars', () => {
     render(<FractionBars lang="fr" left={{ n: 1, d: 2 }} right={{ n: 2, d: 3 }} onComplete={onComplete} />);
     fireEvent.click(screen.getByRole('button', { name: '<' }));
     fireEvent.click(screen.getByRole('button', { name: 'Vérifier' }));
-    expect(onComplete).toHaveBeenCalledWith(false);
+    expect(onComplete).toHaveBeenCalledWith(false, { left: 0, right: 0, relation: '<' });
     expect(screen.getByText(/représentation ne montre pas encore/i)).toBeInTheDocument();
   });
 
@@ -20,7 +20,7 @@ describe('FractionBars', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Part 2 / 3' }));
     fireEvent.click(screen.getByRole('button', { name: '<' }));
     fireEvent.click(screen.getByRole('button', { name: 'Vérifier' }));
-    expect(onComplete).toHaveBeenCalledWith(true);
+    expect(onComplete).toHaveBeenCalledWith(true, { left: 1, right: 2, relation: '<' });
     expect(screen.getByText('Bonne comparaison')).toBeInTheDocument();
   });
 

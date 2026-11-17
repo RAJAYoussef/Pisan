@@ -2,7 +2,7 @@ import type { Lang } from './i18n';
 import type { NotionId } from './curriculum';
 
 export type Profile = { nickname: string; country: string; grade: number; lang: Lang; track?: string | undefined; timezone?: string | undefined };
-export type Attempt = { kind: 'diagnostic' | 'workshop' | 'exam' | 'consolidation' | 'challenge'; notion: NotionId; correct: number; total: number; date: string; minutes: number; /** Compétence d’un parcours d’atelier (src/lib/skills.ts). */ skill?: string | undefined; /** Mini-contrôle d'une compétence déjà acquise. */ review?: boolean | undefined };
+export type Attempt = { kind: 'diagnostic' | 'workshop' | 'exam' | 'consolidation' | 'challenge'; notion: NotionId; correct: number; total: number; date: string; minutes: number; /** Compétence d’un parcours d’atelier (src/lib/skills.ts). */ skill?: string | undefined; /** Mini-contrôle d'une compétence déjà acquise. */ review?: boolean | undefined; /** Identifiant d'une activité corrigée par le serveur : enregistrée une seule fois. */ ref?: string | undefined };
 export type Progress = { attempts: Attempt[]; unlocked: NotionId[] };
 export type LearningSession = { profile: Profile; progress: Progress; partner: boolean; usage_count: number; usage_date: string; dys_default?: import('./dys').DysPrefs | null; dys_updated_at?: string | null; streak_count?: number; streak_last_day?: string | null; freezes?: number; challenge_day?: string | null; challenge_correct?: boolean | null };
 export type StreakResult = { count: number; last_day: string; freezes: number; used_freeze: boolean; restarted: boolean };

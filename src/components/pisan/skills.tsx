@@ -1,5 +1,5 @@
 // Parcours de compétences : déroule les étapes d'une activité (src/lib/skills.ts) et dessine les figures.
-import { useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { ArrowRight, Check, CheckCircle2, Delete, RefreshCw, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { INSCRIBED_SPAN, type FigureKind, type InscribedProblem, type ThalesProblem } from '@/lib/figures';
@@ -17,14 +17,28 @@ import { FractionAdditionLab, FractionEquivalenceLab, FractionNumberLineLab, typ
 import { readFractionSequence, verifyFractionHypothesis, type FractionReasoningEvent, type FractionSequenceAnalysis, type FractionWidgetSpec } from '@/lib/fraction-reasoning';
 import { buildFractionTransferTask, evaluateFractionTransfer } from '@/lib/fraction-transfer';
 import type { FractionJournalEventType } from '@/lib/fraction-journal';
+import type { SkillEngine, StepAnswer } from '@/lib/skill-session';
+
+type WidgetState = Extract<StepAnswer, { type: 'widget' }>['state'];
 
 export type FractionInteractionContext = FractionReasoningEvent;
-type Props = { lang: Lang; skill: Skill; onSave: (a: Attempt) => Promise<void>; onBack: () => void; onFractionInteraction?: (event: FractionInteractionContext) => void; onFractionAnalysis?: (analysis: FractionSequenceAnalysis) => void; onAdaptiveSkill?: (skillId: string | null) => void; onJournalEvent?: (event: { activityId: string; type: FractionJournalEventType; payload: Record<string, unknown>; clientOccurredAt?: string }) => void };
+type Props = { lang: Lang; skill: Skill; engine: SkillEngine; onBack: () => void; onFractionInteraction?: (event: FractionInteractionContext) => void; onFractionAnalysis?: (analysis: FractionSequenceAnalysis) => void; onAdaptiveSkill?: (skillId: string | null) => void; onJournalEvent?: (event: { activityId: string; type: FractionJournalEventType; payload: Record<string, unknown>; clientOccurredAt?: string }) => void };
 
 /** Une compétence : les étapes s'enchaînent ; une étape ratée au premier essai ne compte pas comme réussie. */
-export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteraction, onFractionAnalysis, onAdaptiveSkill, onJournalEvent }: Props) {
-  const [seed, setSeed] = useState(() => Date.now() % 100000);
-  const activity = useMemo(() => skill.build(seed), [skill, seed]);
+export function SkillActivity({ lang, skill, engine, onBack, onFractionInteraction, onFractionAnalysis, onAdaptiveSkill, onJournalEvent }: Props) {
+  // Le serveur tire l'énoncé et signe un jeton ; chaque vérification lui passe la réponse brute.
+  const [seed, setSeed] = useState<number | null>(null);
+  const [ticket, setTicket] = useState('');
+  const [round, setRound] = useState(0);
+  const [startError, setStartError] = useState(false);
+  const [checking, setChecking] = useState(false);
+  useEffect(() => {
+    let off = false;
+    setSeed(null); setStartError(false);
+    engine.start('skill', [skill.id]).then(r => { if (!off) { setSeed(r.seeds[0]!); setTicket(r.ticket); } }).catch(() => { if (!off) setStartError(true); });
+    return () => { off = true; };
+  }, [engine, skill.id, round]);
+  const activity = useMemo(() => (seed === null ? null : skill.build(seed)), [skill, seed]);
   const [index, setIndex] = useState(0);
   const [missed, setMissed] = useState<number[]>([]);
   const [solved, setSolved] = useState(false);
@@ -38,6 +52,7 @@ export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteracti
   const [transferAnswers, setTransferAnswers] = useState<Record<string, string>>({});
   const journaledHypotheses = useRef<string[]>([]);
   const journaledCorrections = useRef<string[]>([]);
+  if (activity === null || seed === null) return <Loading lang={lang} failed={startError} onBack={onBack} onRetry={() => setRound(r => r + 1)} />;
   function recordFractionInteraction(event: FractionInteractionContext) {
     const sameSequence = fractionEvents.current.filter(item =>
       item.skillId === event.skillId && item.activitySeed === event.activitySeed &&
@@ -71,20 +86,26 @@ export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteracti
   const show = (l: L) => localizeMath(l[lang], lang);
   const pendingVerification = Boolean(fractionAnalysis?.hypotheses.some(h => verifyFractionHypothesis(h, verificationAnswers).status === 'inconclusive'));
 
-  function answer(ok: boolean) {
-    if (ok) { setSolved(true); setHint(''); return; }
-    setMissed(m => m.includes(index) ? m : [...m, index]);
-    setHint(show(step.hint));
+  async function answer(reply: StepAnswer) {
+    if (checking) return;
+    setChecking(true); setSaveError('');
+    try {
+      const r = await engine.check(ticket, reply);
+      setTicket(r.ticket);
+      if (r.ok) { setSolved(true); setHint(''); return; }
+      setMissed(m => m.includes(index) ? m : [...m, index]);
+      setHint(show(step.hint));
+    } catch { setSaveError(checkFailed(lang)); }
+    finally { setChecking(false); }
   }
   async function next() {
     if (index + 1 < total) { fractionEvents.current = []; setFractionAnalysis(null); setVerificationAnswers({}); setTransferAnswers({}); setIndex(index + 1); setSolved(false); setHint(''); return; }
-    const result = { correct: total - missed.length, total };
     setBusy(true); setSaveError('');
-    try { await onSave({ kind: 'workshop', notion: skillNotion(skill), skill: skill.id, ...result, date: new Date().toISOString(), minutes: Math.min(20, total * 2) }); setDone(result); }
+    try { const r = await engine.finish(ticket); const a = r.attempts[0]!; setDone({ correct: a.correct, total: a.total }); }
     catch { setSaveError(say(lang, 'Résultat non sauvegardé. Réessaie.', 'Result not saved. Try again.', 'لم تُحفظ النتيجة. حاول مجددًا.', 'Resultado no guardado. Reintenta.')); }
     finally { setBusy(false); }
   }
-  const restart = () => { fractionEvents.current = []; setFractionAnalysis(null); setVerificationAnswers({}); setTransferAnswers({}); setSeed(s => (s * 7919 + 13) % 100000); setIndex(0); setMissed([]); setSolved(false); setHint(''); setDone(null); };
+  const restart = () => { fractionEvents.current = []; setFractionAnalysis(null); setVerificationAnswers({}); setTransferAnswers({}); setRound(r => r + 1); setIndex(0); setMissed([]); setSolved(false); setHint(''); setDone(null); };
 
   return <section className="mx-auto max-w-4xl">
     <Button variant="ghost" onClick={onBack} className="mb-4">← {say(lang, 'Retour', 'Back', 'رجوع', 'Volver')}</Button>
@@ -139,9 +160,19 @@ export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteracti
 }
 
 /** Mini-contrôle : une étape par compétence acquise à revérifier ; chaque compétence est enregistrée à part. */
-export function ReviewActivity({ lang, skills, onSave, onBack }: { lang: Lang; skills: Skill[]; onSave: (a: Attempt) => Promise<void>; onBack: () => void }) {
-  const [seed] = useState(() => Date.now() % 100000);
-  const steps = useMemo(() => skills.map((s, i) => reviewStep(s, seed + i * 7)), [skills, seed]);
+export function ReviewActivity({ lang, skills, engine, onBack }: { lang: Lang; skills: Skill[]; engine: SkillEngine; onBack: () => void }) {
+  const [seeds, setSeeds] = useState<number[] | null>(null);
+  const [ticket, setTicket] = useState('');
+  const [round, setRound] = useState(0);
+  const [startError, setStartError] = useState(false);
+  const [checking, setChecking] = useState(false);
+  useEffect(() => {
+    let off = false;
+    setStartError(false);
+    engine.start('review', skills.map(s => s.id)).then(r => { if (!off) { setSeeds(r.seeds); setTicket(r.ticket); } }).catch(() => { if (!off) setStartError(true); });
+    return () => { off = true; };
+  }, [engine, skills, round]);
+  const steps = useMemo(() => (seeds ? skills.map((s, i) => reviewStep(s, seeds[i]!)) : null), [skills, seeds]);
   const [index, setIndex] = useState(0);
   const [missed, setMissed] = useState<number[]>([]);
   const [solved, setSolved] = useState(false);
@@ -150,18 +181,27 @@ export function ReviewActivity({ lang, skills, onSave, onBack }: { lang: Lang; s
   const [done, setDone] = useState(false);
   const [saveError, setSaveError] = useState('');
   const show = (l: L) => localizeMath(l[lang], lang);
+  if (!steps || !seeds) return <Loading lang={lang} failed={startError} onBack={onBack} onRetry={() => setRound(r => r + 1)} />;
   const step = steps[index]!;
   const skill = skills[index]!;
-  function answer(ok: boolean) {
-    if (ok) { setSolved(true); return; }
-    setMissed(m => m.includes(index) ? m : [...m, index]);
-    setHint(show(step.hint));
+  const count = steps.length;
+  async function answer(reply: StepAnswer) {
+    if (checking) return;
+    setChecking(true); setSaveError('');
+    try {
+      const r = await engine.check(ticket, reply);
+      setTicket(r.ticket);
+      if (r.ok) { setSolved(true); return; }
+      setMissed(m => m.includes(index) ? m : [...m, index]);
+      setHint(show(step.hint));
+    } catch { setSaveError(checkFailed(lang)); }
+    finally { setChecking(false); }
   }
   async function next() {
-    if (index + 1 < steps.length) { setIndex(index + 1); setSolved(false); setHint(''); return; }
+    if (index + 1 < count) { setIndex(index + 1); setSolved(false); setHint(''); return; }
     setBusy(true); setSaveError('');
     try {
-      for (const [i, s] of skills.entries()) await onSave({ kind: 'workshop', notion: skillNotion(s), skill: s.id, review: true, correct: missed.includes(i) ? 0 : 1, total: 1, date: new Date().toISOString(), minutes: 2 });
+      await engine.finish(ticket);
       setDone(true);
     } catch { setSaveError(say(lang, 'Résultat non sauvegardé. Réessaie.', 'Result not saved. Try again.', 'لم تُحفظ النتيجة. حاول مجددًا.', 'Resultado no guardado. Reintenta.')); }
     finally { setBusy(false); }
@@ -179,7 +219,7 @@ export function ReviewActivity({ lang, skills, onSave, onBack }: { lang: Lang; s
         : <>
           <p className="mb-2 text-xs font-bold text-primary-deep">{CHAPTER_NAMES[skill.chapter][lang]} · {skill.title[lang]}</p>
           <div className="mb-5 flex items-start justify-between gap-4"><p className="text-lg font-semibold leading-snug"><Rich lang={lang} text={show(step.prompt)} /></p><Speaker text={spoken(show(step.prompt), lang)} lang={lang} /></div>
-          <StepView key={`${seed}-${index}`} lang={lang} step={step} solved={solved} onAnswer={answer} />
+          <StepView key={`${seeds.join('-')}-${index}`} lang={lang} step={step} solved={solved} onAnswer={answer} />
           {solved && <Button className="mt-5 w-full" disabled={busy} onClick={() => void next()}>{index + 1 < steps.length ? say(lang, 'Question suivante', 'Next question', 'السؤال التالي', 'Siguiente pregunta') : say(lang, 'Terminer', 'Finish', 'إنهاء', 'Terminar')}<ArrowRight /></Button>}
           {hint && !solved && <div className="mt-4"><Tutor><Rich lang={lang} text={hint} /></Tutor></div>}
           {saveError && <p role="alert" className="mt-3 text-destructive">{saveError}</p>}
@@ -190,29 +230,40 @@ export function ReviewActivity({ lang, skills, onSave, onBack }: { lang: Lang; s
 
 export { Rich } from './math-text';
 
+const checkFailed = (lang: Lang) => say(lang, 'Vérification impossible (connexion ?). Réessaie.', 'Could not check (connection?). Try again.', 'تعذر التحقق (الاتصال؟). حاول مجددًا.', 'No se pudo comprobar (¿conexión?). Reintenta.');
+/** En attendant l'énoncé tiré par le serveur. */
+function Loading({ lang, failed, onBack, onRetry }: { lang: Lang; failed: boolean; onBack: () => void; onRetry: () => void }) {
+  return <section className="mx-auto max-w-4xl">
+    <Button variant="ghost" onClick={onBack} className="mb-4">← {say(lang, 'Retour', 'Back', 'رجوع', 'Volver')}</Button>
+    {failed
+      ? <div role="alert" className="activity-panel"><p>{say(lang, 'L’activité n’a pas pu démarrer. Vérifie ta connexion.', 'The activity could not start. Check your connection.', 'تعذر بدء النشاط. تحقق من اتصالك.', 'La actividad no pudo empezar. Revisa tu conexión.')}</p><Button className="mt-4" onClick={onRetry}><RefreshCw />{say(lang, 'Réessayer', 'Try again', 'إعادة المحاولة', 'Reintentar')}</Button></div>
+      : <p className="animate-pulse text-muted-foreground">PiSan…</p>}
+  </section>;
+}
+
 const checkLabel = (lang: Lang) => say(lang, 'Vérifier', 'Check', 'تحقق', 'Comprobar');
 const Solved = ({ lang }: { lang: Lang }) => <p role="status" className="mt-4 flex items-center justify-center gap-2 font-bold text-primary-deep"><Check className="h-5 w-5" />{say(lang, 'C’est juste !', 'That’s right!', 'صحيح!', '¡Correcto!')}</p>;
 
-function StepView({ lang, step, solved, onAnswer, onFractionInteraction }: { lang: Lang; step: Step; solved: boolean; onAnswer: (ok: boolean) => void; onFractionInteraction?: (event: FractionInteractionEvent, widget: FractionWidgetSpec) => void }) {
+function StepView({ lang, step, solved, onAnswer, onFractionInteraction }: { lang: Lang; step: Step; solved: boolean; onAnswer: (reply: StepAnswer) => void; onFractionInteraction?: (event: FractionInteractionEvent, widget: FractionWidgetSpec) => void }) {
   const show = (l: L) => localizeMath(l[lang], lang);
   const [picked, setPicked] = useState<number | null>(null);
   const [tapped, setTapped] = useState<string | null>(null);
   const [seq, setSeq] = useState<number[]>([]);
   const [text, setText] = useState('');
   const [blanks, setBlanks] = useState<number[]>([]);
-  const [widgetOk, setWidgetOk] = useState(false);
+  const [widgetState, setWidgetState] = useState<WidgetState>({});
   const [cursor, setCursor] = useState<P | null>(step.type === 'grid' ? step.start : null);
 
   switch (step.type) {
     case 'choice':
       return <>
         <Shown lang={lang} scene={step.scene} table={step.table} />
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">{step.options.map((o, i) => <Button key={i} variant={picked === i ? (i === step.answer ? 'default' : 'destructive') : 'soft'} className="h-auto min-h-11 whitespace-normal" disabled={solved} aria-pressed={picked === i} onClick={() => { setPicked(i); onAnswer(i === step.answer); }}><Rich lang={lang} text={show(o)} /></Button>)}</div>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">{step.options.map((o, i) => <Button key={i} variant={picked === i ? (i === step.answer ? 'default' : 'destructive') : 'soft'} className="h-auto min-h-11 whitespace-normal" disabled={solved} aria-pressed={picked === i} onClick={() => { setPicked(i); onAnswer({ type: 'choice', choice: i }); }}><Rich lang={lang} text={show(o)} /></Button>)}</div>
         {solved && <Solved lang={lang} />}
       </>;
     case 'tap':
       return <>
-        <GeoScene lang={lang} scene={step.scene} tapped={tapped} answer={step.answer} locked={solved} onTap={id => { setTapped(id); onAnswer(id === step.answer); }} />
+        <GeoScene lang={lang} scene={step.scene} tapped={tapped} answer={step.answer} locked={solved} onTap={id => { setTapped(id); onAnswer({ type: 'tap', id }); }} />
         {solved && <Solved lang={lang} />}
       </>;
     case 'chips': {
@@ -221,12 +272,12 @@ function StepView({ lang, step, solved, onAnswer, onFractionInteraction }: { lan
         <Shown lang={lang} scene={step.scene} table={step.table} />
         <div className="chip-line" dir="ltr" aria-live="polite" aria-label={say(lang, 'Ton égalité', 'Your equality', 'متساويتك', 'Tu igualdad')}>{seq.length ? seq.map((i, k) => <span key={k} className="chip chip-placed"><Rich lang={lang} text={step.tokens[i]!} /></span>) : <span className="text-sm text-muted-foreground">{say(lang, 'Touche les étiquettes dans l’ordre.', 'Tap the labels in order.', 'المس البطاقات بالترتيب.', 'Toca las etiquetas en orden.')}</span>}</div>
         <div className="mt-3 flex flex-wrap justify-center gap-2" dir="ltr">{step.tokens.map((tok, i) => <button key={i} type="button" className="chip" disabled={solved || used.has(i)} onClick={() => setSeq([...seq, i])}><Rich lang={lang} text={tok} /></button>)}</div>
-        {!solved && <div className="mt-4 flex gap-2"><Button variant="ghost" disabled={!seq.length} onClick={() => setSeq(seq.slice(0, -1))}><Delete />{say(lang, 'Effacer', 'Undo', 'مسح', 'Borrar')}</Button><Button className="flex-1" disabled={!seq.length} onClick={() => onAnswer(chipsOk(seq.map(i => step.tokens[i]!), step.groups, step.ordered))}>{checkLabel(lang)}<ArrowRight /></Button></div>}
+        {!solved && <div className="mt-4 flex gap-2"><Button variant="ghost" disabled={!seq.length} onClick={() => setSeq(seq.slice(0, -1))}><Delete />{say(lang, 'Effacer', 'Undo', 'مسح', 'Borrar')}</Button><Button className="flex-1" disabled={!seq.length} onClick={() => onAnswer({ type: 'chips', tokens: seq.map(i => step.tokens[i]!) })}>{checkLabel(lang)}<ArrowRight /></Button></div>}
         {solved && <Solved lang={lang} />}
       </>;
     }
     case 'number': {
-      const check = () => { if (text.trim()) onAnswer(numberOk(text, step.answer, step.tolerance)); };
+      const check = () => { if (text.trim()) onAnswer({ type: 'number', text }); };
       return <>
         <Shown lang={lang} scene={step.scene} table={step.table} />
         <label htmlFor="skill-answer" className="field-label mt-4">{say(lang, 'Ta réponse', 'Your answer', 'جوابك', 'Tu respuesta')}</label>
@@ -248,7 +299,7 @@ function StepView({ lang, step, solved, onAnswer, onFractionInteraction }: { lan
             {(part as Blank).options.map((o, j) => <option key={j} value={j}>{show(o)}</option>)}
           </select>;
         })}</p>
-        {!solved && <Button className="mt-4 w-full" disabled={blanks.filter(v => v !== undefined).length < count} onClick={() => onAnswer(sentenceOk(step.parts, blanks))}>{checkLabel(lang)}<ArrowRight /></Button>}
+        {!solved && <Button className="mt-4 w-full" disabled={blanks.filter(v => v !== undefined).length < count} onClick={() => onAnswer({ type: 'sentence', blanks })}>{checkLabel(lang)}<ArrowRight /></Button>}
         {solved && <Solved lang={lang} />}
       </>;
     }
@@ -257,7 +308,7 @@ function StepView({ lang, step, solved, onAnswer, onFractionInteraction }: { lan
       return <>
         <GeoScene lang={lang} scene={step.scene} locked={solved} cursor={{ label: step.label, at, onMove: setCursor }} />
         <p className="mt-1 text-center text-xs text-muted-foreground" dir="ltr">{step.label} ({minusSign(fmt(at.x))} ; {minusSign(fmt(at.y))}) · {say(lang, 'touche le quadrillage ou utilise les flèches', 'tap the grid or use the arrow keys', 'المس الشبكة أو استعمل الأسهم', 'toca la cuadrícula o usa las flechas')}</p>
-        {!solved && <Button className="mt-4 w-full" onClick={() => onAnswer(at.x === step.answer.x && at.y === step.answer.y)}>{checkLabel(lang)}<ArrowRight /></Button>}
+        {!solved && <Button className="mt-4 w-full" onClick={() => onAnswer({ type: 'grid', x: at.x, y: at.y })}>{checkLabel(lang)}<ArrowRight /></Button>}
         {solved && <Solved lang={lang} />}
       </>;
     }
@@ -266,17 +317,17 @@ function StepView({ lang, step, solved, onAnswer, onFractionInteraction }: { lan
       const w = step.widget;
       const fraction = w.kind === 'fraction-equivalence' || w.kind === 'fraction-addition' || w.kind === 'fraction-numberline' ? w : null;
       return <>
-        {step.widget.kind === 'fraction-bars' && <FractionBars lang={lang} left={step.widget.left} right={step.widget.right} locked={solved} onComplete={onAnswer} />}
-        {fraction?.kind === 'fraction-equivalence' && <FractionEquivalenceLab lang={lang} source={fraction.source} factor={fraction.factor} locked={solved} onComplete={onAnswer} onInteraction={event => onFractionInteraction?.(event, fraction)} />}
-        {fraction?.kind === 'fraction-addition' && <FractionAdditionLab lang={lang} left={fraction.left} right={fraction.right} locked={solved} onComplete={onAnswer} onInteraction={event => onFractionInteraction?.(event, fraction)} />}
-        {fraction?.kind === 'fraction-numberline' && <FractionNumberLineLab lang={lang} target={fraction.target} locked={solved} onComplete={onAnswer} onInteraction={event => onFractionInteraction?.(event, fraction)} />}
-        {step.widget.kind === 'line' && <LineWidget lang={lang} target={step.widget} locked={solved} onState={setWidgetOk} />}
-        {step.widget.kind === 'tangent' && <TangentWidget lang={lang} target={step.widget} locked={solved} onState={setWidgetOk} />}
-        {step.widget.kind === 'level' && <LevelWidget lang={lang} values={step.widget.values} locked={solved} onState={setWidgetOk} />}
-        {step.widget.kind === 'squares' && <SquaresWidget lang={lang} ab={step.widget.ab} ac={step.widget.ac} locked={solved} onState={setWidgetOk} />}
-        {step.widget.kind === 'thales' && <ThalesWidget lang={lang} problem={step.widget.problem} locked={solved} onState={setWidgetOk} />}
-        {step.widget.kind === 'inscribed' && <InscribedWidget lang={lang} problem={step.widget.problem} locked={solved} onState={setWidgetOk} />}
-        {!solved && !['fraction-bars', 'fraction-equivalence', 'fraction-addition', 'fraction-numberline'].includes(step.widget.kind) && <Button className="mt-4 w-full" onClick={() => onAnswer(widgetOk)}>{checkLabel(lang)}<ArrowRight /></Button>}
+        {step.widget.kind === 'fraction-bars' && <FractionBars lang={lang} left={step.widget.left} right={step.widget.right} locked={solved} onComplete={(_ok, state) => onAnswer({ type: 'widget', state })} />}
+        {fraction?.kind === 'fraction-equivalence' && <FractionEquivalenceLab lang={lang} source={fraction.source} factor={fraction.factor} locked={solved} onComplete={(_ok, state) => onAnswer({ type: 'widget', state })} onInteraction={event => onFractionInteraction?.(event, fraction)} />}
+        {fraction?.kind === 'fraction-addition' && <FractionAdditionLab lang={lang} left={fraction.left} right={fraction.right} locked={solved} onComplete={(_ok, state) => onAnswer({ type: 'widget', state })} onInteraction={event => onFractionInteraction?.(event, fraction)} />}
+        {fraction?.kind === 'fraction-numberline' && <FractionNumberLineLab lang={lang} target={fraction.target} locked={solved} onComplete={(_ok, state) => onAnswer({ type: 'widget', state })} onInteraction={event => onFractionInteraction?.(event, fraction)} />}
+        {step.widget.kind === 'line' && <LineWidget lang={lang} target={step.widget} locked={solved} onState={setWidgetState} />}
+        {step.widget.kind === 'tangent' && <TangentWidget lang={lang} target={step.widget} locked={solved} onState={setWidgetState} />}
+        {step.widget.kind === 'level' && <LevelWidget lang={lang} values={step.widget.values} locked={solved} onState={setWidgetState} />}
+        {step.widget.kind === 'squares' && <SquaresWidget lang={lang} ab={step.widget.ab} ac={step.widget.ac} locked={solved} onState={setWidgetState} />}
+        {step.widget.kind === 'thales' && <ThalesWidget lang={lang} problem={step.widget.problem} locked={solved} onState={setWidgetState} />}
+        {step.widget.kind === 'inscribed' && <InscribedWidget lang={lang} problem={step.widget.problem} locked={solved} onState={setWidgetState} />}
+        {!solved && !['fraction-bars', 'fraction-equivalence', 'fraction-addition', 'fraction-numberline'].includes(step.widget.kind) && <Button className="mt-4 w-full" onClick={() => onAnswer({ type: 'widget', state: widgetState })}>{checkLabel(lang)}<ArrowRight /></Button>}
         {solved && <Solved lang={lang} />}
       </>;
     }
@@ -291,13 +342,13 @@ function Shown({ lang, scene, table }: { lang: Lang; scene?: Scene | undefined; 
 }
 
 /** Régler a et b : la droite y = ax + b doit passer par A et B. */
-export function LineWidget({ lang, target, locked, onState }: { lang: Lang; target: { a: number; b: number; A: P; B: P }; locked: boolean; onState: (ok: boolean) => void }) {
+export function LineWidget({ lang, target, locked, onState }: { lang: Lang; target: { a: number; b: number; A: P; B: P }; locked: boolean; onState: (state: WidgetState) => void }) {
   const [a, setA] = useState(1);
   const [b, setB] = useState(0);
   const grid = { minX: -5, maxX: 5, minY: -5, maxY: 5, axes: true };
   const [P1, P2] = clipLine(a, b, grid);
   const scene: Scene = { grid, points: { A: target.A, B: target.B, P: P1, Q: P2 }, hidden: ['P', 'Q'], segments: [{ id: 'd', a: 'P', b: 'Q', style: 'bold' }] };
-  const update = (na: number, nb: number) => { setA(na); setB(nb); onState(na === target.a && nb === target.b); };
+  const update = (na: number, nb: number) => { setA(na); setB(nb); onState({ a: na, b: nb }); };
   const on = (p: P) => Math.abs(a * p.x + b - p.y) < 1e-9;
   return <div>
     <GeoScene lang={lang} scene={scene} />
@@ -311,7 +362,7 @@ export function LineWidget({ lang, target, locked, onState }: { lang: Lang; targ
 }
 
 /** Un point glisse sur la parabole ; la tangente suit, avec sa pente. Réussi quand elle est horizontale en x = target. */
-export function TangentWidget({ lang, target, locked, onState }: { lang: Lang; target: { a: number; b: number; c: number; target: number }; locked: boolean; onState: (ok: boolean) => void }) {
+export function TangentWidget({ lang, target, locked, onState }: { lang: Lang; target: { a: number; b: number; c: number; target: number }; locked: boolean; onState: (state: WidgetState) => void }) {
   const grid = { minX: -4, maxX: 5, minY: -3, maxY: 6, axes: true };
   const start = target.target + (target.target + 2 <= grid.maxX - 1 ? 2 : -2);
   const [x0, setX0] = useState(start);
@@ -322,20 +373,20 @@ export function TangentWidget({ lang, target, locked, onState }: { lang: Lang; t
   return <div>
     <GeoScene lang={lang} scene={scene} />
     <label htmlFor="tangent-x" className="field-label mt-2">x = {fmt(x0)}</label>
-    <input id="tangent-x" type="range" min={grid.minX + 1} max={grid.maxX - 1} step={0.5} value={x0} disabled={locked} className="w-full accent-[var(--primary)]" onChange={e => { const x = Number(e.target.value); setX0(x); onState(x === target.target); }} />
+    <input id="tangent-x" type="range" min={grid.minX + 1} max={grid.maxX - 1} step={0.5} value={x0} disabled={locked} className="w-full accent-[var(--primary)]" onChange={e => { const x = Number(e.target.value); setX0(x); onState({ x }); }} />
     <p className="mt-2 text-center font-display text-lg" dir="ltr">{say(lang, 'pente de la tangente', 'tangent slope', 'ميل المماس', 'pendiente de la tangente')} : {fmt(slope)}</p>
   </div>;
 }
 
 /** Colonnes de cubes à égaliser : la hauteur commune est la moyenne. */
-export function LevelWidget({ lang, values, locked, onState }: { lang: Lang; values: number[]; locked: boolean; onState: (ok: boolean) => void }) {
+export function LevelWidget({ lang, values, locked, onState }: { lang: Lang; values: number[]; locked: boolean; onState: (state: WidgetState) => void }) {
   const [cols, setCols] = useState(values);
   const [hand, setHand] = useState(0);
   const max = Math.max(...values) + 1;
   const move = (i: number, d: 1 | -1) => {
     const next = cols.map((c, k) => k === i ? c + d : c);
     const h = hand - d;
-    setCols(next); setHand(h); onState(h === 0 && next.every(c => c === next[0]));
+    setCols(next); setHand(h); onState({ values: next, hand: h });
   };
   const sum = values.reduce((t, v) => t + v, 0);
   return <div>
@@ -351,19 +402,19 @@ export function LevelWidget({ lang, values, locked, onState }: { lang: Lang; val
 
 // ───────────── Manipulations ─────────────
 
-function ThalesWidget({ lang, problem, locked, onState }: { lang: Lang; problem: ThalesProblem; locked: boolean; onState: (ok: boolean) => void }) {
+function ThalesWidget({ lang, problem, locked, onState }: { lang: Lang; problem: ThalesProblem; locked: boolean; onState: (state: WidgetState) => void }) {
   const [m, setM] = useState(1);
-  return <ThalesFigure lang={lang} problem={problem} m={m} locked={locked} revealMn={locked} onM={v => { setM(v); onState(v === problem.am); }} />;
+  return <ThalesFigure lang={lang} problem={problem} m={m} locked={locked} revealMn={locked} onM={v => { setM(v); onState({ m: v }); }} />;
 }
 
-function InscribedWidget({ lang, problem, locked, onState }: { lang: Lang; problem: InscribedProblem; locked: boolean; onState: (ok: boolean) => void }) {
+function InscribedWidget({ lang, problem, locked, onState }: { lang: Lang; problem: InscribedProblem; locked: boolean; onState: (state: WidgetState) => void }) {
   const [theta, setTheta] = useState(90);
   const [seen, setSeen] = useState<[number, number]>([90, 90]);
   const [lo, hi] = inscribedRange(problem.central);
   return <InscribedFigure lang={lang} problem={problem} theta={theta} locked={locked} onTheta={deg => {
     const d = Math.max(lo, Math.min(hi, deg));
     const next: [number, number] = [Math.min(seen[0], d), Math.max(seen[1], d)];
-    setTheta(d); setSeen(next); onState(next[1] - next[0] >= INSCRIBED_SPAN);
+    setTheta(d); setSeen(next); onState({ span: next[1] - next[0] });
   }} />;
 }
 
@@ -371,7 +422,7 @@ function InscribedWidget({ lang, problem, locked, onState }: { lang: Lang; probl
  * Les trois carrés de Pythagore, avec un angle en A réglable. On « verse » les carreaux des deux petits carrés
  * dans le grand : il déborde si l'angle est aigu, il reste de la place s'il est obtus, il est plein à 90° exactement.
  */
-export function SquaresWidget({ lang, ab, ac, locked, onState }: { lang: Lang; ab: number; ac: number; locked: boolean; onState: (ok: boolean) => void }) {
+export function SquaresWidget({ lang, ab, ac, locked, onState }: { lang: Lang; ab: number; ac: number; locked: boolean; onState: (state: WidgetState) => void }) {
   const [angle, setAngle] = useState(60);
   const [poured, setPoured] = useState(false);
   const A = { x: 0, y: 0 }, B = { x: ab, y: 0 }, C = { x: ac * Math.cos((angle * Math.PI) / 180), y: ac * Math.sin((angle * Math.PI) / 180) };
@@ -405,7 +456,7 @@ export function SquaresWidget({ lang, ab, ac, locked, onState }: { lang: Lang; a
   const fill = square(B, C, A, Math.min(1, sum / bc2));
   const mid = (list: P[]) => v({ x: list.reduce((t, p) => t + p.x, 0) / 4, y: list.reduce((t, p) => t + p.y, 0) / 4 });
   const ok = poured && angle === 90;
-  const update = (a: number, p: boolean) => { setAngle(a); setPoured(p); onState(p && a === 90); };
+  const update = (a: number, p: boolean) => { setAngle(a); setPoured(p); onState({ angle: a, poured: p }); };
   const status = !poured ? '' : Math.abs(diff) < 0.05
     ? say(lang, 'Le grand carré est rempli exactement !', 'The big square is filled exactly!', 'امتلأ المربع الكبير تمامًا!', '¡El cuadrado grande se llena exactamente!')
     : diff > 0 ? say(lang, `Ça déborde : ${fmt(diff)} carreaux de trop.`, `It overflows: ${fmt(diff)} tiles too many.`, `يفيض: ${fmt(diff)} مربعات زائدة.`, `Se desborda: sobran ${fmt(diff)} cuadraditos.`)

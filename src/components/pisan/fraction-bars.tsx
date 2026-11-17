@@ -9,7 +9,7 @@ type FractionBarsProps = {
   right: { n: number; d: number };
   locked?: boolean;
   onDiagnosis?: (diagnosis: FractionDiagnosis) => void;
-  onComplete?: (correct: boolean) => void;
+  onComplete?: (correct: boolean, state: Record<string, number | string>) => void;
 };
 
 const labels = {
@@ -61,7 +61,7 @@ export function FractionBars({ lang, left, right, locked = false, onDiagnosis, o
     setDiagnosis(diagnosis);
     onDiagnosis?.(diagnosis);
     setFeedback(correct ? 'correct' : 'incorrect');
-    onComplete?.(correct);
+    onComplete?.(correct, { left: leftShade.length, right: rightShade.length, relation: relation ?? '' });
   };
   return <section className="space-y-5" aria-label="Manipulation de bandes fractionnaires">
     {bar(copy.left, left, leftShade, setLeftShade)}

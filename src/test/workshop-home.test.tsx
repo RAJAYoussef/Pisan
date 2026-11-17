@@ -4,6 +4,7 @@ import { nextSkill } from '@/lib/skills';
 import { Workshop } from '@/components/pisan/workshop';
 import { programmeFor, programmeNotions } from '@/lib/programmes';
 import type { Attempt } from '@/lib/pisan';
+import { localEngine } from '@/lib/skill-session';
 
 const at = (skill: string, correct: number, total: number, d = 1): Attempt => ({ kind: 'workshop', notion: 'vectors', skill, correct, total, date: new Date(Date.UTC(2026, 10, d)).toISOString(), minutes: 5 });
 
@@ -28,7 +29,7 @@ describe('Prochain pas de l’atelier', () => {
 describe('Accueil de l’atelier', () => {
   const programme = programmeFor('ci', 3)!;
   const notions = programmeNotions(programme);
-  const props = { lang: 'fr' as const, level: 3, country: 'ci', notions, programme, onSave: vi.fn(async () => {}), onStart: vi.fn(async () => true) };
+  const props = { lang: 'fr' as const, level: 3, country: 'ci', notions, programme, onSave: vi.fn(async () => {}), onStart: vi.fn(async () => true), engine: localEngine({ secret: 'test', hash: 'b'.repeat(64) }) };
   it('shows one next step and compact chapter tiles, not every skill', () => {
     render(<Workshop {...props} progress={{ unlocked: [], attempts: [at('vec-characterise', 4, 4)] }} />);
     expect(screen.getByText('Reprendre · Vecteurs')).toBeTruthy();

@@ -11,10 +11,11 @@ import { SheetButton, Why } from './learning-aids';
 import { AskPi } from './coach';
 import { FreeAnswer, loadAnswerMode, saveAnswerMode, type AnswerMode } from './free-answer';
 import { freeAnswer } from '@/lib/answer-check';
+import type { Grader } from '@/lib/grading';
 import { MathText, mathSpoken } from './math-text';
 import { QuizBar } from './quiz-bar';
 
-type Props = { lang: Lang; level: number; notions?: Notion[] | undefined; onSave: (a: Attempt) => Promise<void>; onWorkshop: () => void };
+type Props = { lang: Lang; level: number; notions?: Notion[] | undefined; grade: Grader; onWorkshop: () => void };
 export function QuestionChoices({ question, lang, selected, onSelect, coach, onText }: { question: Question; lang: Lang; selected: number | null; onSelect: (i: number | null) => void; onText?: ((text: string) => void) | undefined; coach?: { notion: NotionId; index: number } }) {
   const d = DICTS[lang];
   const [mode, setMode] = useState<AnswerMode>(loadAnswerMode);
@@ -24,11 +25,13 @@ export function QuestionChoices({ question, lang, selected, onSelect, coach, onT
   const prompt = typeof question.prompt === 'string' ? d.prompts[question.prompt] : question.prompt[lang];
   return <><div className="flex items-center justify-between gap-4"><p className="text-lg font-semibold leading-snug text-foreground"><MathText lang={lang} text={prompt} /></p><Speaker text={mathSpoken(`${prompt} ${question.expr}`, lang)} lang={lang} /></div><p dir="ltr" className="my-8 text-center font-display text-3xl font-medium"><MathText lang={lang} text={question.expr} /></p>{typing ? <FreeAnswer question={question} lang={lang} onSelect={onSelect} onText={onText} /> : <div className="grid grid-cols-2 gap-3">{question.options.map((option, i) => <Button key={i} variant={selected === i ? 'default' : 'soft'} className="h-16 whitespace-normal text-lg" onClick={() => onSelect(i)} aria-pressed={selected === i}><span dir="ltr"><MathText lang={lang} text={option} /></span></Button>)}</div>}{canType && <div className="mt-3 text-center"><Button type="button" variant="link" size="sm" onClick={() => switchMode(typing ? 'choices' : 'free')}>{typing ? say(lang, 'Voir les choix', 'Show the choices', 'عرض الاختيارات', 'Ver las opciones') : say(lang, 'Taper ma réponse', 'Type my answer', 'كتابة جوابي', 'Escribir mi respuesta')}</Button></div>}{coach && <AskPi lang={lang} activity="consolidation" coachRef={{ kind: 'question', notion: coach.notion, index: coach.index }} />}</>;
 }
-export function Diagnostic({ lang, level, notions, onSave, onWorkshop }: Props) {
+export function Diagnostic({ lang, level, notions, grade, onWorkshop }: Props) {
   const d = DICTS[lang];
   const path = diagnosticPath(level, notions);
   const [active, setActive] = useState(false);
   const [answers, setAnswers] = useState<DiagAnswer[]>([]);
+  // Les choix bruts : le serveur rejoue le diagnostic avec eux et calcule lui-même le résultat.
+  const [choices, setChoices] = useState<number[]>([]);
   const [idx, setIdx] = useState(startIndex(path, level));
   const [selected, setSelected] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<boolean | null>(null);
@@ -38,7 +41,7 @@ export function Diagnostic({ lang, level, notions, onSave, onWorkshop }: Props) 
   const question = pickQuestion(path, idx, answers);
   const finished = answers.length >= DIAGNOSTIC_LENGTH;
   const analysis = analyze(answers, level);
-  const reset = () => { setAnswers([]); setIdx(startIndex(path, level)); setSelected(null); setFeedback(null); setActive(true); setRemedial(null); };
+  const reset = () => { setAnswers([]); setChoices([]); setIdx(startIndex(path, level)); setSelected(null); setFeedback(null); setActive(true); setRemedial(null); };
   async function next() {
     if (!question || selected === null) return;
     const correct = selected === question.question.answer;
@@ -46,13 +49,13 @@ export function Diagnostic({ lang, level, notions, onSave, onWorkshop }: Props) 
     const nextAnswers = [...answers, { notion: question.notion.id, qIndex: question.qIndex, correct }];
     if (nextAnswers.length === DIAGNOSTIC_LENGTH) {
       setSaving(true); setError('');
-      try { await onSave({ kind: 'diagnostic', notion: analyze(nextAnswers, level).target ?? question.notion.id, correct: nextAnswers.filter(a => a.correct).length, total: DIAGNOSTIC_LENGTH, date: new Date().toISOString(), minutes: 4 }); }
+      try { await grade.diagnostic([...choices, selected]); }
       catch { setError(say(lang, 'Résultat non sauvegardé. Réessaie.', 'Result not saved. Try again.', 'لم تُحفظ النتيجة. حاول مجددًا.', 'Resultado no guardado. Reintenta.')); setSaving(false); return; }
       setSaving(false);
     }
-    setAnswers(nextAnswers); setIdx(nextIndex(path, question.idx, correct)); setSelected(null); setFeedback(null);
+    setAnswers(nextAnswers); setChoices(c => [...c, selected]); setIdx(nextIndex(path, question.idx, correct)); setSelected(null); setFeedback(null);
   }
-  if (remedial) return <Consolidation lang={lang} notion={remedial} onSave={onSave} onDone={() => { setRemedial(null); onWorkshop(); }} />;
+  if (remedial) return <Consolidation lang={lang} notion={remedial} grade={grade} onDone={() => { setRemedial(null); onWorkshop(); }} />;
   const quiz = active && !finished && question;
   return <section className="mx-auto max-w-3xl">{quiz ? <QuizBar lang={lang} done={answers.length} total={DIAGNOSTIC_LENGTH} label={`${d.nav.diagnostic} · ${question.notion.name[lang]}`} onQuit={() => setActive(false)} /> : <div className="section-heading"><span className="eyebrow">{d.nav.diagnostic}</span><h1>{say(lang, 'Diagnostic & fondamentaux', 'Diagnostic & foundations', 'التشخيص والأساسيات', 'Diagnóstico y fundamentos')}</h1><p>{d.diag.intro}</p></div>}
     {!active ? <div className="activity-panel"><div className="mb-7 flex flex-wrap gap-3"><span className="pill">6 {say(lang, 'questions', 'questions', 'أسئلة', 'preguntas')}</span><span className="pill">≈ 4 {d.common.minutes}</span><span className="pill">{say(lang, 'Sans note', 'No grade', 'بدون علامة', 'Sin nota')}</span></div><Tutor>{say(lang, 'On découvre ce que tu sais déjà. Chaque réponse nous aide à choisir ton prochain petit pas.', 'Let’s discover what you already know. Every answer helps us choose your next step.', 'لنكتشف ما تعرفه بالفعل. كل إجابة تساعدنا على اختيار خطوتك التالية.', 'Descubramos lo que ya sabes. Cada respuesta nos ayuda a elegir tu próximo paso.')}</Tutor><Button size="lg" onClick={reset} className="mt-7">{d.diag.start}<ArrowRight /></Button></div>
@@ -61,10 +64,11 @@ export function Diagnostic({ lang, level, notions, onSave, onWorkshop }: Props) 
   </section>;
 }
 
-export function Consolidation({ lang, notion, onSave, onDone }: { lang: Lang; notion: Notion; onSave: Props['onSave']; onDone: () => void }) {
+export function Consolidation({ lang, notion, grade, onDone }: { lang: Lang; notion: Notion; grade: Grader; onDone: () => void }) {
   const [seconds, setSeconds] = useState(120);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
+  const [chosen, setChosen] = useState<number[]>([]);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -75,9 +79,9 @@ export function Consolidation({ lang, notion, onSave, onDone }: { lang: Lang; no
   async function check() {
     if (!question || selected === null) return;
     if (selected !== question.answer) { setError(d.ws.almost); return; }
-    if (index < Math.min(3, notion.questions.length) - 1) { setIndex(index + 1); setSelected(null); setError(''); return; }
+    if (index < Math.min(3, notion.questions.length) - 1) { setChosen(c => [...c, selected]); setIndex(index + 1); setSelected(null); setError(''); return; }
     setBusy(true);
-    try { await onSave({ kind: 'consolidation', notion: notion.id, correct: Math.min(3, notion.questions.length), total: Math.min(3, notion.questions.length), date: new Date().toISOString(), minutes: 2 }); setDone(true); }
+    try { await grade.consolidation(notion.id, [...chosen, selected]); setDone(true); }
     catch { setError(say(lang, 'Sauvegarde indisponible. Réessaie.', 'Save unavailable. Try again.', 'الحفظ غير متاح. حاول مجددًا.', 'No se pudo guardar. Reintenta.')); }
     setBusy(false);
   }

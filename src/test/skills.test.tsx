@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { localEngine } from '@/lib/skill-session';
+import type { Attempt } from '@/lib/pisan';
 import { VEC_RE, anglesOf, chipsOk, dueReviews, getSkill, numberOk, reviewStep, SKILLS, skillsFor, skillState, skillStatus, sentenceOk, type Activity, type Blank, type Step } from '@/lib/skills';
 import { chapterSkillKinds, FIGURE_KINDS } from '@/lib/figures';
 import { programmeFor } from '@/lib/programmes';
@@ -10,6 +12,9 @@ import { blockingSkills } from '@/lib/classroom';
 import type { L } from '@/lib/curriculum';
 
 const LANGS = ['fr', 'en', 'ar', 'es'] as const;
+/** Le moteur du serveur, exécuté sur place avec une clé de test ; le tirage vaut toujours 5. */
+const testEngine = (onRecord?: (a: Attempt[]) => void) => localEngine({ secret: 'test-secret', hash: 'a'.repeat(64), rand: () => 5 / 100000, ...(onRecord ? { onRecord } : {}) });
+const ready = () => waitFor(() => expect(screen.queryByText('PiSan…')).toBeNull());
 /** Nom accessible d'un texte : les vecteurs ⟦AB⟧ se lisent « vecteur AB ». */
 const named = (text: string) => text.replace(VEC_RE, 'vecteur $1');
 const filled = (l: L) => LANGS.every(k => l[k].trim().length > 0);
@@ -204,8 +209,8 @@ describe('Chapitres du programme', () => {
 
 // ───────────── À l'écran : chaque compétence se termine en suivant ses propres réponses ─────────────
 
-function solveOnScreen(activity: Activity) {
-  activity.steps.forEach((step, i) => {
+async function solveOnScreen(activity: Activity) {
+  for (const [i, step] of activity.steps.entries()) {
     switch (step.type) {
       case 'choice': fireEvent.click(screen.getByRole('button', { name: named(step.options[step.answer]!.fr) })); break;
       case 'tap': {
@@ -260,83 +265,81 @@ function solveOnScreen(activity: Activity) {
         fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
         break;
     }
-    expect(screen.queryByText('C’est juste !'), `étape ${i + 1}`).toBeTruthy();
+    expect(await screen.findByText('C’est juste !'), `étape ${i + 1}`).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: i + 1 < activity.steps.length ? /Étape suivante/ : /Terminer/ }));
-  });
+  }
 }
 
 describe('Parcours à l’écran', () => {
   for (const skill of SKILLS) it(`${skill.id} can be completed and saves the skill`, async () => {
-    vi.spyOn(Date, 'now').mockReturnValue(5);
-    const onSave = vi.fn(async () => {});
-    render(<SkillActivity lang="fr" skill={skill} onSave={onSave} onBack={() => {}} />);
+    const recorded: Attempt[] = [];
+    render(<SkillActivity lang="fr" skill={skill} engine={testEngine(a => recorded.push(...a))} onBack={() => {}} />);
+    await ready();
     const activity = skill.build(5);
-    solveOnScreen(activity);
+    await solveOnScreen(activity);
     expect(await screen.findByText('Compétence acquise !')).toBeTruthy();
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ kind: 'workshop', skill: skill.id, correct: activity.steps.length, total: activity.steps.length }));
-    vi.restoreAllMocks();
+    expect(recorded).toEqual([expect.objectContaining({ kind: 'workshop', skill: skill.id, correct: activity.steps.length, total: activity.steps.length })]);
   });
 
   it('a wrong first try gives the hint, and the step no longer counts as mastered', async () => {
-    vi.spyOn(Date, 'now').mockReturnValue(5);
-    const onSave = vi.fn(async () => {});
+    const recorded: Attempt[] = [];
     const skill = getSkill('pyth-discover')!;
-    render(<SkillActivity lang="fr" skill={skill} onSave={onSave} onBack={() => {}} />);
+    render(<SkillActivity lang="fr" skill={skill} engine={testEngine(a => recorded.push(...a))} onBack={() => {}} />);
+    await ready();
     fireEvent.click(screen.getByRole('button', { name: 'Verser les carreaux' }));
     expect(screen.getByRole('status').textContent).toMatch(/déborde/); // 60° : trop de carreaux
     fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
-    expect(screen.getByText(/l’angle est trop petit/)).toBeTruthy();
+    expect(await screen.findByText(/l’angle est trop petit/)).toBeTruthy();
     fireEvent.change(screen.getByLabelText(/Angle en A/), { target: { value: '120' } });
     expect(screen.getByRole('status').textContent).toMatch(/Il manque/);
     fireEvent.change(screen.getByLabelText(/Angle en A/), { target: { value: '90' } });
     expect(screen.getByRole('status').textContent).toMatch(/rempli exactement/);
     fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Étape suivante/ }));
-    solveOnScreen({ ...skill.build(5), steps: skill.build(5).steps.slice(1) });
+    fireEvent.click(await screen.findByRole('button', { name: /Étape suivante/ }));
+    await solveOnScreen({ ...skill.build(5), steps: skill.build(5).steps.slice(1) });
     expect(await screen.findByText(/2 étapes sur 3 du premier coup/)).toBeTruthy();
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ correct: 2, total: 3 }));
-    vi.restoreAllMocks();
+    expect(recorded).toEqual([expect.objectContaining({ correct: 2, total: 3 })]);
   });
 
-  it('the set square can be put on a corner with the keyboard', () => {
-    vi.spyOn(Date, 'now').mockReturnValue(5);
-    const { container } = render(<SkillActivity lang="fr" skill={getSkill('pyth-recognise')!} onSave={async () => {}} onBack={() => {}} />);
+  it('the set square can be put on a corner with the keyboard', async () => {
+    const { container } = render(<SkillActivity lang="fr" skill={getSkill('pyth-recognise')!} engine={testEngine()} onBack={() => {}} />);
+    await ready();
     const corner = screen.getAllByRole('button', { name: /Poser l’équerre en/ })[0]!;
     fireEvent.keyDown(corner, { key: 'Enter' });
     expect(corner.getAttribute('aria-pressed')).toBe('true');
     expect(container.querySelector('.skill-equerre')).toBeTruthy();
     expect(within(container).getAllByRole('button', { name: /Oui, en|Non/ }).length).toBe(4);
-    vi.restoreAllMocks();
   });
 });
 
 describe('Mini-contrôle à l’écran', () => {
   it('asks one step per skill and records each skill separately', async () => {
-    vi.spyOn(Date, 'now').mockReturnValue(5);
-    const onSave = vi.fn(async () => {});
+    const recorded: Attempt[] = [];
     const skills = [getSkill('stats-median')!, getSkill('vec-sum')!];
-    render(<ReviewActivity lang="fr" skills={skills} onSave={onSave} onBack={() => {}} />);
+    render(<ReviewActivity lang="fr" skills={skills} engine={testEngine(a => recorded.push(...a))} onBack={() => {}} />);
+    await ready();
     // 1re question ratée d'abord : l'indice s'affiche
     const first = reviewStep(skills[0]!, 5);
     if (first.type !== 'number') throw new Error(first.type);
     fireEvent.change(screen.getByLabelText('Ta réponse'), { target: { value: '999' } });
     fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
-    expect(screen.getByText(first.hint.fr)).toBeTruthy();
+    expect(await screen.findByText(first.hint.fr)).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Ta réponse'), { target: { value: typed(first) } });
     fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Question suivante/ }));
-    const second = reviewStep(skills[1]!, 12);
+    fireEvent.click(await screen.findByRole('button', { name: /Question suivante/ }));
+    const second = reviewStep(skills[1]!, 5);
     if (second.type !== 'grid') throw new Error(second.type);
     const h = screen.getByRole('slider', { name: 'D' });
     const dx = second.answer.x - second.start.x, dy = second.answer.y - second.start.y;
     for (let k = 0; k < Math.abs(dx); k++) fireEvent.keyDown(h, { key: dx > 0 ? 'ArrowRight' : 'ArrowLeft' });
     for (let k = 0; k < Math.abs(dy); k++) fireEvent.keyDown(h, { key: dy > 0 ? 'ArrowUp' : 'ArrowDown' });
     fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Terminer/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /Terminer/ }));
     expect(await screen.findByText('Quelques compétences sont à revoir.')).toBeTruthy();
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ skill: 'stats-median', review: true, correct: 0, total: 1, notion: 'statistics' }));
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ skill: 'vec-sum', review: true, correct: 1, total: 1, notion: 'vectors' }));
-    vi.restoreAllMocks();
+    expect(recorded).toEqual([
+      expect.objectContaining({ skill: 'stats-median', review: true, correct: 0, total: 1, notion: 'statistics' }),
+      expect.objectContaining({ skill: 'vec-sum', review: true, correct: 1, total: 1, notion: 'vectors' }),
+    ]);
   });
 });
 
@@ -388,21 +391,21 @@ describe('Terminale', () => {
     expect(quadText(-1, 0, 4)).toBe('−x² + 4');
     for (const skill of SKILLS.filter(s => ['seq', 'deriv', 'proba'].includes(s.chapter))) for (let seed = 0; seed < 30; seed++) expect(JSON.stringify(skill.build(seed))).not.toMatch(/[^0-9,]1x|x \+ 0\b|− −|\+ −/);
   });
-  it('the tangent widget is solved only where the tangent is horizontal', () => {
-    vi.spyOn(Date, 'now').mockReturnValue(5);
+  it('the tangent widget is solved only where the tangent is horizontal', async () => {
     const skill = getSkill('deriv-slope')!;
     const step = skill.build(5).steps[0]!;
     if (step.type !== 'widget' || step.widget.kind !== 'tangent') throw new Error();
-    render(<SkillActivity lang="fr" skill={skill} onSave={async () => {}} onBack={() => {}} />);
+    render(<SkillActivity lang="fr" skill={skill} engine={testEngine()} onBack={() => {}} />);
+    await ready();
     fireEvent.change(screen.getByLabelText(/^x = /), { target: { value: String(step.widget.target + 1) } });
     expect(screen.getByText(/pente de la tangente : [^0]/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
+    expect(await screen.findByText(/Regarde le signe de la pente/)).toBeTruthy();
     expect(screen.queryByText('C’est juste !')).toBeNull();
     fireEvent.change(screen.getByLabelText(/^x = /), { target: { value: String(step.widget.target) } });
     expect(screen.getByText('pente de la tangente : 0')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /Vérifier/ }));
-    expect(screen.getByText('C’est juste !')).toBeTruthy();
-    vi.restoreAllMocks();
+    expect(await screen.findByText('C’est juste !')).toBeTruthy();
   });
 });
 

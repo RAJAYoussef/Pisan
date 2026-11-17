@@ -13,7 +13,9 @@ export type FractionInteractionEvent = {
   action: 'part-toggled' | 'position-changed' | 'verified' | 'reset';
   state: { selectedParts?: number[]; position?: number; correct?: boolean };
 };
-type BaseProps = { lang: Lang; locked?: boolean; onComplete?: (correct: boolean) => void; onDiagnosis?: (diagnosis: FractionDiagnosis) => void; onInteraction?: (event: FractionInteractionEvent) => void };
+/** État transmis au serveur pour qu'il corrige lui-même la manipulation. */
+export type FractionLabState = Record<string, number | string>;
+type BaseProps = { lang: Lang; locked?: boolean; onComplete?: (correct: boolean, state: FractionLabState) => void; onDiagnosis?: (diagnosis: FractionDiagnosis) => void; onInteraction?: (event: FractionInteractionEvent) => void };
 function useInteractionRecorder(widgetKind: FractionWidgetKind, onInteraction?: BaseProps['onInteraction']) {
   const sequence = useRef(0);
   return (action: FractionInteractionEvent['action'], state: FractionInteractionEvent['state']) => {
@@ -46,7 +48,7 @@ export function FractionEquivalenceLab({ lang, source, factor, locked = false, o
   const [checked, setChecked] = useState<boolean | null>(null), [diagnosis, setDiagnosis] = useState<FractionDiagnosis | null>(null);
   const valid = Number.isSafeInteger(source.n) && Number.isSafeInteger(source.d) && source.d > 0 && source.n >= 0 && source.n <= source.d && Number.isSafeInteger(factor) && factor >= 2 && target.d <= 16;
   if (!valid) throw new Error('Invalid equivalence lab parameters');
-  const verify = () => { const ok = parts.selected.length === target.n; record('verified', { selectedParts: parts.selected, correct: ok }); const task: FractionTask = { kind: 'equivalent', value: source, expected: target }; const result = analyzeFractionResponse(task, `${parts.selected.length}/${target.d}`); setDiagnosis(result); onDiagnosis?.(result); setChecked(ok); onComplete?.(ok); };
+  const verify = () => { const ok = parts.selected.length === target.n; record('verified', { selectedParts: parts.selected, correct: ok }); const task: FractionTask = { kind: 'equivalent', value: source, expected: target }; const result = analyzeFractionResponse(task, `${parts.selected.length}/${target.d}`); setDiagnosis(result); onDiagnosis?.(result); setChecked(ok); onComplete?.(ok, { shaded: parts.selected.length }); };
   return <section className="space-y-3">
     <p className="text-sm font-semibold">{c.source}: {source.n}/{source.d} = ?/{target.d}</p>
     <p className="text-xs text-muted-foreground">{c.equivalent}</p>
@@ -65,7 +67,7 @@ export function FractionAdditionLab({ lang, left, right, locked = false, onCompl
   const [checked, setChecked] = useState<boolean | null>(null), [diagnosis, setDiagnosis] = useState<FractionDiagnosis | null>(null);
   const valid = left.d === right.d && left.d > 0 && left.d <= 16 && left.n >= 0 && right.n >= 0 && total <= left.d;
   if (!valid) throw new Error('Addition lab requires non-negative fractions with a common denominator and sum ≤ 1');
-  const verify = () => { const ok = parts.selected.length === total; record('verified', { selectedParts: parts.selected, correct: ok }); const task: FractionTask = { kind: 'add', left, right }; const result = analyzeFractionResponse(task, `${parts.selected.length}/${left.d}`); setDiagnosis(result); onDiagnosis?.(result); setChecked(ok); onComplete?.(ok); };
+  const verify = () => { const ok = parts.selected.length === total; record('verified', { selectedParts: parts.selected, correct: ok }); const task: FractionTask = { kind: 'add', left, right }; const result = analyzeFractionResponse(task, `${parts.selected.length}/${left.d}`); setDiagnosis(result); onDiagnosis?.(result); setChecked(ok); onComplete?.(ok, { shaded: parts.selected.length }); };
   return <section className="space-y-3">
     <p className="text-sm font-semibold">{left.n}/{left.d} + {right.n}/{right.d}</p>
     <p className="text-xs text-muted-foreground">{c.add}</p>
@@ -82,7 +84,7 @@ export function FractionNumberLineLab({ lang, target, locked = false, onComplete
   const c = copy[lang], [position, setPosition] = useState(0), [checked, setChecked] = useState<boolean | null>(null);
   const record = useInteractionRecorder('fraction-numberline', onInteraction);
   if (!Number.isSafeInteger(target.n) || !Number.isSafeInteger(target.d) || target.d <= 0 || target.n < 0 || target.n > target.d) throw new Error('Number line target must be between 0 and 1');
-  const verify = () => { const ok = Math.abs(position - target.n / target.d) <= 0.006; record('verified', { position, correct: ok }); setChecked(ok); onComplete?.(ok); };
+  const verify = () => { const ok = Math.abs(position - target.n / target.d) <= 0.006; record('verified', { position, correct: ok }); setChecked(ok); onComplete?.(ok, { position }); };
   return <section className="space-y-3">
     <p className="text-sm font-semibold">{c.numberline} {target.n}/{target.d}</p>
     <div className="relative px-2 pt-5" dir="ltr">

@@ -13,12 +13,13 @@ import { ReviewActivity, SkillActivity } from './skills';
 import { ChapterPath, WorkshopHome, type Tile } from './workshop-home';
 import { dueReviews, getSkill, nextSkill, type Skill } from '@/lib/skills';
 import { assignmentNext, visibleAssignments, type Assignment } from '@/lib/assignments';
+import type { SkillEngine } from '@/lib/skill-session';
 import { AssignmentRow } from './assignment-row';
 import { figureChapter, figuresFor, type FigureKind } from '@/lib/figures';
 import { ArrowLeft, ChevronRight, TrendingUp } from 'lucide-react';
 import { emptyProgress, type Progress } from '@/lib/pisan';
 
-type Props = { onJournalEvent?: (skillId: string, event: { activityId: string; type: import('@/lib/fraction-journal').FractionJournalEventType; payload: Record<string, unknown>; clientOccurredAt?: string }) => void; lang: Lang; level: number; country: string; onSave: (a: Attempt) => Promise<void>; onStart: () => Promise<boolean>; notions?: Notion[] | undefined; focus?: NotionId | undefined; programme?: Programme | null | undefined; progress?: Progress | undefined; assignments?: Assignment[] | undefined };
+type Props = { engine: SkillEngine; onJournalEvent?: (skillId: string, event: { activityId: string; type: import('@/lib/fraction-journal').FractionJournalEventType; payload: Record<string, unknown>; clientOccurredAt?: string }) => void; lang: Lang; level: number; country: string; onSave: (a: Attempt) => Promise<void>; onStart: () => Promise<boolean>; notions?: Notion[] | undefined; focus?: NotionId | undefined; programme?: Programme | null | undefined; progress?: Progress | undefined; assignments?: Assignment[] | undefined };
 
 function figureChapterTitle(programme: Programme | null | undefined, kind: FigureKind, lang: Lang): string | null {
   return figureChapter(programme, kind)?.[lang] ?? null;
@@ -56,8 +57,8 @@ export function Workshop(props: Props) {
     setBusy(false);
   }
   const due = dueReviews(attempts);
-  if (review) return <ReviewActivity lang={lang} skills={review} onSave={props.onSave} onBack={() => setReview(null)} />;
-  if (skill) return <SkillActivity key={skill.id} lang={lang} skill={skill} onSave={props.onSave} onBack={() => setSkill(null)} onAdaptiveSkill={setAdaptiveSkillId} onJournalEvent={event => props.onJournalEvent?.(skill.id, event)} />;
+  if (review) return <ReviewActivity lang={lang} skills={review} engine={props.engine} onBack={() => setReview(null)} />;
+  if (skill) return <SkillActivity key={skill.id} lang={lang} skill={skill} engine={props.engine} onBack={() => setSkill(null)} onAdaptiveSkill={setAdaptiveSkillId} onJournalEvent={event => props.onJournalEvent?.(skill.id, event)} />;
   async function openReview() { setBusy(true); setError(''); try { if (await onStart()) setReview(due); } catch { setError(say(lang, 'Exercice indisponible. Réessaie.', 'Exercise unavailable. Try again.', 'التمرين غير متاح.', 'Ejercicio no disponible.')); } finally { setBusy(false); } }
   async function openSkill(next: Skill) { setBusy(true); setError(''); try { if (await onStart()) { setSkill(next); setAdaptiveSkillId(null); } } catch { setError(say(lang, 'Exercice indisponible. Réessaie.', 'Exercise unavailable. Try again.', 'التمرين غير متاح.', 'Ejercicio no disponible.')); } finally { setBusy(false); } }
   if (highActive) return <HighSchool {...props} modes={modes} onBack={() => setHighActive(false)} />;
