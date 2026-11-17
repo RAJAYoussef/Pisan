@@ -15,9 +15,9 @@ describe('FractionBars', () => {
   it('accepts an accurately shaded and correctly compared pair', () => {
     const onComplete = vi.fn();
     render(<FractionBars lang="fr" left={{ n: 1, d: 2 }} right={{ n: 2, d: 3 }} onComplete={onComplete} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Part 1 sur 2' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Part 1 sur 3' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Part 2 sur 3' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Part 1 / 2' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Part 1 / 3' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Part 2 / 3' }));
     fireEvent.click(screen.getByRole('button', { name: '<' }));
     fireEvent.click(screen.getByRole('button', { name: 'Vérifier' }));
     expect(onComplete).toHaveBeenCalledWith(true);
@@ -27,9 +27,9 @@ describe('FractionBars', () => {
   it('reports a wrong relation without confirming a misconception', () => {
     const onDiagnosis = vi.fn();
     render(<FractionBars lang="fr" left={{ n: 1, d: 2 }} right={{ n: 2, d: 3 }} onDiagnosis={onDiagnosis} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Part 1 sur 2' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Part 1 sur 3' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Part 2 sur 3' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Part 1 / 2' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Part 1 / 3' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Part 2 / 3' }));
     fireEvent.click(screen.getByRole('button', { name: '>' }));
     fireEvent.click(screen.getByRole('button', { name: 'Vérifier' }));
     expect(onDiagnosis).toHaveBeenCalledWith(expect.objectContaining({ correct: false, misconception: 'unknown', confirmed: false }));
