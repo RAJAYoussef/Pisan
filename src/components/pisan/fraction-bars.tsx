@@ -32,11 +32,6 @@ export function FractionBars({ lang, left, right, locked = false, onDiagnosis, o
       throw new Error('FractionBars expects 0 ≤ numerator ≤ denominator ≤ 16.');
     }
   }
-  for (const fraction of [left, right]) {
-    if (!Number.isSafeInteger(fraction.n) || !Number.isSafeInteger(fraction.d) || fraction.d < 1 || fraction.d > 16 || fraction.n < 0 || fraction.n > fraction.d) {
-      throw new Error('FractionBars expects 0 ≤ numerator ≤ denominator ≤ 16.');
-    }
-  }
   const expected = useMemo(() => Math.sign(left.n * right.d - right.n * left.d), [left.n, left.d, right.n, right.d]);
   const expectedRelation = expected > 0 ? '>' : expected < 0 ? '<' : '=';
   const toggle = (values: number[], set: (v: number[]) => void, index: number) => {
@@ -49,7 +44,7 @@ export function FractionBars({ lang, left, right, locked = false, onDiagnosis, o
     <div className="space-y-2" dir="ltr">
       <div className="flex items-center justify-between text-sm font-semibold"><span>{name}</span><span>{fraction.n}/{fraction.d}</span></div>
       <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${fraction.d}, minmax(0, 1fr))` }} role="group" aria-label={name}>
-        {Array.from({ length: fraction.d }, (_, i) => <button key={i} type="button" disabled={locked || feedback === 'correct'} aria-pressed={selected.includes(i)} aria-label={`Part ${i + 1} sur ${fraction.d}`} onClick={() => toggle(selected, set, i)} className={`h-11 rounded border-2 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${selected.includes(i) ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-muted hover:bg-accent'}`} />)}
+        {Array.from({ length: fraction.d }, (_, i) => <button key={i} type="button" disabled={locked || feedback === 'correct'} aria-pressed={selected.includes(i)} aria-label={`${copy.part} ${i + 1} / ${fraction.d}`} onClick={() => toggle(selected, set, i)} className={`h-11 rounded border-2 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${selected.includes(i) ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-muted hover:bg-accent'}`} />)}
       </div>
       <p className="text-xs text-muted-foreground">{copy.fill}: {selected.length}/{fraction.d}</p>
     </div>
