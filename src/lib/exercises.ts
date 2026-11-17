@@ -631,7 +631,7 @@ export const TEMPLATE_NOTIONS: Record<string, NotionId[]> = {
   multiple: ['equations', 'algebra'],
   difference: ['equations', 'systems'],
   fraction: ['fractions'],
-  percent: ['proportion', 'statistics'],
+  percent: ['proportion'],
   ratio: ['proportion'],
   perimeter: ['equations', 'areas'],
 };

@@ -573,3 +573,17 @@ export function dueReviews(attempts: SkillAttempt[], now = Date.now(), max = 4):
     .slice(0, max).map(x => x.s);
 }
 
+
+/**
+ * La prochaine compétence à travailler : dans le chapitre touché le plus récemment (sinon le premier proposé),
+ * une compétence « à revoir », sinon la première pas encore acquise. Null si tout est acquis.
+ */
+export function nextSkill(attempts: SkillAttempt[], chapters: FigureKind[]): { skill: Skill; resumed: boolean } | null {
+  const open = (k: FigureKind) => skillsFor(k).some(s => skillStatus(attempts, s.id) !== 'mastered');
+  const last = [...attempts].reverse().map(a => a.skill && getSkill(a.skill)).find(s => s && chapters.includes(s.chapter) && open(s.chapter));
+  const chapter = last ? last.chapter : chapters.find(open);
+  if (!chapter) return null;
+  const skills = skillsFor(chapter);
+  const skill = skills.find(s => skillStatus(attempts, s.id) === 'review') ?? skills.find(s => skillStatus(attempts, s.id) !== 'mastered')!;
+  return { skill, resumed: Boolean(last) };
+}

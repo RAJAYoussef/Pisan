@@ -472,4 +472,3 @@ export function SkillList({ lang, kind, attempts, onOpen, disabled }: { lang: La
   })}</ol>;
 }
 
-export const masteredCount = (kind: FigureKind, attempts: Attempt[]) => skillsFor(kind).filter(s => skillStatus(attempts, s.id) === 'mastered').length;
