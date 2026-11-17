@@ -68,7 +68,7 @@ export function FractionNumberLineLab({ lang, target, locked = false, onComplete
     <div className="relative px-2 pt-5" dir="ltr">
       <div className="h-1 rounded bg-muted-foreground/50" />
       <div className="absolute left-2 right-2 top-0 flex justify-between text-xs"><span>{c.whole}</span><span>{c.one}</span></div>
-      <div className="absolute top-[13px] h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-primary" style={{ left: `calc(8px + (100% - 16px) * ${position})` }} />
+      <div className="absolute top-[13px] h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-primary" style={{ left: `${position * 100}%` }} />
     </div>
     <input aria-label={c.position} type="range" min="0" max="1" step="0.005" value={position} disabled={locked || checked === true} onChange={e => { setPosition(Number(e.target.value)); setChecked(null); }} className="w-full accent-[var(--primary)]" />
     <p className="text-xs text-muted-foreground">{c.position}: {position.toFixed(3)}</p>
