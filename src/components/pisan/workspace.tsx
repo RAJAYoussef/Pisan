@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, BookOpen, Brain, ChevronDown, ChevronRight, CircleUserRound, ClipboardCheck, Crown, Flame, GraduationCap, Home, LayoutDashboard, LogOut, Menu, RotateCcw, ShieldCheck, Sparkles, Star, TrendingUp, X } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import { supabase } from '@/integrations/supabase/client';
@@ -58,6 +58,7 @@ export function Workspace() {
   const consume = useServerFn(consumeExercise);
   const save = useServerFn(saveAttempt);
   const appendJournal = useServerFn(appendFractionJournal);
+  const journalTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const [token, setToken] = useState('');
   const [session, setSession] = useState<LearningSession | null>(null);
   const [lang, setLang] = useState<Lang>('fr');
@@ -140,7 +141,20 @@ export function Workspace() {
   async function record(attempt: Attempt) { const r = await save({ data: { token, attempt: attempt as Attempt & { kind: Exclude<Attempt['kind'], 'challenge'> } } }); applyStreak(r.progress, r.streak); }
   function recordFractionJournal(skillId: string, event: { activityId: string; type: import('@/lib/fraction-journal').FractionJournalEventType; payload: Record<string, unknown>; clientOccurredAt?: string }) {
     if (!token) return;
-    void appendJournal({ data: { token, events: [{ eventId: crypto.randomUUID(), activityId: event.activityId, skillId, type: event.type, payload: event.payload, ...(event.clientOccurredAt ? { clientOccurredAt: event.clientOccurredAt } : {}) }] } }).catch(() => setError(say(lang, 'Une trace pédagogique n’a pas pu être synchronisée.', 'A learning trace could not be synced.', 'تعذر مزامنة أثر تعليمي.', 'No se pudo sincronizar una traza de aprendizaje.')));
+    const persist = () => {
+      const pending = journalTimers.current.get(event.activityId);
+      if (pending) { clearTimeout(pending); journalTimers.current.delete(event.activityId); }
+      void appendJournal({ data: { token, events: [{ eventId: crypto.randomUUID(), activityId: event.activityId, skillId, type: event.type, payload: event.payload, ...(event.clientOccurredAt ? { clientOccurredAt: event.clientOccurredAt } : {}) }] } }).catch(() => setError(say(lang, 'Une trace pédagogique n’a pas pu être synchronisée.', 'A learning trace could not be synced.', 'تعذر مزامنة أثر تعليمي.', 'No se pudo sincronizar una traza de aprendizaje.')));
+    };
+    // Le curseur de la droite graduée peut émettre de nombreux changements :
+    // on conserve le dernier état après une courte période sans mouvement.
+    if (event.type === 'manipulation' && event.payload.action === 'position-changed') {
+      const previous = journalTimers.current.get(event.activityId);
+      if (previous) clearTimeout(previous);
+      journalTimers.current.set(event.activityId, setTimeout(persist, 400));
+      return;
+    }
+    persist();
   }
   const practise = (notion: NotionId) => { setPracticeNotion(notion); navigate('practice'); };
   const switchView = (next: Tab) => { if (setup) { setError(say(lang, 'Choisis un pseudonyme et ta classe pour commencer.', 'Choose a nickname and grade to begin.', 'اختر اسمًا مستعارًا وصفك للبدء.', 'Elige un alias y curso para empezar.')); return; } navigate(next); };
