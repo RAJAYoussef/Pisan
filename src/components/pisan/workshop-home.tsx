@@ -108,7 +108,7 @@ const STATUS_TEXT: Record<SkillStatus, (lang: Lang) => string> = {
 };
 
 /** Le parcours d'un chapitre : les compétences dans l'ordre, la prochaine mise en avant. */
-export function ChapterPath({ lang, kind, attempts, chapterLabel, busy, onSkill, onBack }: { lang: Lang; kind: FigureKind; attempts: Attempt[]; chapterLabel: string | null; busy: boolean; onSkill: (s: Skill) => void; onBack: () => void }) {
+export function ChapterPath({ lang, kind, attempts, chapterLabel, busy, onSkill, onBack, children }: { lang: Lang; kind: FigureKind; attempts: Attempt[]; chapterLabel: string | null; busy: boolean; onSkill: (s: Skill) => void; onBack: () => void; /** Après les parcours : les problèmes en barres du chapitre. */ children?: ReactNode }) {
   const skills = skillsFor(kind);
   const statuses = skills.map(s => skillStatus(attempts, s.id));
   const current = statuses.findIndex(s => s === 'review') >= 0 ? statuses.findIndex(s => s === 'review') : statuses.findIndex(s => s !== 'mastered');
@@ -137,5 +137,6 @@ export function ChapterPath({ lang, kind, attempts, chapterLabel, busy, onSkill,
         </button>
       </li>;
     })}</ol>
+    {children}
   </section>;
 }

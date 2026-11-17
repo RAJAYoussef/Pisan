@@ -758,3 +758,4 @@ html[data-dys-bg="dark"] { --brand-p: #8f93ff; }
 .chapter-glyph .glyph-text { fill: currentColor; stroke: none; font: 800 15px var(--font-display); }
 .skill-bar { fill: color-mix(in oklab, var(--primary) 55%, transparent); stroke: var(--primary-deep); stroke-width: 1.5; }
 .chapter-glyph .glyph-small { font-size: 13px; }
+.ws-problems { margin-top: 2rem; }

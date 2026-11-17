@@ -15,7 +15,7 @@ import { dueReviews, getSkill, nextSkill, type Skill } from '@/lib/skills';
 import { assignmentNext, visibleAssignments, type Assignment } from '@/lib/assignments';
 import type { SkillEngine } from '@/lib/skill-session';
 import { AssignmentRow } from './assignment-row';
-import { figureChapter, figuresFor, type FigureKind } from '@/lib/figures';
+import { FIGURE_NOTIONS, figureChapter, figuresFor, type FigureKind } from '@/lib/figures';
 import { ArrowLeft, ChevronRight, TrendingUp } from 'lucide-react';
 import { emptyProgress, type Progress } from '@/lib/pisan';
 
@@ -32,9 +32,11 @@ function chapterOf(programme: Programme | null | undefined, notion: NotionId, la
 export function Workshop(props: Props) {
   const { lang, level, country, onStart, notions, focus, programme } = props;
   const ids = notions?.map(n => n.id);
-  const exercises = workshopExercises(level, ids, focus);
+  // Problèmes en barres (méthode de Singapour) : chacun rejoint le chapitre de l'atelier qui porte sa notion ;
+  // ceux qui n'ont pas de chapitre d'accueil restent dans la tuile « Problèmes en barres ».
+  const allProblems = workshopExercises(level, ids, focus, Infinity);
   const modes = highSchoolModes(ids);
-  const showGraphs = modes.length > 0 && (level >= 4 || exercises.length === 0);
+  const showGraphs = modes.length > 0 && (level >= 4 || allProblems.length === 0);
   const d = DICTS[lang];
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [busy, setBusy] = useState(false);
@@ -49,10 +51,13 @@ export function Workshop(props: Props) {
   const attempts = (props.progress ?? emptyProgress).attempts;
   // Parcours de compétences en géométrie : quand le programme les contient (ou par niveau, sans programme connu).
   const figures = figuresFor(programme, ids, level);
+  const problemKind = (ex: Exercise) => figures.find(k => FIGURE_NOTIONS[k].includes(ex.notion)) ?? null;
+  const exercises = allProblems.filter(ex => problemKind(ex) === null);
+  const problemsFor = (kind: FigureKind) => allProblems.filter(ex => problemKind(ex) === kind);
   const [error, setError] = useState('');
-  async function start(ex?: Exercise) {
+  async function start(ex?: Exercise, aim: NotionId | undefined = focus) {
     setBusy(true); setError('');
-    try { if (await onStart()) { setExercise(ex ?? await generateAdaptedExercise({ level, countryId: country, lang, notions: ids, focus })); } }
+    try { if (await onStart()) { setExercise(ex ?? await generateAdaptedExercise({ level, countryId: country, lang, notions: ids, focus: aim })); } }
     catch { setError(say(lang, 'Exercice indisponible. Réessaie.', 'Exercise unavailable. Try again.', 'التمرين غير متاح.', 'Ejercicio no disponible.')); }
     setBusy(false);
   }
@@ -65,8 +70,20 @@ export function Workshop(props: Props) {
   if (exercise) return <BarExercise key={exercise.id} {...props} exercise={exercise} onBack={() => setExercise(null)} />;
   const back = say(lang, 'Atelier', 'Workshop', 'الورشة', 'Taller');
   const errorBox = error && <p role="alert" className="mt-3 text-destructive">{error}</p>;
-  if (chapter) return <><ChapterPath lang={lang} kind={chapter} attempts={attempts} chapterLabel={figureChapterTitle(programme, chapter, lang)} busy={busy} onSkill={next => void openSkill(next)} onBack={() => setChapter(null)} />{errorBox}</>;
-  if (bars) return <section className="mx-auto max-w-5xl"><Button variant="ghost" onClick={() => setBars(false)} className="mb-4"><ArrowLeft className="rtl:rotate-180" />{back}</Button><div className="section-heading"><span className="eyebrow">{say(lang, 'Méthode de Singapour', 'Singapore method', 'طريقة سنغافورة', 'Método de Singapur')}</span><h1>{say(lang, 'Problèmes en barres', 'Bar-model problems', 'مسائل بالنماذج الشريطية', 'Problemas con barras')}</h1><p>{d.ws.intro}</p></div><div className="mb-7 flex flex-wrap items-center justify-between gap-4">{exercises.length > 0 && <span className="pill">{programme ? say(lang, 'Problèmes de ton programme', 'Problems from your curriculum', 'مسائل من برنامجك', 'Problemas de tu programa') : say(lang, 'Démonstrations adaptées à ta classe', 'Demonstrations for your grade', 'تمارين مناسبة لصفك', 'Ejercicios para tu curso')}</span>}{exercises.length > 0 && <Button variant="soft" disabled={busy} onClick={() => start()}><RefreshCw />{say(lang, 'Nouvel exercice', 'New exercise', 'تمرين جديد', 'Nuevo ejercicio')}</Button>}</div><div className="ws-list">{exercises.map((ex, i) => <button key={ex.id} type="button" className="ws-problem" disabled={busy} onClick={() => start(ex)}><span className={`mini-model ws-problem-model model-${i % 3}`} aria-hidden>{ex.bars.map((b, j) => <span className="flex gap-0.5" key={j}>{Array.from({ length: b.units }, (_, k) => <span className="min-w-0 flex-1" key={k} />)}{b.extra && <span className="extra" />}</span>)}</span><span className="min-w-0 flex-1 text-start">{chapterOf(programme, ex.notion, lang) && <span className="block text-xs font-bold text-primary-deep">{chapterOf(programme, ex.notion, lang)}</span>}<span className="block font-bold">{ex.title[lang]}</span><span className="block text-sm text-muted-foreground">{ex.story[lang]}</span></span><ChevronRight className="h-5 w-5 shrink-0 self-center text-muted-foreground rtl:rotate-180" aria-hidden /></button>)}</div>{errorBox}</section>;
+  const problemList = (list: Exercise[], showChapter = true) => <div className="ws-list">{list.map((ex, i) => <button key={ex.id} type="button" className="ws-problem" disabled={busy} onClick={() => void start(ex)}><span className={`mini-model ws-problem-model model-${i % 3}`} aria-hidden>{ex.bars.map((b, j) => <span className="flex gap-0.5" key={j}>{Array.from({ length: b.units }, (_, k) => <span className="min-w-0 flex-1" key={k} />)}{b.extra && <span className="extra" />}</span>)}</span><span className="min-w-0 flex-1 text-start">{showChapter && chapterOf(programme, ex.notion, lang) && <span className="block text-xs font-bold text-primary-deep">{chapterOf(programme, ex.notion, lang)}</span>}<span className="block font-bold">{ex.title[lang]}</span><span className="block text-sm text-muted-foreground">{ex.story[lang]}</span></span><ChevronRight className="h-5 w-5 shrink-0 self-center text-muted-foreground rtl:rotate-180" aria-hidden /></button>)}</div>;
+  if (chapter) {
+    const problems = problemsFor(chapter);
+    return <><ChapterPath lang={lang} kind={chapter} attempts={attempts} chapterLabel={figureChapterTitle(programme, chapter, lang)} busy={busy} onSkill={next => void openSkill(next)} onBack={() => setChapter(null)}>
+      {problems.length > 0 && <section className="ws-problems" aria-labelledby="ws-problems-title">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+          <div><span className="eyebrow">{say(lang, 'Méthode de Singapour', 'Singapore method', 'طريقة سنغافورة', 'Método de Singapur')}</span><h2 id="ws-problems-title" className="text-lg font-bold">{say(lang, 'Résoudre un problème en barres', 'Solve a bar-model problem', 'حل مسألة بالنماذج الشريطية', 'Resolver un problema con barras')}</h2></div>
+          <Button variant="soft" size="sm" disabled={busy} onClick={() => void start(undefined, problems[0]!.notion)}><RefreshCw />{say(lang, 'Nouveau problème', 'New problem', 'مسألة جديدة', 'Nuevo problema')}</Button>
+        </div>
+        {problemList(problems, false)}
+      </section>}
+    </ChapterPath>{errorBox}</>;
+  }
+  if (bars) return <section className="mx-auto max-w-5xl"><Button variant="ghost" onClick={() => setBars(false)} className="mb-4"><ArrowLeft className="rtl:rotate-180" />{back}</Button><div className="section-heading"><span className="eyebrow">{say(lang, 'Méthode de Singapour', 'Singapore method', 'طريقة سنغافورة', 'Método de Singapur')}</span><h1>{say(lang, 'Problèmes en barres', 'Bar-model problems', 'مسائل بالنماذج الشريطية', 'Problemas con barras')}</h1><p>{d.ws.intro}</p></div><div className="mb-7 flex flex-wrap items-center justify-between gap-4">{exercises.length > 0 && <span className="pill">{programme ? say(lang, 'Problèmes de ton programme', 'Problems from your curriculum', 'مسائل من برنامجك', 'Problemas de tu programa') : say(lang, 'Démonstrations adaptées à ta classe', 'Demonstrations for your grade', 'تمارين مناسبة لصفك', 'Ejercicios para tu curso')}</span>}{exercises.length > 0 && <Button variant="soft" disabled={busy} onClick={() => start()}><RefreshCw />{say(lang, 'Nouvel exercice', 'New exercise', 'تمرين جديد', 'Nuevo ejercicio')}</Button>}</div>{problemList(exercises)}{errorBox}</section>;
   const extras: Tile[] = [
     ...(exercises.length ? [{ id: 'bars', tone: 'module-sun', icon: <BarsGlyph />, title: say(lang, 'Problèmes en barres', 'Bar-model problems', 'مسائل بالنماذج الشريطية', 'Problemas con barras'), note: say(lang, `Méthode de Singapour · ${exercises.length} problèmes de ton programme`, `Singapore method · ${exercises.length} problems from your curriculum`, `طريقة سنغافورة · ${exercises.length} مسائل من برنامجك`, `Método de Singapur · ${exercises.length} problemas de tu programa`), onOpen: () => setBars(true) }] : []),
     ...(showGraphs ? [{ id: 'graphs', tone: 'module-sky', icon: <TrendingUp />, title: say(lang, 'Graphiques, arbres et tableaux de signes', 'Graphs, trees and sign tables', 'المنحنيات والأشجار وجداول الإشارة', 'Gráficos, árboles y tablas de signos'), note: say(lang, 'Lire et construire', 'Read and build', 'القراءة والإنشاء', 'Leer y construir'), onOpen: () => void (async () => { setBusy(true); setError(''); try { if (await onStart()) setHighActive(true); } catch { setError(d.ws.almost); } finally { setBusy(false); } })() }] : []),

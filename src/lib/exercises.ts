@@ -667,10 +667,10 @@ function notionServed(template: string, notions: NotionId[], focus?: NotionId): 
  * on garde les démonstrations par niveau. Liste vide si aucun problème en barres ne sert ce programme
  * (fréquent au lycée) : l'atelier propose alors les activités graphiques.
  */
-export function workshopExercises(level: number, notions?: NotionId[], focus?: NotionId): Exercise[] {
+export function workshopExercises(level: number, notions?: NotionId[], focus?: NotionId, limit = 3): Exercise[] {
   if (!notions?.length) return demonstrationsForLevel(level);
   const index = Math.max(0, Math.min(6, Math.floor(level)));
-  return templatesFor(notions, focus).slice(0, 3).flatMap(template => {
+  return templatesFor(notions, focus).slice(0, limit).flatMap(template => {
     const params = paramsFor(template, index);
     const notion = notionServed(template, notions, focus);
     if (!params || !notion) return [];

@@ -46,9 +46,33 @@ describe('Accueil de l’atelier', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /Atelier/ })[0]!);
     expect(screen.getByText('Mes chapitres')).toBeTruthy();
   });
-  it('bar-model problems live behind one entry', () => {
+  it('bar-model problems without a chapter of their own keep one entry', () => {
     render(<Workshop {...props} progress={{ unlocked: [], attempts: [] }} />);
     fireEvent.click(screen.getByRole('button', { name: /Problèmes en barres/ }));
     expect(screen.getByRole('heading', { name: 'Problèmes en barres' })).toBeTruthy();
+  });
+});
+
+describe('Problèmes en barres dans les chapitres', () => {
+  const sixieme = (country: string) => {
+    const programme = programmeFor(country, 0)!;
+    return { lang: 'fr' as const, level: 0, country, notions: programmeNotions(programme), programme, onSave: vi.fn(async () => {}), onStart: vi.fn(async () => true), engine: localEngine({ secret: 'test', hash: 'c'.repeat(64) }) };
+  };
+  it('in 6e every problem sits in its chapter, and the separate entry disappears', () => {
+    for (const country of ['fr', 'ma', 'ci', 'sn', 'us']) {
+      const { unmount } = render(<Workshop {...sixieme(country)} progress={{ unlocked: [], attempts: [] }} />);
+      expect(screen.queryByRole('button', { name: /Problèmes en barres/ }), country).toBeNull();
+      expect(screen.queryByText('Autres ateliers'), country).toBeNull();
+      unmount();
+    }
+  });
+  it('a chapter ends with its bar-model problems, after the skills', () => {
+    render(<Workshop {...sixieme('fr')} progress={{ unlocked: [], attempts: [] }} />);
+    fireEvent.click(screen.getByRole('button', { name: /^Proportionnalité/ }));
+    const heading = screen.getByRole('heading', { name: 'Résoudre un problème en barres' });
+    const path = document.querySelector('.ws-path')!;
+    expect(path.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(document.querySelectorAll('.ws-problems .ws-problem').length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: /Nouveau problème/ })).toBeTruthy();
   });
 });
