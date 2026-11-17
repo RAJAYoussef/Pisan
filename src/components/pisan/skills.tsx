@@ -48,6 +48,7 @@ export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteracti
   const step = activity.steps[index]!;
   const total = activity.steps.length;
   const show = (l: L) => localizeMath(l[lang], lang);
+  const pendingVerification = Boolean(fractionAnalysis?.hypotheses.some(h => verifyFractionHypothesis(h, verificationAnswers).status === 'inconclusive'));
 
   function answer(ok: boolean) {
     if (ok) { setSolved(true); setHint(''); return; }
@@ -55,14 +56,14 @@ export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteracti
     setHint(show(step.hint));
   }
   async function next() {
-    if (index + 1 < total) { setIndex(index + 1); setSolved(false); setHint(''); return; }
+    if (index + 1 < total) { fractionEvents.current = []; setFractionAnalysis(null); setVerificationAnswers({}); setIndex(index + 1); setSolved(false); setHint(''); return; }
     const result = { correct: total - missed.length, total };
     setBusy(true); setSaveError('');
     try { await onSave({ kind: 'workshop', notion: skillNotion(skill), skill: skill.id, ...result, date: new Date().toISOString(), minutes: Math.min(20, total * 2) }); setDone(result); }
     catch { setSaveError(say(lang, 'Résultat non sauvegardé. Réessaie.', 'Result not saved. Try again.', 'لم تُحفظ النتيجة. حاول مجددًا.', 'Resultado no guardado. Reintenta.')); }
     finally { setBusy(false); }
   }
-  const restart = () => { setSeed(s => (s * 7919 + 13) % 100000); setIndex(0); setMissed([]); setSolved(false); setHint(''); setDone(null); };
+  const restart = () => { fractionEvents.current = []; setFractionAnalysis(null); setVerificationAnswers({}); setSeed(s => (s * 7919 + 13) % 100000); setIndex(0); setMissed([]); setSolved(false); setHint(''); setDone(null); };
 
   return <section className="mx-auto max-w-4xl">
     <Button variant="ghost" onClick={onBack} className="mb-4">← {say(lang, 'Retour', 'Back', 'رجوع', 'Volver')}</Button>
@@ -93,7 +94,7 @@ export function SkillActivity({ lang, skill, onSave, onBack, onFractionInteracti
               </div>}
             </section>;
           })}
-          {solved && <Button className="mt-5 w-full" disabled={busy} onClick={() => void next()}>{index + 1 < total ? say(lang, 'Étape suivante', 'Next step', 'المرحلة التالية', 'Paso siguiente') : say(lang, 'Terminer', 'Finish', 'إنهاء', 'Terminar')}<ArrowRight /></Button>}
+          {solved && <Button className="mt-5 w-full" disabled={busy || pendingVerification} onClick={() => void next()}>{index + 1 < total ? say(lang, 'Étape suivante', 'Next step', 'المرحلة التالية', 'Paso siguiente') : say(lang, 'Terminer', 'Finish', 'إنهاء', 'Terminar')}<ArrowRight /></Button>}
           {hint && !solved && <div className="mt-4"><Tutor><Rich lang={lang} text={hint} /></Tutor></div>}
           {saveError && <p role="alert" className="mt-3 text-destructive">{saveError}</p>}
         </>}
