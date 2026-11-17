@@ -36,6 +36,14 @@ export const FRACTION_SKILL_META: Record<string, FractionMeta> = {
       { code: 'fraction-simplify-subtract', description: 'Soustrait le même nombre au numérateur et au dénominateur.' },
     ],
   },
+  'frac-visual-compare': {
+    prerequisites: ['frac-meaning'],
+    microSkills: ['partition-whole', 'shade-numerator', 'compare-equal-wholes'],
+    misconceptions: [
+      { code: 'fraction-compare-without-common-whole', description: 'Compare des bandes qui ne représentent pas le même tout.' },
+      { code: 'fraction-compare-numerator-only', description: 'Compare le nombre de parts coloriées sans tenir compte de leur taille.' },
+    ],
+  },
   'frac-compare': {
     prerequisites: ['frac-meaning', 'frac-equivalent'],
     microSkills: ['compare-same-denominator', 'compare-same-numerator', 'compare-to-unit'],
@@ -124,6 +132,22 @@ function simplify(seed: number): Activity {
   };
 }
 
+function visualCompare(seed: number): Activity {
+  const rng = seeded(seed);
+  const pairs = [[1, 2, 2, 3], [2, 5, 3, 5], [3, 4, 5, 8], [2, 3, 3, 4], [3, 7, 2, 5], [3, 6, 1, 2]] as const;
+  const [a, b, c, d] = pick(rng, pairs);
+  return {
+    title: t('Comparer en manipulant les bandes', 'Compare by manipulating fraction bars', 'قارن بتحريك أجزاء الأشرطة', 'Compara manipulando las barras'),
+    summary: 'Chaque bande représente le même tout. Colorie les parts indiquées, puis compare les deux fractions.',
+    steps: [{
+      type: 'widget',
+      widget: { kind: 'fraction-bars', left: { n: a, d: b }, right: { n: c, d } },
+      prompt: t('Colorie les parts de chaque fraction, puis choisis <, > ou =.', 'Shade the parts in each fraction, then choose <, > or =.', 'لوّن أجزاء كل كسر، ثم اختر < أو > أو =.', 'Colorea las partes de cada fracción y elige <, > o =.'),
+      hint: t('Les deux bandes représentent le même tout. Compare la taille des parts coloriées, pas seulement leur nombre.', 'Both bars represent the same whole. Compare the size of the shaded parts, not just their number.', 'الشريطان يمثلان الكل نفسه. قارن مساحة الأجزاء الملونة، لا عددها فقط.', 'Las dos barras representan el mismo todo. Compara el tamaño de las partes coloreadas, no solo su cantidad.'),
+    }],
+  };
+}
+
 function compare(seed: number): Activity {
   const rng = seeded(seed);
   const a = pick(rng, [[1, 2, 2, 3], [2, 5, 3, 5], [3, 4, 5, 8], [2, 3, 3, 4], [3, 7, 2, 5]] as const);
@@ -193,6 +217,7 @@ export const FRACTION_SKILLS: Skill[] = [
   { id: 'frac-meaning', chapter: 'fractions', build: meaning, review: 0, title: t('Sens d’une fraction', 'Meaning of a fraction', 'معنى الكسر', 'Significado de una fracción'), desc: t('Identifier le tout, les parts égales, le numérateur et le dénominateur.', 'Identify the whole, equal parts, numerator and denominator.', 'تحديد الكل والأجزاء المتساوية والبسط والمقام.', 'Identificar el todo, las partes iguales, el numerador y el denominador.') },
   { id: 'frac-equivalent', chapter: 'fractions', build: equivalent, review: 0, title: t('Fractions équivalentes', 'Equivalent fractions', 'الكسور المتكافئة', 'Fracciones equivalentes'), desc: t('Produire une fraction équivalente en multipliant les deux termes.', 'Generate an equivalent fraction by multiplying both terms.', 'إنشاء كسر مكافئ بضرب البسط والمقام.', 'Obtener una fracción equivalente multiplicando ambos términos.') },
   { id: 'frac-simplify', chapter: 'fractions', build: simplify, review: 0, title: t('Simplifier une fraction', 'Simplifying a fraction', 'اختزال كسر', 'Simplificar una fracción'), desc: t('Diviser le numérateur et le dénominateur par un diviseur commun.', 'Divide numerator and denominator by a common divisor.', 'قسمة البسط والمقام على قاسم مشترك.', 'Dividir el numerador y el denominador por un divisor común.') },
+  { id: 'frac-visual-compare', chapter: 'fractions', build: visualCompare, review: 0, title: t('Comparer avec des bandes', 'Compare with bars', 'المقارنة بالأشرطة', 'Comparar con barras'), desc: t('Colorier les parts et comparer deux fractions sur un même tout.', 'Shade parts and compare two fractions of the same whole.', 'تلوين الأجزاء ومقارنة كسرين من الكل نفسه.', 'Colorear partes y comparar dos fracciones del mismo todo.') },
   { id: 'frac-compare', chapter: 'fractions', build: compare, review: 0, title: t('Comparer des fractions', 'Comparing fractions', 'مقارنة الكسور', 'Comparar fracciones'), desc: t('Comparer avec un dénominateur commun ou des repères.', 'Compare using a common denominator or benchmarks.', 'المقارنة باستعمال مقام مشترك أو مراجع.', 'Comparar usando un denominador común o referencias.') },
   { id: 'frac-add-subtract', chapter: 'fractions', build: addSubtract, review: 0, title: t('Addition et soustraction', 'Addition and subtraction', 'الجمع والطرح', 'Suma y resta'), desc: t('Additionner ou soustraire après avoir rendu les dénominateurs identiques.', 'Add or subtract after making denominators equal.', 'جمع الكسور أو طرحها بعد توحيد المقامات.', 'Sumar o restar tras igualar los denominadores.') },
   { id: 'frac-multiply-divide', chapter: 'fractions', build: multiplyDivide, review: 0, title: t('Multiplication et division', 'Multiplication and division', 'الضرب والقسمة', 'Multiplicación y división'), desc: t('Multiplier terme à terme et diviser en utilisant l’inverse.', 'Multiply term by term and divide using the reciprocal.', 'الضرب حدًا بحد والقسمة باستعمال المقلوب.', 'Multiplicar término a término y dividir usando el inverso.') },
