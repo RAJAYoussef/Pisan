@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware';
 import { DYS_PRESET } from './dys';
 import type { ClassStudent } from './classroom';
+import { getSkill } from './skills';
+import { addDays, todayIso, validDueDate } from './assignments';
 
 export const teacherOverview = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
  const [teacher, classes] = await Promise.all([context.supabase.from('teachers').select('id,display_name,school_name').eq('id',context.userId).maybeSingle(), context.supabase.from('classes').select('*').eq('teacher_id',context.userId).order('created_at')]);
@@ -102,4 +104,41 @@ export const leaveClass = createServerFn({method:'POST'}).inputValidator(z.objec
  const removed=await supabaseAdmin.from('class_members').delete().eq('token_hash',hash).eq('id',data.memberId).select('id').single();
  if(removed.error || !removed.data) throw new Error('Forbidden');
  return {ok:true};
+});
+
+// ───────────── Devoirs (parcours assignés) ─────────────
+const skillId = z.string().max(40).refine(id => getSkill(id) !== null, 'Unknown skill');
+
+/** Les devoirs d'une classe : la RLS du client de l'appelant garantit que c'est sa classe. */
+export const classAssignments = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator(z.object({classId:z.string().uuid()}).strict()).handler(async ({data,context})=>{
+ const rows=await context.supabase.from('class_assignments').select('id,title,skill_ids,due_date,created_at').eq('class_id',data.classId).order('due_date');
+ if(rows.error) throw new Error('Unavailable');
+ return rows.data;
+});
+
+export const createAssignment = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator(z.object({classId:z.string().uuid(),title:z.string().trim().min(1).max(80),skillIds:z.array(skillId).min(1).max(20),dueDate:z.string().refine(d=>validDueDate(d),'Invalid date')}).strict()).handler(async ({data,context})=>{
+ const owned=await context.supabase.from('classes').select('id').eq('id',data.classId).eq('teacher_id',context.userId).single();
+ if(owned.error || !owned.data) throw new Error('Forbidden');
+ const created=await context.supabase.from('class_assignments').insert({class_id:data.classId,title:data.title,skill_ids:[...new Set(data.skillIds)],due_date:data.dueDate}).select('id').single();
+ if(created.error) throw new Error('Unavailable');
+ return created.data;
+});
+
+export const deleteAssignment = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator(z.object({classId:z.string().uuid(),id:z.string().uuid()}).strict()).handler(async ({data,context})=>{
+ const removed=await context.supabase.from('class_assignments').delete().eq('id',data.id).eq('class_id',data.classId).select('id').single();
+ if(removed.error || !removed.data) throw new Error('Forbidden');
+ return {ok:true};
+});
+
+/** Les devoirs des classes de l'élève, lus avec le service seulement après vérification de son appartenance (hash de capacité). */
+export const studentAssignments = createServerFn({method:'POST'}).inputValidator(z.object({token:z.string().regex(/^[a-f0-9]{64}$/)}).strict()).handler(async ({data})=>{
+ const {sessionHash}=await import('./classroom.server');
+ const hash=await sessionHash(data.token);
+ const {supabaseAdmin}=await import('@/integrations/supabase/client.server');
+ const members=await supabaseAdmin.from('class_members').select('class_id,classes(name)').eq('token_hash',hash);
+ if(members.error) throw new Error('Unavailable');
+ if(!members.data.length) return [];
+ const rows=await supabaseAdmin.from('class_assignments').select('id,title,skill_ids,due_date,class_id').in('class_id',members.data.map(m=>m.class_id)).gte('due_date',addDays(todayIso(),-7)).order('due_date').limit(20);
+ if(rows.error) throw new Error('Unavailable');
+ return rows.data.map(r=>({id:r.id,title:r.title,skill_ids:r.skill_ids,due_date:r.due_date,class_name:members.data.find(m=>m.class_id===r.class_id)?.classes.name ?? ''}));
 });

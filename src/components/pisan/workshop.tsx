@@ -12,11 +12,13 @@ import { ConcreteObjects } from './concrete';
 import { ReviewActivity, SkillActivity } from './skills';
 import { ChapterPath, WorkshopHome, type Tile } from './workshop-home';
 import { dueReviews, nextSkill, type Skill } from '@/lib/skills';
+import { assignmentNext, visibleAssignments, type Assignment } from '@/lib/assignments';
+import { AssignmentRow } from './assignment-row';
 import { figureChapter, figuresFor, type FigureKind } from '@/lib/figures';
 import { ArrowLeft, ChevronRight, TrendingUp } from 'lucide-react';
 import { emptyProgress, type Progress } from '@/lib/pisan';
 
-type Props = { lang: Lang; level: number; country: string; onSave: (a: Attempt) => Promise<void>; onStart: () => Promise<boolean>; notions?: Notion[] | undefined; focus?: NotionId | undefined; programme?: Programme | null | undefined; progress?: Progress | undefined };
+type Props = { lang: Lang; level: number; country: string; onSave: (a: Attempt) => Promise<void>; onStart: () => Promise<boolean>; notions?: Notion[] | undefined; focus?: NotionId | undefined; programme?: Programme | null | undefined; progress?: Progress | undefined; assignments?: Assignment[] | undefined };
 
 function figureChapterTitle(programme: Programme | null | undefined, kind: FigureKind, lang: Lang): string | null {
   return figureChapter(programme, kind)?.[lang] ?? null;
@@ -67,7 +69,7 @@ export function Workshop(props: Props) {
     ...(exercises.length ? [{ id: 'bars', tone: 'module-sun', icon: <BarsGlyph />, title: say(lang, 'Problèmes en barres', 'Bar-model problems', 'مسائل بالنماذج الشريطية', 'Problemas con barras'), note: say(lang, `Méthode de Singapour · ${exercises.length} problèmes de ton programme`, `Singapore method · ${exercises.length} problems from your curriculum`, `طريقة سنغافورة · ${exercises.length} مسائل من برنامجك`, `Método de Singapur · ${exercises.length} problemas de tu programa`), onOpen: () => setBars(true) }] : []),
     ...(showGraphs ? [{ id: 'graphs', tone: 'module-sky', icon: <TrendingUp />, title: say(lang, 'Graphiques, arbres et tableaux de signes', 'Graphs, trees and sign tables', 'المنحنيات والأشجار وجداول الإشارة', 'Gráficos, árboles y tablas de signos'), note: say(lang, 'Lire et construire', 'Read and build', 'القراءة والإنشاء', 'Leer y construir'), onOpen: () => void (async () => { setBusy(true); setError(''); try { if (await onStart()) setHighActive(true); } catch { setError(d.ws.almost); } finally { setBusy(false); } })() }] : []),
   ];
-  return <><WorkshopHome lang={lang} kinds={figures} attempts={attempts} chapterLabel={k => figureChapterTitle(programme, k, lang)} next={nextSkill(attempts, figures)} due={due.length} extras={extras} busy={busy} onChapter={setChapter} onSkill={next => void openSkill(next)} onReview={() => void openReview()} />{errorBox}</>;
+  return <><WorkshopHome lang={lang} assignments={visibleAssignments(props.assignments ?? [], attempts).map(a => <AssignmentRow key={a.id} lang={lang} assignment={a} attempts={attempts} onOpen={() => { const next = assignmentNext(attempts, a); if (next) void openSkill(next); }} />)} kinds={figures} attempts={attempts} chapterLabel={k => figureChapterTitle(programme, k, lang)} next={nextSkill(attempts, figures)} due={due.length} extras={extras} busy={busy} onChapter={setChapter} onSkill={next => void openSkill(next)} onReview={() => void openReview()} />{errorBox}</>;
 }
 
 /** Icône des problèmes en barres. */

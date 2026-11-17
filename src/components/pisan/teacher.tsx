@@ -17,7 +17,7 @@ import { type Lang, LANGS, dirOf } from '@/lib/i18n';
 import { teacherText } from '@/lib/teacher-i18n';
 import logo from '@/assets/pisan-logo.png';
 import { Dashboard } from './progress';
-import { ClassSkills, classSkillKinds } from './teacher-skills';
+import { ClassAssignments, ClassSkills, classSkillKinds } from './teacher-skills';
 
 export function TeacherWorkspace() {
  const [lang,setLang]=useState<Lang>('fr'); const d=teacherText(lang);
@@ -45,6 +45,7 @@ export function TeacherWorkspace() {
  <div className="mb-8 grid gap-6 md:grid-cols-2"><section className="border-s-4 border-accent ps-4"><h3 className="text-lg">{d.inactive}</h3><p className="mt-2 text-sm">{students.filter(s=>isInactive(s.last_active_at,Date.now())).map(s=>s.profile.nickname).join(', ') || d.none}</p></section><section className="border-s-4 border-sun ps-4"><h3 className="text-lg">{d.blocks}</h3><p className="mt-2 text-sm">{blockingNotions(students,classNotions).map(n=>`${n.notion.name[lang]} (${n.count})`).join(' · ') || d.none}</p></section></div>
  <div className="mb-4 flex flex-wrap gap-4 text-sm"><span className="mastery-low px-2 py-1">0–39 %</span><span className="mastery-medium px-2 py-1">40–79 %</span><span className="mastery-high px-2 py-1">80–100 %</span></div>
  {!students.length ? <p className="py-10 text-muted-foreground">{d.empty}</p> : <div className="max-w-full overflow-x-auto"><table className="teacher-grid"><thead><tr><th>{d.nickname}</th><th>{say(lang,'Flamme','Streak','الشعلة','Racha')}</th>{classNotions.map(n=><th key={n.id}>{n.name[lang]}</th>)}<th>{d.remove}</th></tr></thead><tbody>{students.map(s=><tr key={s.id}><th><Button variant="link" className="h-auto whitespace-normal p-0 text-start" onClick={()=>setStudentId(s.id)}>{s.profile.nickname}</Button></th><td><StreakBadge compact lang={lang} streak={{count:s.streak_count,lastDay:s.streak_last_day,freezes:s.freezes,timezone:s.profile.timezone}}/></td>{classNotions.map(n=>{const attempted=s.progress.attempts.some(a=>a.notion===n.id);const value=mastery(s.progress,n.id);return <td key={n.id} className={attempted?`mastery-${masteryBand(value)}`:''} title={attempted?`${value}%`:d.notAttempted}>{attempted?`${value}%`:'—'}</td>;})}<td><Button variant="ghost" disabled={busy} onClick={()=>setRemoveId(s.id)}>{d.remove}</Button></td></tr>)}</tbody></table></div>}
+ <ClassAssignments lang={lang} classId={selectedId} students={students} kinds={classSkillKinds(details.data.classroom.country,details.data.classroom.grade)} />
  <ClassSkills lang={lang} students={students} kinds={classSkillKinds(details.data.classroom.country,details.data.classroom.grade)} />
  </>}
  </>}

@@ -716,3 +716,13 @@ nav + .sidebar-label { margin-top: 28px; }
 .exam-choice:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }
 .skill-curve { fill: none; stroke: var(--sky); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
 .skill-label-small { font-size: 14px; }
+.assign-form { margin-top: 12px; padding: 16px; border: 1px solid var(--border); border-radius: 16px; background: var(--card); }
+.assign-check { display: flex; align-items: center; gap: 8px; padding: 6px 4px; font-size: .9rem; cursor: pointer; }
+.assign-check input { width: 18px; height: 18px; accent-color: var(--primary); }
+.assign-item { border: 1px solid var(--border); border-radius: 14px; background: var(--card); }
+.assign-head { display: flex; width: 100%; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer; }
+.assign-head:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; border-radius: 14px; }
+.assign-body { padding: 0 14px 14px; }
+.assign-card { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; padding: 16px; border: 2px solid var(--primary); border-radius: 18px; background: var(--card); }
+.assign-row { border-color: color-mix(in oklab, var(--primary) 45%, var(--border)); }
+.assign-row-done { opacity: .7; }

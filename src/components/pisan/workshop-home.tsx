@@ -35,8 +35,8 @@ function Segments({ kind, attempts }: { kind: FigureKind; attempts: Attempt[] })
 export type Tile = { id: string; title: string; note: string; icon: ReactNode; tone: string; onOpen: () => void };
 
 /** Accueil de l'atelier. */
-export function WorkshopHome({ lang, kinds, attempts, chapterLabel, next, due, extras, busy, onChapter, onSkill, onReview }: {
-  lang: Lang; kinds: FigureKind[]; attempts: Attempt[]; chapterLabel: (k: FigureKind) => string | null;
+export function WorkshopHome({ lang, assignments, kinds, attempts, chapterLabel, next, due, extras, busy, onChapter, onSkill, onReview }: {
+  lang: Lang; assignments?: ReactNode[]; kinds: FigureKind[]; attempts: Attempt[]; chapterLabel: (k: FigureKind) => string | null;
   next: { skill: Skill; resumed: boolean } | null; due: number; extras: Tile[]; busy: boolean;
   onChapter: (k: FigureKind) => void; onSkill: (s: Skill) => void; onReview: () => void;
 }) {
@@ -49,6 +49,8 @@ export function WorkshopHome({ lang, kinds, attempts, chapterLabel, next, due, e
       <span className="min-w-0 flex-1 text-start"><span className="block font-bold">{say(lang, 'Mini-contrôle', 'Quick check', 'مراقبة قصيرة', 'Mini control')}</span><span className="block text-sm">{say(lang, `${due} compétence${due > 1 ? 's' : ''} à vérifier`, `${due} skill${due > 1 ? 's' : ''} to check`, `${due} كفايات للتحقق`, `${due} competencia(s) por comprobar`)}</span></span>
       <ChevronRight className="h-5 w-5 shrink-0 rtl:rotate-180" aria-hidden />
     </button>}
+
+    {assignments && assignments.length > 0 && <div className="mb-4 grid gap-2">{assignments}</div>}
 
     {next && <div className={`ws-next ${KIND_TONE[next.skill.chapter]}`}>
       <div className="flex items-center gap-4">
