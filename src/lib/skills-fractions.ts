@@ -57,7 +57,7 @@ export const FRACTION_SKILL_META: Record<string, FractionMeta> = {
     microSkills: ['multiply-numerators', 'multiply-denominators', 'invert-divisor', 'simplify-product'],
     misconceptions: [
       { code: 'fraction-multiply-crosswise', description: 'Effectue un produit en croix à la place du produit terme à terme.' },
-      { code: 'fraction-divide-without-inverting', description: 'Divise les numérateurs et les dénominateurs au lieu de multiplier par l’inverse.' },
+      { code: 'fraction-divide-by-multiplying', description: 'Multiplie par le diviseur au lieu de multiplier par son inverse.' },
     ],
   },
   'frac-problem': {
