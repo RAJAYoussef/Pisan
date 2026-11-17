@@ -162,16 +162,11 @@ export const getFractionJournal = createServerFn({ method: 'POST' })
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
     const session = await supabaseAdmin.from('learning_sessions').select('token_hash').eq('token_hash', hash).maybeSingle();
     if (session.error || !session.data) throw new Error('Session introuvable.');
-    let query = (supabaseAdmin.from('fraction_learning_journal' as never) as unknown as {
-      select: (columns: string) => {
-        eq: (column: string, value: string) => {
-          order: (column: string, options: { ascending: boolean }) => {
-            limit: (count: number) => Promise<{ data: Record<string, unknown>[] | null; error: { message: string } | null }>;
-          };
-        };
-      };
-    }).select('event_id, activity_id, skill_id, event_type, evidence_status, payload, client_occurred_at, recorded_at').eq('token_hash', hash);
-    if (data.activityId) query = query.eq('activity_id', data.activityId) as typeof query;
+    const journal = supabaseAdmin.from('fraction_learning_journal' as never) as unknown as {
+      select: (columns: string) => any;
+    };
+    let query = journal.select('event_id, activity_id, skill_id, event_type, evidence_status, payload, client_occurred_at, recorded_at').eq('token_hash', hash);
+    if (data.activityId) query = query.eq('activity_id', data.activityId);
     const result = await query.order('recorded_at', { ascending: true }).limit(data.limit);
     if (result.error) throw new Error('Le journal pédagogique est indisponible.');
     return result.data ?? [];
