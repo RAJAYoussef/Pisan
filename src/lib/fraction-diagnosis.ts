@@ -149,7 +149,7 @@ export function analyzeFractionResponse(task: FractionTask, raw: string): Fracti
     const rawWrong = product(task.left, task.right);
     const wrong = Number.isSafeInteger(rawWrong.n) && Number.isSafeInteger(rawWrong.d) && rawWrong.d !== 0 ? normalizeFraction(rawWrong) : null;
     if (parsed && wrong && equal(parsed, wrong)) {
-      misconception = 'fraction-divide-without-inverting';
+      misconception = 'fraction-divide-by-multiplying';
       remediation = 'invert-divisor';
       evidence = 'La réponse est compatible avec une multiplication par le diviseur au lieu de son inverse.';
       confidence = 'medium';
