@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, BookOpen, Brain, ChevronDown, ClipboardCheck, Crown, Flame, GraduationCap, Home, LayoutDashboard, Menu, Settings2, ShieldCheck, Sparkles, Star, TrendingUp, X } from 'lucide-react';
+import { ArrowRight, BookOpen, Brain, ChevronDown, ChevronRight, ClipboardCheck, Crown, Flame, GraduationCap, Home, LayoutDashboard, Menu, RotateCcw, Settings2, ShieldCheck, Sparkles, Star, TrendingUp, X } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import { supabase } from '@/integrations/supabase/client';
 import { teacherText } from '@/lib/teacher-i18n';
@@ -155,11 +155,16 @@ function HomePage({ session, token, onChallenge, lang, left, onNavigate, onUpgra
   const challengeWins = session.progress.attempts.filter(a => a.kind === 'challenge' && a.correct === a.total).length;
   const fresh = session.progress.attempts.length === 0;
   const chapter = nextChapter(studyChapters(programme, chaptersForLevel(level), session.progress));
+  const due = dueReviews(session.progress.attempts).length;
   return <section className="mx-auto max-w-3xl">
-    <div className="mb-5 flex items-center gap-4">
-      <img src={avatar} alt="" className="h-16 w-16 shrink-0 object-contain" />
-      <div className="min-w-0"><h1 className="font-display text-2xl leading-tight sm:text-3xl">{say(lang, 'Salut', 'Hello', 'مرحبًا', 'Hola')} {session.profile.nickname} 👋</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{country.flag} {country.grades[session.profile.grade]?.label[lang]}{programme?.track ? ` · ${programme.track.label[lang]}` : ''}</p></div>
+    <div className="home-head">
+      <img src={avatar} alt="" className="h-12 w-12 shrink-0 object-contain" />
+      <div className="min-w-0 flex-1"><h1 className="font-display text-xl leading-tight sm:text-2xl">{say(lang, 'Salut', 'Hello', 'مرحبًا', 'Hola')} {session.profile.nickname} 👋</h1>
+        <p className="mt-0.5 truncate text-xs text-muted-foreground">{country.flag} {country.grades[session.profile.grade]?.label[lang]}{programme?.track ? ` · ${programme.track.label[lang]}` : ''}</p></div>
+      <div className="home-chips">
+        <span className="home-chip"><StreakBadge compact lang={lang} streak={{ count: session.streak_count, lastDay: session.streak_last_day, freezes: session.freezes, timezone: session.profile.timezone }} /></span>
+        <span className="home-chip" title={d.home.stars}><Star className="h-4 w-4 text-sun-deep" aria-hidden /><span className="font-bold">{success * 3 + challengeWins * CHALLENGE_STARS}</span><span className="sr-only"> {d.home.stars}</span></span>
+      </div>
     </div>
     <div className="resume-card mb-5">
       <p className="text-xs font-bold uppercase tracking-wide text-primary-deep">{say(lang, 'Ton prochain petit pas', 'Your next small step', 'خطوتك الصغيرة التالية', 'Tu siguiente pequeño paso')}</p>
@@ -171,8 +176,13 @@ function HomePage({ session, token, onChallenge, lang, left, onNavigate, onUpgra
           {chapter.started ? <div className="mt-3 flex items-center gap-3"><div className="flex-1"><div className="h-2 overflow-hidden rounded-full bg-card"><div className={`h-full rounded-full bg-primary meter-${Math.round(chapter.mastery / 10)}`} /></div></div><span className="text-sm font-bold">{chapter.mastery} %</span></div> : <p className="mt-2 text-sm">{say(lang, 'Nouveau chapitre : on commence en douceur.', 'New chapter: we start gently.', 'فصل جديد: نبدأ بهدوء.', 'Capítulo nuevo: empezamos con calma.')}</p>}
           <div className="mt-4 flex flex-wrap items-center gap-3"><Button size="lg" className="w-full sm:w-auto" onClick={() => onPractice(notionToPractise(chapter, session.progress))}>{chapter.started ? say(lang, 'Continuer', 'Continue', 'متابعة', 'Continuar') : say(lang, 'Commencer ce chapitre', 'Start this chapter', 'ابدأ هذا الفصل', 'Empezar este capítulo')}<ArrowRight /></Button><Button variant="link" onClick={() => onNavigate('journey')}>{say(lang, 'Voir tout mon parcours', 'See my whole path', 'عرض مساري كاملًا', 'Ver todo mi recorrido')}</Button></div></>}
     </div>
+    <h2 className="ws-heading">{say(lang, 'Aujourd’hui', 'Today', 'اليوم', 'Hoy')}</h2>
+    {due > 0 && <button type="button" className="ws-review" onClick={() => onNavigate('workshop')}>
+      <RotateCcw className="h-5 w-5 shrink-0" aria-hidden />
+      <span className="min-w-0 flex-1 text-start"><span className="block font-bold">{say(lang, 'Mini-contrôle', 'Quick check', 'مراقبة قصيرة', 'Mini control')}</span><span className="block text-sm">{say(lang, `${due} compétence${due > 1 ? 's' : ''} acquise${due > 1 ? 's' : ''} à vérifier`, `${due} mastered skill${due > 1 ? 's' : ''} to check`, `${due} كفايات مكتسبة للتحقق`, `${due} competencia(s) por comprobar`)}</span></span>
+      <ChevronRight className="h-5 w-5 shrink-0 rtl:rotate-180" aria-hidden />
+    </button>}
     <DailyChallenge lang={lang} token={token} onSaved={onChallenge} />
-    {dueReviews(session.progress.attempts).length > 0 && <div className="review-card mt-4"><div className="min-w-0 flex-1"><p className="font-bold">{say(lang, 'Mini-contrôle disponible', 'Quick check available', 'مراقبة قصيرة متاحة', 'Mini control disponible')}</p><p className="text-sm text-muted-foreground">{say(lang, 'Vérifie que tes compétences acquises tiennent toujours.', 'Check your mastered skills still stick.', 'تحقق من أن كفاياتك المكتسبة ما زالت متينة.', 'Comprueba que tus competencias siguen firmes.')}</p></div><Button variant="soft" onClick={() => onNavigate('workshop')}>{say(lang, 'À l’atelier', 'Workshop', 'إلى الورشة', 'Al taller')}<ArrowRight /></Button></div>}
-    <div className="home-summary"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-full bg-sun-soft"><Star className="h-5 w-5 text-sun-deep" /></span><div><p className="text-lg font-bold">{success * 3 + challengeWins * CHALLENGE_STARS} <span className="text-sm font-normal text-muted-foreground">{d.home.stars}</span></p></div></div><span className="hidden h-10 border-s border-border sm:block" /><StreakBadge lang={lang} streak={{ count: session.streak_count, lastDay: session.streak_last_day, freezes: session.freezes, timezone: session.profile.timezone }} />{left !== null && <div className="ms-auto text-end"><p className="text-sm font-bold text-primary-deep">{d.plan.left.replace('{n}', String(left))}</p><Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={onUpgrade}>{say(lang, 'Passer à PiSan Illimité', 'Go PiSan Unlimited', 'انتقل إلى PiSan بلا حدود', 'Pasar a PiSan Ilimitado')}<ArrowRight /></Button></div>}</div>
+    {left !== null && <p className="mt-6 text-center text-xs text-muted-foreground">{d.plan.left.replace('{n}', String(left))} · <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={onUpgrade}>{say(lang, 'Passer à PiSan Illimité', 'Go PiSan Unlimited', 'انتقل إلى PiSan بلا حدود', 'Pasar a PiSan Ilimitado')}</Button></p>}
   </section>;
 }

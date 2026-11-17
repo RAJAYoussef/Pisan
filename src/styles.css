@@ -692,3 +692,15 @@ nav + .sidebar-label { margin-top: 28px; }
 .ws-problem-model > span { display: flex; width: 100%; height: auto; background: none; border-radius: 0; }
 .ws-problem-model > span > span { flex: 1; width: auto; height: 9px; }
 .ws-problem-model > span > .extra { flex: 0 0 14px; }
+.home-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.home-chips { display: flex; flex-shrink: 0; gap: 6px; }
+.home-chip { display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); font-size: .875rem; }
+.journey-summary { padding: 18px; border-radius: 20px; background: var(--card); border: 1px solid var(--border); }
+.journey-bar { display: flex; gap: 3px; margin-top: 12px; }
+.journey-bar .ws-seg { height: 8px; }
+.journey-group > summary { list-style: none; cursor: pointer; }
+.journey-group > summary::-webkit-details-marker { display: none; }
+.journey-group-title::after { content: '›'; display: inline-block; margin-inline-start: 8px; transition: transform .15s; }
+.journey-group[open] > .journey-group-title::after { transform: rotate(90deg); }
+.journey-mini { display: block; flex-shrink: 0; width: 44px; height: 6px; overflow: hidden; border-radius: 3px; background: var(--muted); }
+.journey-mini > span { display: block; height: 100%; background: var(--primary); border-radius: 3px; }

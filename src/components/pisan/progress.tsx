@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ArrowRight, Award, CheckCircle2, Flame, LayoutDashboard, Star, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { chaptersForLevel, getNotion, type Notion, type NotionId } from '@/lib/curriculum';
-import { MASTERED, nextChapter, notionToPractise, studyChapters } from '@/lib/next-step';
+import { MASTERED, nextChapter, notionToPractise, studyChapters, type StudyChapter } from '@/lib/next-step';
 import { sourceStatusLabel, type Programme } from '@/lib/programmes';
 import { DICTS, type Lang } from '@/lib/i18n';
 import { gradeOn20, mastery, say, type Progress } from '@/lib/pisan';
@@ -24,30 +24,46 @@ export function Journey({ lang, level, progress, onPractice, onTracking, program
     { icon: CheckCircle2, name: say(lang, 'Fondamentaux solides', 'Strong foundations', 'أساسيات متينة', 'Fundamentos sólidos'), achieved: progress.unlocked.length > 0 },
   ];
   const done = chapters.filter(c => c.mastery >= MASTERED).length;
+  const state = (c: StudyChapter) => c.mastery >= MASTERED ? 'mastered' : c.started ? 'started' : 'todo';
+  const groups: { id: string; title: string; items: StudyChapter[]; open: boolean }[] = [
+    { id: 'started', title: say(lang, 'En cours', 'In progress', 'قيد الإنجاز', 'En curso'), items: chapters.filter(c => state(c) === 'started').sort((x, y) => Number(y.index === current?.index) - Number(x.index === current?.index)), open: true },
+    { id: 'todo', title: say(lang, 'À découvrir', 'Up next', 'للاكتشاف', 'Por descubrir'), items: chapters.filter(c => state(c) === 'todo'), open: !chapters.some(c => state(c) === 'started') },
+    { id: 'mastered', title: say(lang, 'Maîtrisés', 'Mastered', 'متقنة', 'Dominados'), items: chapters.filter(c => state(c) === 'mastered'), open: false },
+  ];
+  const row = (c: StudyChapter) => {
+    const isOpen = openIndex === c.index;
+    const isCurrent = current?.index === c.index;
+    const kinds = chapterSkillKinds(c);
+    return <li key={c.index} className={`chapter-row ${isCurrent ? 'chapter-row-current' : ''}`}>
+      <button type="button" className="chapter-row-head" aria-expanded={isOpen} onClick={() => setOpenIndex(isOpen ? null : c.index)}>
+        <span className="chapter-number">{String(c.index + 1).padStart(2, '0')}</span>
+        <span className="min-w-0 flex-1 text-start"><span className="block font-semibold leading-snug">{c.title[lang]}</span>{isCurrent && <span className="block text-xs font-bold text-primary-deep">{c.started ? say(lang, 'Ton prochain petit pas', 'Your next small step', 'خطوتك التالية', 'Tu siguiente paso') : say(lang, 'À commencer', 'Up next', 'التالي', 'El siguiente')}</span>}</span>
+        {c.mastery >= MASTERED ? <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" aria-label={say(lang, 'Maîtrisé', 'Mastered', 'متقن', 'Dominado')} /> : c.started ? <span className="journey-mini" role="img" aria-label={`${c.mastery} %`}><span className={`meter-${Math.round(c.mastery / 10)}`} /></span> : <span className="shrink-0 text-sm text-muted-foreground" aria-hidden>—</span>}
+      </button>
+      {isOpen && <div className="chapter-row-body">
+        <div className="mb-2 flex justify-between text-xs"><span>{d.journey.mastery}</span><span className="font-bold">{c.started ? `${c.mastery} %` : say(lang, 'Pas encore commencé', 'Not started yet', 'لم يبدأ بعد', 'Sin empezar')}</span></div>
+        <Meter value={c.mastery} />
+        {kinds.map(k => <div key={k} className="mt-4"><p className="mb-1 text-xs font-bold text-muted-foreground">{say(lang, `Compétences · ${CHAPTER_NAMES[k].fr}`, `Skills · ${CHAPTER_NAMES[k].en}`, `الكفايات · ${CHAPTER_NAMES[k].ar}`, `Competencias · ${CHAPTER_NAMES[k].es}`)}</p><SkillList lang={lang} kind={k} attempts={attempts} /></div>)}
+        <div className="mt-4 flex flex-wrap gap-2">{c.notions.map(id => <SheetButton key={id} notion={id} lang={lang} variant="ghost" />)}</div>
+        <Button className="mt-4 w-full sm:w-auto" onClick={() => onPractice(notionToPractise(c, progress))}>{say(lang, 'S’entraîner sur ce chapitre', 'Practise this chapter', 'تدرّب على هذا الفصل', 'Practicar este capítulo')}<ArrowRight /></Button>
+      </div>}
+    </li>;
+  };
   return <section className="mx-auto max-w-3xl">
-    <div className="section-heading"><h1>{say(lang, 'Mon parcours', 'My path', 'مساري', 'Mi recorrido')}</h1><p>{say(lang, `${done} chapitre${done > 1 ? 's' : ''} maîtrisé${done > 1 ? 's' : ''} sur ${chapters.length}. Pas de classement : juste toi et tes progrès.`, `${done} of ${chapters.length} chapters mastered. No rankings: just you and your progress.`, `أتقنت ${done} من ${chapters.length} فصول. بلا ترتيب: أنت وتقدمك فقط.`, `${done} de ${chapters.length} capítulos dominados. Sin clasificaciones: solo tú y tu progreso.`)}</p>
-      {programme && <p className="mt-2 text-xs text-muted-foreground">{programme.track ? `${programme.track.label[lang]} · ` : ''}{programme.source.label} · {sourceStatusLabel(programme.source.status, lang)}</p>}
+    <div className="section-heading"><h1>{say(lang, 'Mon parcours', 'My path', 'مساري', 'Mi recorrido')}</h1></div>
+    <div className="journey-summary">
+      <div className="flex items-baseline gap-2"><span className="font-display text-4xl font-bold">{done}<span className="text-xl text-muted-foreground">/{chapters.length}</span></span><span className="text-sm font-semibold">{say(lang, 'chapitres maîtrisés', 'chapters mastered', 'فصول متقنة', 'capítulos dominados')}</span></div>
+      <span className="journey-bar" aria-hidden>{chapters.map(c => <span key={c.index} className={`ws-seg ws-seg-${state(c)}`} />)}</span>
+      <div className="mt-3 flex flex-wrap gap-2">{badges.map((b, i) => <span key={i} className={`pill ${b.achieved ? 'bg-sun-soft text-sun-foreground' : 'text-muted-foreground opacity-60'}`}><b.icon className="h-3.5 w-3.5" aria-hidden />{b.name}{!b.achieved && <span className="sr-only"> · {d.journey.locked}</span>}</span>)}</div>
     </div>
-    <div className="mb-6 flex flex-wrap gap-2">{badges.map((b, i) => <span key={i} className={`pill ${b.achieved ? 'bg-sun-soft text-sun-foreground' : 'text-muted-foreground'}`}><b.icon className="h-3.5 w-3.5" aria-hidden />{b.name}{!b.achieved && <span className="sr-only"> · {d.journey.locked}</span>}</span>)}</div>
-    <ol className="space-y-2">{chapters.map(c => {
-      const isOpen = openIndex === c.index;
-      const isCurrent = current?.index === c.index;
-      return <li key={c.index} className={`chapter-row ${isCurrent ? 'chapter-row-current' : ''}`}>
-        <button type="button" className="chapter-row-head" aria-expanded={isOpen} onClick={() => setOpenIndex(isOpen ? null : c.index)}>
-          <span className="chapter-number">{String(c.index + 1).padStart(2, '0')}</span>
-          <span className="flex-1 text-start font-semibold leading-snug">{c.title[lang]}{isCurrent && <span className="ms-2 align-middle text-xs font-bold text-primary-deep">· {c.started ? say(lang, 'en cours', 'in progress', 'قيد الإنجاز', 'en curso') : say(lang, 'à commencer', 'up next', 'التالي', 'el siguiente')}</span>}</span>
-          {c.mastery >= MASTERED ? <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" aria-label={say(lang, 'Maîtrisé', 'Mastered', 'متقن', 'Dominado')} /> : <span className="shrink-0 text-sm font-bold text-muted-foreground">{c.started ? `${c.mastery} %` : '—'}</span>}
-        </button>
-        {isOpen && <div className="chapter-row-body">
-          <div className="mb-2 flex justify-between text-xs"><span>{d.journey.mastery}</span><span className="font-bold">{c.started ? `${c.mastery} %` : say(lang, 'Pas encore commencé', 'Not started yet', 'لم يبدأ بعد', 'Sin empezar')}</span></div>
-          <Meter value={c.mastery} />
-          {chapterSkillKinds(c).map(k => <div key={k} className="mt-4"><p className="mb-1 text-xs font-bold text-muted-foreground">{say(lang, `Compétences · ${CHAPTER_NAMES[k].fr} (à l’atelier)`, `Skills · ${CHAPTER_NAMES[k].en} (in the workshop)`, `الكفايات · ${CHAPTER_NAMES[k].ar} (في الورشة)`, `Competencias · ${CHAPTER_NAMES[k].es} (en el taller)`)}</p><SkillList lang={lang} kind={k} attempts={attempts} /></div>)}
-          <div className="mt-4 flex flex-wrap gap-2">{c.notions.map(id => <SheetButton key={id} notion={id} lang={lang} variant="ghost" />)}</div>
-          <Button className="mt-4" onClick={() => onPractice(notionToPractise(c, progress))}>{say(lang, 'S’entraîner sur ce chapitre', 'Practise this chapter', 'تدرّب على هذا الفصل', 'Practicar este capítulo')}<ArrowRight /></Button>
-        </div>}
-      </li>;
-    })}</ol>
-    {onTracking && <div className="mt-8 text-center"><Button variant="link" onClick={onTracking}><LayoutDashboard />{say(lang, 'Montrer mes progrès à un adulte', 'Show my progress to an adult', 'أظهر تقدمي لشخص بالغ', 'Enseñar mi progreso a un adulto')}</Button></div>}
+    {groups.filter(g => g.items.length).map(g => <details key={g.id} className="journey-group" open={g.open}>
+      <summary className="ws-heading journey-group-title">{g.title} <span className="text-muted-foreground">· {g.items.length}</span></summary>
+      <ol className="space-y-2">{g.items.map(row)}</ol>
+    </details>)}
+    <div className="mt-8 text-center">
+      {onTracking && <Button variant="link" onClick={onTracking}><LayoutDashboard />{say(lang, 'Montrer mes progrès à un adulte', 'Show my progress to an adult', 'أظهر تقدمي لشخص بالغ', 'Enseñar mi progreso a un adulto')}</Button>}
+      {programme && <p className="mt-3 text-xs text-muted-foreground">{programme.track ? `${programme.track.label[lang]} · ` : ''}{programme.source.label} · {sourceStatusLabel(programme.source.status, lang)}</p>}
+    </div>
   </section>;
 }
 

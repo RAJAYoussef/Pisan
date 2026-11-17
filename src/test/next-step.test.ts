@@ -45,3 +45,17 @@ describe('Ton prochain petit pas', () => {
     expect(notionToPractise(chapter, emptyProgress)).toBe(a);
   });
 });
+
+describe('Chapitres avec parcours de compétences', () => {
+  it('a chapter is not « maîtrisé » while its skills are not mastered', async () => {
+    const { studyChapters, MASTERED } = await import('@/lib/next-step');
+    const { programmeFor } = await import('@/lib/programmes');
+    const at = (skill: string, correct: number, total: number) => ({ kind: 'workshop' as const, notion: 'vectors' as const, skill, correct, total, date: '2026-11-01T10:00:00Z', minutes: 5 });
+    const progress = { unlocked: [], attempts: [at('vec-characterise', 4, 4), at('vec-translation', 3, 3)] };
+    const vectors = studyChapters(programmeFor('ma', 2), [], progress).find(c => c.title.fr === 'Vecteurs et translation')!;
+    expect(vectors.mastery).toBe(40); // 2 compétences sur 5, même si toutes les réponses sont justes
+    expect(vectors.mastery).toBeLessThan(MASTERED);
+    const algebra = studyChapters(programmeFor('ma', 2), [], { unlocked: [], attempts: [{ ...at('x', 5, 5), notion: 'algebra' as const, kind: 'exam' as const, skill: undefined }] }).find(c => c.notions.includes('algebra'))!;
+    expect(algebra.mastery).toBe(100); // sans parcours : la maîtrise reste celle des notions
+  });
+});
