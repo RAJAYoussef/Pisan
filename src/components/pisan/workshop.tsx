@@ -18,7 +18,7 @@ import { figureChapter, figuresFor, type FigureKind } from '@/lib/figures';
 import { ArrowLeft, ChevronRight, TrendingUp } from 'lucide-react';
 import { emptyProgress, type Progress } from '@/lib/pisan';
 
-type Props = { lang: Lang; level: number; country: string; onSave: (a: Attempt) => Promise<void>; onStart: () => Promise<boolean>; notions?: Notion[] | undefined; focus?: NotionId | undefined; programme?: Programme | null | undefined; progress?: Progress | undefined; assignments?: Assignment[] | undefined };
+type Props = { onJournalEvent?: (skillId: string, activityId: string, event: { type: import('@/lib/fraction-journal').FractionJournalEventType; payload: Record<string, unknown>; clientOccurredAt?: string }) => void; lang: Lang; level: number; country: string; onSave: (a: Attempt) => Promise<void>; onStart: () => Promise<boolean>; notions?: Notion[] | undefined; focus?: NotionId | undefined; programme?: Programme | null | undefined; progress?: Progress | undefined; assignments?: Assignment[] | undefined };
 
 function figureChapterTitle(programme: Programme | null | undefined, kind: FigureKind, lang: Lang): string | null {
   return figureChapter(programme, kind)?.[lang] ?? null;
@@ -57,7 +57,7 @@ export function Workshop(props: Props) {
   }
   const due = dueReviews(attempts);
   if (review) return <ReviewActivity lang={lang} skills={review} onSave={props.onSave} onBack={() => setReview(null)} />;
-  if (skill) return <SkillActivity key={skill.id} lang={lang} skill={skill} onSave={props.onSave} onBack={() => setSkill(null)} onAdaptiveSkill={setAdaptiveSkillId} />;
+  if (skill) return <SkillActivity key={skill.id} lang={lang} skill={skill} onSave={props.onSave} onBack={() => setSkill(null)} onAdaptiveSkill={setAdaptiveSkillId} onJournalEvent={event => props.onJournalEvent?.(skill.id, `fraction:${skill.id}:${Date.now()}`, event)} />;
   async function openReview() { setBusy(true); setError(''); try { if (await onStart()) setReview(due); } catch { setError(say(lang, 'Exercice indisponible. Réessaie.', 'Exercise unavailable. Try again.', 'التمرين غير متاح.', 'Ejercicio no disponible.')); } finally { setBusy(false); } }
   async function openSkill(next: Skill) { setBusy(true); setError(''); try { if (await onStart()) { setSkill(next); setAdaptiveSkillId(null); } } catch { setError(say(lang, 'Exercice indisponible. Réessaie.', 'Exercise unavailable. Try again.', 'التمرين غير متاح.', 'Ejercicio no disponible.')); } finally { setBusy(false); } }
   if (highActive) return <HighSchool {...props} modes={modes} onBack={() => setHighActive(false)} />;
