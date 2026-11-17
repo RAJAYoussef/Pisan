@@ -133,7 +133,7 @@ export function readFractionSequence(input: FractionReasoningEvent[]): FractionS
         evidenceSequences: [firstFailed.sequence],
         checks: [
           { id: 'add-count', prompt: 'Combien de quarts représentent 1/4 + 2/4 ?', options: [{ value: '1', label: '1/4' }, { value: '2', label: '2/4' }, { value: '3', label: '3/4' }], supportingValues: ['1', '2'] },
-          { id: 'add-denominator', prompt: 'Dans 1/4 + 2/4, pourquoi le dénominateur reste-t-il 4 ?', options: [{ value: 'same-size', label: 'Parce que les parts ont déjà la même taille' }, { value: 'add', label: 'Parce qu’on additionne aussi les dénominateurs' }, { value: 'guess', label: 'Parce que le dénominateur ne change jamais' }], supportingValues: ['add'] },
+          { id: 'add-transfer-count', prompt: 'Combien vaut 3/8 + 2/8 ?', options: [{ value: '3', label: '3/8' }, { value: '2', label: '2/8' }, { value: '5', label: '5/8' }], supportingValues: ['3', '2'] },
         ],
       });
     }
