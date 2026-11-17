@@ -45,6 +45,7 @@ export function Workshop(props: Props) {
   const [adaptiveSkillId, setAdaptiveSkillId] = useState<string | null>(null);
   const [review, setReview] = useState<Skill[] | null>(null);
   const [chapter, setChapter] = useState<FigureKind | null>(null);
+  const [lastChapter, setLastChapter] = useState<FigureKind | null>(null);
   const [bars, setBars] = useState(false);
   // Chaque changement d'écran repart du haut de la page.
   useEffect(() => { if (typeof window !== 'undefined') window.scrollTo(0, 0); }, [chapter, bars, skill, review, exercise, highActive]);
@@ -90,7 +91,7 @@ export function Workshop(props: Props) {
   ];
   const adaptiveSkill = adaptiveSkillId ? (getSkill(adaptiveSkillId)) : null;
   const next = adaptiveSkill ? { skill: adaptiveSkill, resumed: true } : nextSkill(attempts, figures);
-  return <><WorkshopHome lang={lang} assignments={visibleAssignments(props.assignments ?? [], attempts).map(a => <AssignmentRow key={a.id} lang={lang} assignment={a} attempts={attempts} onOpen={() => { const next = assignmentNext(attempts, a); if (next) void openSkill(next); }} />)} kinds={figures} attempts={attempts} chapterLabel={k => figureChapterTitle(programme, k, lang)} next={next} due={due.length} extras={extras} busy={busy} onChapter={setChapter} onSkill={next => void openSkill(next)} onReview={() => void openReview()} />{errorBox}</>;
+  return <><WorkshopHome lang={lang} assignments={visibleAssignments(props.assignments ?? [], attempts).map(a => <AssignmentRow key={a.id} lang={lang} assignment={a} attempts={attempts} onOpen={() => { const next = assignmentNext(attempts, a); if (next) void openSkill(next); }} />)} kinds={figures} attempts={attempts} chapterLabel={k => figureChapterTitle(programme, k, lang)} next={next} due={due.length} extras={extras} busy={busy} lastKind={lastChapter} onChapter={k => { setLastChapter(k); setChapter(k); }} onSkill={next => void openSkill(next)} onReview={() => void openReview()} />{errorBox}</>;
 }
 
 /** Icône des problèmes en barres. */

@@ -68,6 +68,7 @@ describe('Problèmes en barres dans les chapitres', () => {
   });
   it('a chapter ends with its bar-model problems, after the skills', () => {
     render(<Workshop {...sixieme('fr')} progress={{ unlocked: [], attempts: [] }} />);
+    fireEvent.click(screen.getByRole('button', { name: /Données, hasard, proportionnalité/ }));
     fireEvent.click(screen.getByRole('button', { name: /^Proportionnalité/ }));
     const heading = screen.getByRole('heading', { name: 'Résoudre un problème en barres' });
     const path = document.querySelector('.ws-path')!;
@@ -76,3 +77,33 @@ describe('Problèmes en barres dans les chapitres', () => {
     expect(screen.getByRole('button', { name: /Nouveau problème/ })).toBeTruthy();
   });
 });
+
+describe('Familles de chapitres', () => {
+  const props3 = (country: string, grade: number) => {
+    const programme = programmeFor(country, grade)!;
+    return { lang: 'fr' as const, level: 3, country, notions: programmeNotions(programme), programme, onSave: vi.fn(async () => {}), onStart: vi.fn(async () => true), engine: localEngine({ secret: 'test', hash: 'd'.repeat(64) }) };
+  };
+  it('a busy programme is grouped into folding families, the family of the next step open', () => {
+    render(<Workshop {...props3('fr', 3)} progress={{ unlocked: [], attempts: [] }} />);
+    const family = (name: string) => screen.getAllByRole('button', { name: new RegExp(name) }).find(b => b.hasAttribute('aria-expanded'))!;
+    for (const name of ['Nombres et calculs', 'Calcul littéral et fonctions', 'Géométrie', 'Données, hasard, proportionnalité']) expect(family(name)).toBeTruthy();
+    expect(family('Géométrie').getAttribute('aria-expanded')).toBe('true'); // Pythagore, le prochain pas
+    expect(screen.queryByRole('button', { name: /^Racines carrées ·/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /Nombres et calculs/ }));
+    expect(screen.getByRole('button', { name: /^Racines carrées ·/ })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Théorème de Thalès ·/ })).toBeNull(); // une seule famille ouverte
+  });
+  it('coming back from a chapter keeps its family open', () => {
+    render(<Workshop {...props3('fr', 3)} progress={{ unlocked: [], attempts: [] }} />);
+    fireEvent.click(screen.getByRole('button', { name: /Nombres et calculs/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Racines carrées ·/ }));
+    fireEvent.click(screen.getAllByRole('button', { name: /Atelier/ })[0]!);
+    expect(screen.getByRole('button', { name: /Nombres et calculs/, expanded: true })).toBeTruthy();
+  });
+  it('a short programme keeps its flat grid', () => {
+    const programme = programmeFor('us', 6)!;
+    render(<Workshop {...props3('us', 6)} level={6} programme={programme} notions={programmeNotions(programme)} progress={{ unlocked: [], attempts: [] }} />);
+    expect(document.querySelector('.ws-families')).toBeNull();
+  });
+});
+

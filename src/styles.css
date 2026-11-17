@@ -759,3 +759,13 @@ html[data-dys-bg="dark"] { --brand-p: #8f93ff; }
 .skill-bar { fill: color-mix(in oklab, var(--primary) 55%, transparent); stroke: var(--primary-deep); stroke-width: 1.5; }
 .chapter-glyph .glyph-small { font-size: 13px; }
 .ws-problems { margin-top: 2rem; }
+/* Familles de chapitres (atelier chargé) : lignes repliables. */
+.ws-families { display: grid; gap: 10px; }
+.ws-family { border: 1px solid var(--border); border-radius: 18px; background: var(--card); overflow: hidden; }
+.ws-family-head { display: flex; width: 100%; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer; background: transparent; }
+.ws-family-head:focus-visible { outline: 3px solid var(--ring); outline-offset: -3px; }
+.ws-family-glyphs { display: flex; flex-shrink: 0; }
+.ws-family-glyph { display: flex; width: 34px; height: 34px; padding: 6px; margin-inline-end: -8px; border: 2px solid var(--card); border-radius: 10px; background: var(--module-soft); color: var(--module-color); }
+.ws-family-glyph:last-child { margin-inline-end: 0; }
+.ws-family-glyph svg { width: 100%; height: 100%; }
+.ws-family-body { padding: 0 12px 12px; }

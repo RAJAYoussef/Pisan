@@ -1,12 +1,33 @@
 // Accueil de l'atelier : un « prochain pas », une grille compacte de chapitres, puis le parcours d'un chapitre.
-import type { ReactNode } from 'react';
-import { ArrowLeft, ArrowRight, Check, ChevronRight, RotateCcw } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronRight, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { FigureKind } from '@/lib/figures';
 import type { Lang } from '@/lib/i18n';
 import { say, type Attempt } from '@/lib/pisan';
 import { skillsFor, skillStatus, type Skill, type SkillStatus } from '@/lib/skills';
 import { CHAPTER_NAMES } from './skills';
+
+/**
+ * Les familles de chapitres (thèmes des programmes) : au-delà de FAMILY_THRESHOLD chapitres, l'atelier les regroupe
+ * en lignes repliables pour garder une page courte sur téléphone.
+ */
+export type Family = 'numbers' | 'algebra' | 'geometry' | 'data';
+export const FAMILIES: Family[] = ['numbers', 'algebra', 'geometry', 'data'];
+export const FAMILY_THRESHOLD = 8;
+export const KIND_FAMILY: Record<FigureKind, Family> = {
+  decimals: 'numbers', fractions: 'numbers', relatives: 'numbers', signs: 'numbers', arith: 'numbers', primes: 'numbers', powers: 'numbers', sci: 'numbers', roots: 'numbers',
+  expressions: 'algebra', literal: 'algebra', identities: 'algebra', equations: 'algebra', linear: 'algebra', inequalities: 'algebra', systems: 'algebra', affine: 'algebra', seq: 'algebra', deriv: 'algebra',
+  lines: 'geometry', polygons: 'geometry', angles: 'geometry', symmetry: 'geometry', measures: 'geometry', surfaces: 'geometry', solids: 'geometry', pythagoras: 'geometry', thales: 'geometry', trigo: 'geometry', inscribed: 'geometry', vectors: 'geometry',
+  proportion: 'data', data: 'data', stats: 'data', chance: 'data', proba: 'data',
+};
+const FAMILY_NAMES: Record<Family, (lang: Lang) => string> = {
+  numbers: lang => say(lang, 'Nombres et calculs', 'Numbers', 'الأعداد والحساب', 'Números y cálculo'),
+  algebra: lang => say(lang, 'Calcul littéral et fonctions', 'Algebra and functions', 'الحساب الحرفي والدوال', 'Álgebra y funciones'),
+  geometry: lang => say(lang, 'Géométrie', 'Geometry', 'الهندسة', 'Geometría'),
+  data: lang => say(lang, 'Données, hasard, proportionnalité', 'Data, chance, proportion', 'المعطيات والاحتمال والتناسبية', 'Datos, azar, proporcionalidad'),
+};
+const FAMILY_TONE: Record<Family, string> = { numbers: 'module-sun', algebra: 'module-sky', geometry: 'module-teal', data: 'module-coral' };
 
 /** Couleur de chaque chapitre (mêmes variables que les modules de l'accueil). */
 export const KIND_TONE: Record<FigureKind, string> = { pythagoras: 'module-teal', thales: 'module-coral', trigo: 'module-sky', inscribed: 'module-sun', vectors: 'module-coral', affine: 'module-teal', stats: 'module-sky', seq: 'module-sun', deriv: 'module-coral', proba: 'module-teal', fractions: 'module-sun', decimals: 'module-teal', proportion: 'module-coral', lines: 'module-sky', symmetry: 'module-sun', measures: 'module-coral', relatives: 'module-sky', data: 'module-teal', arith: 'module-coral', powers: 'module-sun', expressions: 'module-sky', equations: 'module-teal', polygons: 'module-coral', primes: 'module-sun', angles: 'module-sky', surfaces: 'module-teal', chance: 'module-coral', signs: 'module-sky', sci: 'module-sun', literal: 'module-teal', linear: 'module-coral', roots: 'module-sun', identities: 'module-sky', inequalities: 'module-coral', systems: 'module-teal', solids: 'module-sun' };
@@ -61,12 +82,25 @@ function Segments({ kind, attempts }: { kind: FigureKind; attempts: Attempt[] })
 export type Tile = { id: string; title: string; note: string; icon: ReactNode; tone: string; onOpen: () => void };
 
 /** Accueil de l'atelier. */
-export function WorkshopHome({ lang, assignments, kinds, attempts, chapterLabel, next, due, extras, busy, onChapter, onSkill, onReview }: {
+export function WorkshopHome({ lang, assignments, kinds, attempts, chapterLabel, next, due, extras, busy, onChapter, onSkill, onReview, lastKind }: {
   lang: Lang; assignments?: ReactNode[]; kinds: FigureKind[]; attempts: Attempt[]; chapterLabel: (k: FigureKind) => string | null;
   next: { skill: Skill; resumed: boolean } | null; due: number; extras: Tile[]; busy: boolean;
   onChapter: (k: FigureKind) => void; onSkill: (s: Skill) => void; onReview: () => void;
+  /** Le dernier chapitre ouvert : sa famille reste dépliée au retour. */ lastKind?: FigureKind | null;
 }) {
   const mastered = (k: FigureKind) => skillsFor(k).filter(s => skillStatus(attempts, s.id) === 'mastered').length;
+  const grouped = kinds.length > FAMILY_THRESHOLD;
+  // La famille du dernier chapitre ouvert (sinon du prochain pas) est dépliée ; une seule à la fois.
+  const first = lastKind ?? next?.skill.chapter;
+  const [open, setOpen] = useState<Family | null>(first ? KIND_FAMILY[first] : null);
+  const tile = (k: FigureKind) => {
+    const done = mastered(k), total = skillsFor(k).length;
+    return <button key={k} type="button" className={`ws-tile ${KIND_TONE[k]}`} onClick={() => onChapter(k)} aria-label={`${CHAPTER_NAMES[k][lang]} · ${done}/${total}`}>
+      <span className="ws-tile-top"><span className="ws-tile-glyph"><ChapterGlyph kind={k} /></span>{done === total ? <span className="ws-done"><Check className="h-3.5 w-3.5" /></span> : !chapterLabel(k) && <span className="ws-tag">{say(lang, 'Rappel', 'Review', 'تذكير', 'Repaso')}</span>}</span>
+      <span className="ws-tile-title">{CHAPTER_NAMES[k][lang]}</span>
+      <span className="flex items-center gap-2"><Segments kind={k} attempts={attempts} /><span className="text-xs font-bold text-muted-foreground">{done}/{total}</span></span>
+    </button>;
+  };
   return <section className="mx-auto max-w-4xl">
     <div className="section-heading"><span className="eyebrow">{say(lang, 'Atelier', 'Workshop', 'الورشة', 'Taller')}</span><h1>{say(lang, 'Comprendre en manipulant', 'Learn by doing', 'أفهم بالتجريب', 'Aprender manipulando')}</h1></div>
 
@@ -92,14 +126,23 @@ export function WorkshopHome({ lang, assignments, kinds, attempts, chapterLabel,
 
     {kinds.length > 0 && <>
       <h2 className="ws-heading">{say(lang, 'Mes chapitres', 'My chapters', 'فصولي', 'Mis capítulos')}</h2>
-      <div className="ws-grid">{kinds.map(k => {
-        const done = mastered(k), total = skillsFor(k).length;
-        return <button key={k} type="button" className={`ws-tile ${KIND_TONE[k]}`} onClick={() => onChapter(k)} aria-label={`${CHAPTER_NAMES[k][lang]} · ${done}/${total}`}>
-          <span className="ws-tile-top"><span className="ws-tile-glyph"><ChapterGlyph kind={k} /></span>{done === total ? <span className="ws-done"><Check className="h-3.5 w-3.5" /></span> : !chapterLabel(k) && <span className="ws-tag">{say(lang, 'Rappel', 'Review', 'تذكير', 'Repaso')}</span>}</span>
-          <span className="ws-tile-title">{CHAPTER_NAMES[k][lang]}</span>
-          <span className="flex items-center gap-2"><Segments kind={k} attempts={attempts} /><span className="text-xs font-bold text-muted-foreground">{done}/{total}</span></span>
-        </button>;
-      })}</div>
+      {!grouped ? <div className="ws-grid">{kinds.map(tile)}</div> : <div className="ws-families">{FAMILIES.map(f => {
+        const members = kinds.filter(k => KIND_FAMILY[k] === f);
+        if (!members.length) return null;
+        const done = members.reduce((n, k) => n + mastered(k), 0), total = members.reduce((n, k) => n + skillsFor(k).length, 0);
+        const isOpen = open === f;
+        return <div key={f} className={`ws-family ${FAMILY_TONE[f]}`}>
+          <button type="button" className="ws-family-head" aria-expanded={isOpen} aria-controls={`ws-family-${f}`} onClick={() => setOpen(isOpen ? null : f)}>
+            <span className="ws-family-glyphs" aria-hidden>{members.slice(0, 3).map(k => <span key={k} className={`ws-family-glyph ${KIND_TONE[k]}`}><ChapterGlyph kind={k} /></span>)}</span>
+            <span className="min-w-0 flex-1 text-start">
+              <span className="block font-bold leading-snug">{FAMILY_NAMES[f](lang)}</span>
+              <span className="block text-xs text-muted-foreground">{say(lang, `${members.length} chapitre${members.length > 1 ? 's' : ''} · ${done}/${total} acquises`, `${members.length} chapter${members.length > 1 ? 's' : ''} · ${done}/${total} mastered`, `${members.length} فصول · ${done}/${total} مكتسبة`, `${members.length} capítulo${members.length > 1 ? 's' : ''} · ${done}/${total} dominadas`)}</span>
+            </span>
+            <ChevronDown className={`h-5 w-5 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} aria-hidden />
+          </button>
+          {isOpen && <div id={`ws-family-${f}`} className="ws-grid ws-family-body">{members.map(tile)}</div>}
+        </div>;
+      })}</div>}
     </>}
 
     {extras.length > 0 && <>
