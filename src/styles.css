@@ -729,3 +729,5 @@ nav + .sidebar-label { margin-top: 28px; }
 .account-box { padding: 16px; border: 1px solid var(--border); border-radius: 16px; background: var(--card); }
 .account-code { margin: 12px 0; padding: 10px 12px; border-radius: 10px; background: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85rem; letter-spacing: .02em; word-break: normal; }
 .account-confirm { padding: 12px; border: 2px solid var(--destructive); border-radius: 12px; background: color-mix(in oklab, var(--destructive) 8%, var(--card)); }
+.profile-button { height: 40px; gap: 6px; padding-inline: 10px; font-weight: 700; }
+.profile-button svg { width: 22px; height: 22px; }
