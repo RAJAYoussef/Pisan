@@ -752,3 +752,7 @@ html[data-dys-bg="dark"] { --brand-p: #8f93ff; }
 .brand-large .brand-mascot { width: 104px; height: 92px; }
 .brand-large .brand-word { font-size: 42px; }
 @media (max-width: 640px) { .brand-header .brand-mascot { width: 34px; height: 29px; } .brand-header .brand-word { font-size: 14px; } .header-inner { min-height: 60px; } }
+.skill-protractor path { fill: color-mix(in oklab, var(--sky) 14%, transparent); stroke: var(--sky); stroke-width: 1.5; }
+.skill-protractor line { stroke: var(--sky); stroke-width: 1.2; }
+.skill-protractor-num { font: 700 10px var(--font-display); fill: color-mix(in oklab, var(--sky) 70%, var(--foreground)); }
+.chapter-glyph .glyph-text { fill: currentColor; stroke: none; font: 800 15px var(--font-display); }

@@ -41,6 +41,10 @@ export type Scene = {
   grid?: Grid;
   /** Courbes tracées point par point (repère du quadrillage). */
   curves?: P[][];
+  /** Textes libres posés sur la figure (graduations d'une droite, mesures). */
+  labels?: { at: P; text: string }[];
+  /** Rapporteur centré sur le point `c`, graduation 0 dans la direction `zero` (degrés). */
+  protractor?: { c: string; zero: number };
 };
 
 // ───────────── Étapes ─────────────

@@ -7,13 +7,13 @@ import type { L, NotionId } from './curriculum';
 import type { Programme } from './programmes';
 
 /** Chapitres qui ont un parcours de compétences (src/lib/skills.ts). Les quatre premiers ont aussi des figures à manipuler. */
-export type FigureKind = 'pythagoras' | 'thales' | 'trigo' | 'inscribed' | 'vectors' | 'affine' | 'stats' | 'seq' | 'deriv' | 'proba' | 'fractions';
-export const FIGURE_KINDS: FigureKind[] = ['pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'affine', 'stats', 'seq', 'deriv', 'proba', 'fractions'];
-export const FIGURE_NOTIONS: Record<FigureKind, NotionId[]> = { pythagoras: ['pythagoras-thales'], thales: ['pythagoras-thales'], trigo: ['trigonometry'], inscribed: ['geometry'], vectors: ['vectors'], affine: ['functions'], stats: ['statistics'], seq: ['sequences'], deriv: ['derivatives'], proba: ['probability-laws'], fractions: ['fractions'] };
+export type FigureKind = 'pythagoras' | 'thales' | 'trigo' | 'inscribed' | 'vectors' | 'affine' | 'stats' | 'seq' | 'deriv' | 'proba' | 'fractions' | 'decimals' | 'proportion' | 'lines' | 'symmetry' | 'measures';
+export const FIGURE_KINDS: FigureKind[] = ['pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'affine', 'stats', 'seq', 'deriv', 'proba', 'fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures'];
+export const FIGURE_NOTIONS: Record<FigureKind, NotionId[]> = { pythagoras: ['pythagoras-thales'], thales: ['pythagoras-thales'], trigo: ['trigonometry'], inscribed: ['geometry'], vectors: ['vectors'], affine: ['functions'], stats: ['statistics'], seq: ['sequences'], deriv: ['derivatives'], proba: ['probability-laws'], fractions: ['fractions'], decimals: ['decimals'], proportion: ['proportion'], lines: ['geometry'], symmetry: ['symmetry'], measures: ['areas'] };
 /** Mots de l'intitulé officiel du chapitre qui correspond à chaque parcours (plusieurs chapitres partagent une notion). */
-export const FIGURE_CHAPTER_WORDS: Record<FigureKind, string[]> = { pythagoras: ['Pythagore', 'Triangle rectangle'], thales: ['Thalès'], trigo: ['Trigonométrie', 'trigonométriques', 'Triangle rectangle'], inscribed: ['inscrits'], vectors: ['Vecteur', 'vecteur'], affine: ['affines', 'Fonctions linéaires'], stats: ['Statistiques'], seq: ['Suites'], deriv: ['érivation'], proba: ['robabilit', 'Loi binomiale', 'Lois'], fractions: ['Fraction', 'fraction'] };
+export const FIGURE_CHAPTER_WORDS: Record<FigureKind, string[]> = { pythagoras: ['Pythagore', 'Triangle rectangle'], thales: ['Thalès'], trigo: ['Trigonométrie', 'trigonométriques', 'Triangle rectangle'], inscribed: ['inscrits'], vectors: ['Vecteur', 'vecteur'], affine: ['affines', 'Fonctions linéaires'], stats: ['Statistiques'], seq: ['Suites'], deriv: ['érivation'], proba: ['robabilit', 'Loi binomiale', 'Lois'], fractions: ['Fraction', 'fraction'], decimals: ['décimaux', 'Nombres entiers'], proportion: ['Proportionnalité', 'Ratios'], lines: ['Droites'], symmetry: ['ymétri'], measures: ['érimètre', 'ires', 'Cercle', 'Pavés'] };
 /** Parcours dont la notion est partagée avec d'autres chapitres : on exige l'intitulé officiel. */
-const NEEDS_TITLE: FigureKind[] = ['inscribed', 'vectors', 'affine', 'stats', 'seq', 'deriv', 'proba', 'fractions'];
+const NEEDS_TITLE: FigureKind[] = ['inscribed', 'vectors', 'affine', 'stats', 'seq', 'deriv', 'proba', 'fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures'];
 /** Taille du quadrillage (en carreaux) : les points se placent sur des nœuds entiers de 0 à GRID. */
 export const GRID = 12;
 
@@ -143,7 +143,7 @@ export function figureChapter(programme: Programme | null | undefined, kind: Fig
  */
 export function figuresFor(programme: Programme | null | undefined, notions: NotionId[] | undefined, level: number): FigureKind[] {
   return FIGURE_KINDS.filter(k => {
-    if (!notions) return k === 'fractions' ? true : k === 'seq' || k === 'deriv' || k === 'proba' ? level >= 5 : k === 'inscribed' || k === 'vectors' || k === 'affine' ? level === 3 : k === 'stats' ? level >= 1 && level <= 3 : level >= 2 && level <= 4;
+    if (!notions) return k === 'fractions' ? true : ['decimals', 'proportion', 'lines', 'symmetry', 'measures'].includes(k) ? level <= 1 : k === 'seq' || k === 'deriv' || k === 'proba' ? level >= 5 : k === 'inscribed' || k === 'vectors' || k === 'affine' ? level === 3 : k === 'stats' ? level >= 1 && level <= 3 : level >= 2 && level <= 4;
     if (NEEDS_TITLE.includes(k)) return figureChapter(programme, k) !== null;
     return FIGURE_NOTIONS[k].some(n => notions.includes(n));
   });

@@ -26,8 +26,8 @@ const typed = (step: Extract<Step, { type: 'number' }>) => {
 const chipsSolution = (step: Extract<Step, { type: 'chips' }>) => step.ordered ? step.groups[0]! : step.groups.flatMap((g, i) => [...(i ? ['='] : []), ...g.flatMap((tok, j) => j ? ['+', tok] : [tok])]);
 
 describe('Parcours de compétences : contenu', () => {
-  it('covers the eleven chapters with the agreed skills', () => {
-    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 11]);
+  it('covers the sixteen chapters with the agreed skills', () => {
+    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 11, 5, 4, 4, 4, 4]);
     expect(new Set(SKILLS.map(s => s.id)).size).toBe(SKILLS.length);
     for (const s of SKILLS) { expect(s.id).toMatch(/^[a-z]+(-[a-z]+){1,2}$/); expect(filled(s.title) && filled(s.desc)).toBe(true); }
   });
@@ -347,7 +347,7 @@ describe('Vue professeur', () => {
   const student = (id: string, attempts: { skill: string; correct: number; total: number; review?: boolean }[]) => ({ id, profile: { nickname: id, country: 'ma', grade: 2, lang: 'fr' as const }, last_active_at: '2026-11-01', dys_default: null, progress: { unlocked: [], attempts: attempts.map(a => ({ kind: 'workshop' as const, notion: 'vectors' as const, date: '2026-11-01T10:00:00Z', minutes: 5, ...a })) } });
   it('the class programme gives its pathways', () => {
     expect(classSkillKinds('ma', 2)).toEqual(['pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'affine', 'stats']);
-    expect(classSkillKinds('fr', 0)).toEqual(['fractions']);
+    expect(classSkillKinds('fr', 0)).toEqual(['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures']);
   });
   it('flags a skill when at least two students are stuck on it', () => {
     const students = [student('a', [{ skill: 'vec-sum', correct: 2, total: 4 }]), student('b', [{ skill: 'vec-sum', correct: 4, total: 4 }, { skill: 'vec-sum', correct: 0, total: 1, review: true }]), student('c', [{ skill: 'vec-sum', correct: 4, total: 4 }])];
@@ -415,5 +415,45 @@ describe('Signe moins', () => {
     expect(minusSign('f(-3) = -11 ; x = -2,5')).toBe('f(−3) = −11 ; x = −2,5');
     expect(minusSign('(-0,5)ⁿ')).toBe('(−0,5)ⁿ');
     expect(minusSign('Au-delà de 3-4 points')).toBe('Au-delà de 3-4 points');
+  });
+});
+
+describe('6e', () => {
+  it('every Grade 6 programme now has its common blocks', async () => {
+    const { figuresFor } = await import('@/lib/figures');
+    const { programmesFor, programmeNotions } = await import('@/lib/programmes');
+    const expected: Record<string, string[]> = {
+      fr: ['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures'],
+      ma: ['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures'],
+      ci: ['stats', 'fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures'],
+      sn: ['fractions', 'decimals', 'proportion', 'lines', 'symmetry', 'measures'],
+      us: ['stats', 'fractions', 'decimals', 'proportion', 'measures'],
+    };
+    for (const [country, kinds] of Object.entries(expected)) {
+      const p = programmesFor(country, 0)[0]!;
+      expect(figuresFor(p, programmeNotions(p).map(n => n.id), 0), country).toEqual(kinds);
+    }
+  });
+  it('the protractor reading is the drawn angle, and reflections land on the mirror node', () => {
+    for (let seed = 0; seed < 40; seed++) {
+      const measure = getSkill('angles-measure')!.build(seed).steps[0]!;
+      if (measure.type !== 'number' || !measure.scene?.protractor) throw new Error('rapporteur');
+      const { O, A, B } = measure.scene.points as Record<string, { x: number; y: number }>;
+      const angle = Math.round(Math.abs(Math.atan2(B!.y - O!.y, B!.x - O!.x) - Math.atan2(A!.y - O!.y, A!.x - O!.x)) * 180 / Math.PI);
+      expect(angle).toBe(measure.answer);
+      const axial = getSkill('sym-axial')!.build(seed).steps[0]!;
+      if (axial.type !== 'grid') throw new Error('grille');
+      expect(axial.answer.x + axial.start.x).toBe(10); // axe vertical x = 5
+      expect(axial.answer.y).toBe(axial.start.y);
+    }
+  });
+  it('decimal traps are really traps: 2,5 > 2,45 and 2,5 = 2,50', () => {
+    for (let seed = 0; seed < 30; seed++) {
+      const order = getSkill('dec-compare')!.build(seed).steps.find(s => s.type === 'chips')!;
+      if (order.type !== 'chips') throw new Error();
+      const values = order.groups[0]!.map(v => Number(v.replace(',', '.')));
+      expect([...values].sort((a, b) => a - b)).toEqual(values);
+      expect(new Set(values).size).toBe(4);
+    }
   });
 });

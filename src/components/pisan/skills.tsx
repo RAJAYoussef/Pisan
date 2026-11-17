@@ -497,7 +497,10 @@ export function GeoScene({ lang, scene, tapped, answer, locked, onTap, cursor }:
   const pts = Object.values(scene.points);
   const r = scene.circle?.r ?? 0;
   const g = scene.grid;
-  const xs = pts.map(p => p.x).concat(scene.circle ? [-r, r] : [], g ? [g.minX, g.maxX] : []), ys = pts.map(p => p.y).concat(scene.circle ? [-r, r] : [], g ? [g.minY, g.maxY] : []);
+  const pr = scene.protractor ? scene.points[scene.protractor.c] : undefined;
+  const PR = 3.2; // rayon du rapporteur, en unités de la figure
+  const extra = [...(scene.labels ?? []).map(l => l.at), ...(pr ? [{ x: pr.x - PR, y: pr.y - PR }, { x: pr.x + PR, y: pr.y + PR }] : [])];
+  const xs = pts.map(p => p.x).concat(scene.circle ? [-r, r] : [], g ? [g.minX, g.maxX] : [], extra.map(p => p.x)), ys = pts.map(p => p.y).concat(scene.circle ? [-r, r] : [], g ? [g.minY, g.maxY] : [], extra.map(p => p.y));
   const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
   const s = (g ? 300 : 260) / Math.max(maxX - minX, maxY - minY, 1), pad = g ? 24 : 40;
   const v = (p: P) => ({ x: (p.x - minX) * s + pad, y: (maxY - p.y) * s + pad });
@@ -552,6 +555,17 @@ export function GeoScene({ lang, scene, tapped, answer, locked, onTap, cursor }:
     <svg ref={svgRef} viewBox={`0 0 ${width} ${height}`} className={`figure-svg skill-scene${cursor && !locked ? ' skill-pickable' : ''}`} direction="ltr" role="group" aria-label={say(lang, 'Figure', 'Figure', 'الشكل', 'Figura')} onClick={pickNode}>
       {gridLines}
       {scene.curves?.map((c, i) => <polyline key={`c${i}`} points={c.map(p => { const q = v(p); return `${q.x},${q.y}`; }).join(' ')} className="skill-curve" />)}
+      {pr && scene.protractor && (() => {
+        // Demi-disque gradué tous les 10°, chiffres tous les 30°, posé sur le sommet de l'angle.
+        const z = scene.protractor.zero, at = (deg: number, k: number) => v({ x: pr.x + k * Math.cos(((z + deg) * Math.PI) / 180), y: pr.y + k * Math.sin(((z + deg) * Math.PI) / 180) });
+        const a = at(0, PR), b = at(180, PR);
+        return <g aria-hidden className="skill-protractor">
+          <path d={`M ${a.x} ${a.y} A ${PR * s} ${PR * s} 0 0 0 ${b.x} ${b.y} Z`} />
+          {Array.from({ length: 37 }, (_, i) => i * 5).map(d => { const o = at(d, PR), q = at(d, PR - (d % 10 ? 0.18 : d % 30 ? 0.3 : 0.45)); return <line key={d} x1={o.x} y1={o.y} x2={q.x} y2={q.y} />; })}
+          {Array.from({ length: 7 }, (_, i) => i * 30).map(d => { const q = at(d, PR - 0.75); return <text key={d} x={q.x} y={q.y + 4} textAnchor="middle" className="skill-protractor-num">{d}</text>; })}
+        </g>;
+      })()}
+      {scene.labels?.map((l, i) => { const q = v(l.at); return <text key={`l${i}`} x={q.x} y={q.y + 5} textAnchor="middle" className="skill-length">{minusSign(localizeMath(l.text, lang))}</text>; })}
       {scene.circle && <circle cx={center.x} cy={center.y} r={r * s} className="figure-circle" />}
       {scene.arcs?.map(arc => <g key={arc.id} {...(arc.tappable && onTap && !locked ? { role: 'button', tabIndex: 0, 'aria-label': say(lang, `Arc ${arc.text}`, `Arc ${arc.text}`, `القوس ${arc.text}`, `Arco ${arc.text}`), onClick: () => onTap(arc.id), onKeyDown: key(arc.id), className: 'skill-tappable' } : {})}>
         <path d={arcPath(arc.start, arc.end, r)} className={`skill-arc${state(arc.id)}`} />
@@ -603,6 +617,11 @@ export const CHAPTER_NAMES: Record<FigureKind, L> = {
   deriv: { fr: 'Dérivation', en: 'Derivatives', ar: 'الاشتقاق', es: 'Derivadas' },
   proba: { fr: 'Probabilités', en: 'Probability', ar: 'الاحتمالات', es: 'Probabilidad' },
   fractions: { fr: 'Fractions', en: 'Fractions', ar: 'الكسور', es: 'Fracciones' },
+  decimals: { fr: 'Nombres décimaux', en: 'Decimals', ar: 'الأعداد العشرية', es: 'Números decimales' },
+  proportion: { fr: 'Proportionnalité', en: 'Proportionality', ar: 'التناسبية', es: 'Proporcionalidad' },
+  lines: { fr: 'Droites et angles', en: 'Lines and angles', ar: 'المستقيمات والزوايا', es: 'Rectas y ángulos' },
+  symmetry: { fr: 'Symétrie', en: 'Symmetry', ar: 'التماثل', es: 'Simetría' },
+  measures: { fr: 'Périmètres, aires, volumes', en: 'Perimeter, area, volume', ar: 'المحيطات والمساحات والأحجام', es: 'Perímetros, áreas, volúmenes' },
 };
 const STATUS: Record<SkillStatus, (lang: Lang) => string> = {
   mastered: lang => say(lang, 'Acquis', 'Mastered', 'مكتسبة', 'Adquirida'),
