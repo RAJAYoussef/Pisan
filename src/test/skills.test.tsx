@@ -75,6 +75,33 @@ describe('Parcours de compétences : contenu', () => {
   });
 });
 
+describe('Fractions', () => {
+  it('registers seven deterministic, translated fraction skills with valid prerequisites', () => {
+    const fractionSkills = skillsFor('fractions');
+    expect(fractionSkills.map(s => s.id)).toEqual([
+      'frac-meaning', 'frac-equivalent', 'frac-simplify', 'frac-compare',
+      'frac-add-subtract', 'frac-multiply-divide', 'frac-problem',
+    ]);
+    expect(new Set(fractionSkills.map(s => s.id)).size).toBe(7);
+    for (const skill of fractionSkills) {
+      expect(filled(skill.title) && filled(skill.desc)).toBe(true);
+      expect(JSON.stringify(skill.build(42))).toBe(JSON.stringify(skill.build(42)));
+      expect(skill.build(42).steps.length).toBeGreaterThan(1);
+    }
+  });
+
+  it('keeps the fraction misconception catalogue and prerequisite references coherent', async () => {
+    const { FRACTION_SKILL_META } = await import('@/lib/skills-fractions');
+    const ids = new Set(Object.keys(FRACTION_SKILL_META));
+    expect(ids.size).toBe(7);
+    for (const meta of Object.values(FRACTION_SKILL_META)) {
+      for (const prerequisite of meta.prerequisites) expect(ids.has(prerequisite)).toBe(true);
+      expect(meta.microSkills.length).toBeGreaterThan(0);
+      expect(meta.misconceptions.length).toBeGreaterThan(0);
+    }
+  });
+});
+
 describe('Pythagore', () => {
   it('the set-square triangles: “yes” means a right angle at that corner, “no” means no angle is nearly right', () => {
     for (let seed = 0; seed < 100; seed++) {
