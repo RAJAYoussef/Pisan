@@ -726,3 +726,6 @@ nav + .sidebar-label { margin-top: 28px; }
 .assign-card { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; padding: 16px; border: 2px solid var(--primary); border-radius: 18px; background: var(--card); }
 .assign-row { border-color: color-mix(in oklab, var(--primary) 45%, var(--border)); }
 .assign-row-done { opacity: .7; }
+.account-box { padding: 16px; border: 1px solid var(--border); border-radius: 16px; background: var(--card); }
+.account-code { margin: 12px 0; padding: 10px 12px; border-radius: 10px; background: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85rem; letter-spacing: .02em; word-break: normal; }
+.account-confirm { padding: 12px; border: 2px solid var(--destructive); border-radius: 12px; background: color-mix(in oklab, var(--destructive) 8%, var(--card)); }
