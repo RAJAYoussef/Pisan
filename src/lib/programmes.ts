@@ -51,6 +51,18 @@ const ch = {
   twoVar: c('Statistique à deux variables', 'Two-variable statistics', 'الإحصاء بمتغيرين', 'Estadística bidimensional', ['regression']),
 };
 
+// Chapitres de 5e communs à la France, la Côte d'Ivoire et le Sénégal
+const c5 = {
+  relatives: c('Nombres relatifs : addition et soustraction', 'Positive and negative numbers: adding and subtracting', 'الأعداد النسبية: الجمع والطرح', 'Números relativos: suma y resta', ['integers']),
+  fractions: c('Fractions : comparer, additionner, soustraire', 'Fractions: comparing, adding, subtracting', 'الكسور: المقارنة والجمع والطرح', 'Fracciones: comparar, sumar, restar', ['fractions']),
+  primes: c('Multiples, diviseurs et nombres premiers', 'Multiples, factors and prime numbers', 'المضاعفات والقواسم والأعداد الأولية', 'Múltiplos, divisores y números primos', ['arithmetic']),
+  literal: c('Expressions littérales et distributivité', 'Algebraic expressions and the distributive law', 'التعابير الحرفية والتوزيعية', 'Expresiones algebraicas y propiedad distributiva', ['algebra']),
+  chance: c('Notions de probabilité', 'Introduction to probability', 'مفاهيم الاحتمال', 'Nociones de probabilidad', ['probability']),
+  angles: c('Angles et parallélisme', 'Angles and parallel lines', 'الزوايا والتوازي', 'Ángulos y paralelismo', ['geometry']),
+  triangles: c('Triangles et parallélogrammes', 'Triangles and parallelograms', 'المثلثات ومتوازيات الأضلاع', 'Triángulos y paralelogramos', ['geometry']),
+  areas: c('Aires et volumes : triangle, disque, prisme et cylindre', 'Area and volume: triangle, circle, prism and cylinder', 'المساحات والحجوم: المثلث والقرص والموشور والأسطوانة', 'Áreas y volúmenes: triángulo, círculo, prisma y cilindro', ['areas']),
+};
+
 const sciencesBac = [ch.limits, ch.derivation, ch.sequences, ch.primitives, ch.log, ch.exp, ch.complex, ch.integral, ch.diffEq];
 
 export const PROGRAMMES: Programme[] = [
@@ -299,6 +311,53 @@ export const PROGRAMMES: Programme[] = [
       c('Intégration et accumulation', 'Integration and accumulation of change', 'التكامل والتراكم', 'Integración y acumulación', ['integrals']),
       c('Équations différentielles', 'Differential equations', 'المعادلات التفاضلية', 'Ecuaciones diferenciales', ['differential-equations']),
       c('Probabilités et statistiques', 'Probability and statistics', 'الاحتمالات والإحصاء', 'Probabilidad y estadística', ['probability-laws', 'regression']),
+    ],
+  },
+  // ───────────── 5e (index 1) : France, Côte d’Ivoire, Sénégal ; Grade 7 aux États-Unis ─────────────
+  {
+    country: 'fr', grade: 1,
+    source: { label: 'Programme du cycle 4 et repères annuels de progression, classe de 5e (BO n° 31 du 30 juillet 2020)', url: 'https://eduscol.education.fr/', status: 'reference' },
+    chapters: [
+      c5.relatives, c5.fractions, c5.primes, c5.literal,
+      c('Proportionnalité et ratios', 'Proportionality and ratios', 'التناسبية والنسب', 'Proporcionalidad y razones', ['proportion']),
+      ch.stats, c5.chance, c5.angles, c5.triangles,
+      c('Symétrie centrale', 'Point symmetry', 'التماثل المركزي', 'Simetría central', ['symmetry']),
+      c5.areas,
+    ],
+  },
+  {
+    country: 'ci', grade: 1,
+    source: { label: 'Programme éducatif de mathématiques, classe de 5e, MENA', url: 'https://dpfc-ci.net/', status: 'to-review' },
+    chapters: [
+      c('Nombres décimaux relatifs : addition et soustraction', 'Positive and negative decimals: adding and subtracting', 'الأعداد العشرية النسبية: الجمع والطرح', 'Decimales relativos: suma y resta', ['integers', 'decimals']),
+      c5.fractions, c5.primes, c5.literal,
+      c('Proportionnalité', 'Proportionality', 'التناسبية', 'Proporcionalidad', ['proportion']),
+      ch.stats, c5.angles, c5.triangles,
+      c('Symétrie centrale', 'Point symmetry', 'التماثل المركزي', 'Simetría central', ['symmetry']),
+      c5.areas,
+    ],
+  },
+  {
+    country: 'sn', grade: 1,
+    source: { label: 'Programme de mathématiques de la classe de 5e, Ministère de l’Éducation nationale', status: 'to-review' },
+    chapters: [
+      c('Nombres décimaux relatifs : addition et soustraction', 'Positive and negative decimals: adding and subtracting', 'الأعداد العشرية النسبية: الجمع والطرح', 'Decimales relativos: suma y resta', ['integers', 'decimals']),
+      c5.fractions, c5.primes, c5.literal,
+      c('Proportionnalité', 'Proportionality', 'التناسبية', 'Proporcionalidad', ['proportion']),
+      c5.angles, c5.triangles,
+      c('Symétrie centrale', 'Point symmetry', 'التماثل المركزي', 'Simetría central', ['symmetry']),
+      c5.areas,
+    ],
+  },
+  {
+    country: 'us', grade: 1,
+    source: { label: 'Common Core State Standards for Mathematics, Grade 7', url: 'https://www.thecorestandards.org/Math/Content/7/', status: 'reference' },
+    chapters: [
+      c('Relations proportionnelles (7.RP)', 'Proportional relationships (7.RP)', 'العلاقات التناسبية (7.RP)', 'Relaciones proporcionales (7.RP)', ['proportion']),
+      c('Opérations sur les nombres relatifs (7.NS)', 'Operations with rational numbers (7.NS)', 'العمليات على الأعداد النسبية (7.NS)', 'Operaciones con números racionales (7.NS)', ['integers', 'fractions']),
+      c('Expressions et équations (7.EE)', 'Expressions and equations (7.EE)', 'التعابير والمعادلات (7.EE)', 'Expresiones y ecuaciones (7.EE)', ['algebra', 'equations']),
+      c('Géométrie : angles, aires et volumes (7.G)', 'Geometry: angles, area and volume (7.G)', 'الهندسة: الزوايا والمساحات والحجوم (7.G)', 'Geometría: ángulos, áreas y volúmenes (7.G)', ['geometry', 'areas']),
+      c('Statistiques et probabilités (7.SP)', 'Statistics and probability (7.SP)', 'الإحصاء والاحتمالات (7.SP)', 'Estadística y probabilidad (7.SP)', ['statistics', 'probability']),
     ],
   },
 ];

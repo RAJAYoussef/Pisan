@@ -26,8 +26,8 @@ const typed = (step: Extract<Step, { type: 'number' }>) => {
 const chipsSolution = (step: Extract<Step, { type: 'chips' }>) => step.ordered ? step.groups[0]! : step.groups.flatMap((g, i) => [...(i ? ['='] : []), ...g.flatMap((tok, j) => j ? ['+', tok] : [tok])]);
 
 describe('Parcours de compétences : contenu', () => {
-  it('covers the twenty-three chapters with the agreed skills', () => {
-    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 11, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]);
+  it('covers the twenty-seven chapters with the agreed skills', () => {
+    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 11, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4]);
     expect(new Set(SKILLS.map(s => s.id)).size).toBe(SKILLS.length);
     for (const s of SKILLS) { expect(s.id).toMatch(/^[a-z]+(-[a-z]+){1,2}$/); expect(filled(s.title) && filled(s.desc)).toBe(true); }
   });
@@ -494,6 +494,32 @@ describe('6e', () => {
         const max = Math.max(...sides);
         expect(st.answer).toBe(max < sides.reduce((x, y) => x + y, 0) - max ? 0 : 1);
       }
+    }
+  });
+  it('5e: every chapter has a pathway, and angles, areas and probabilities say what the answer says', async () => {
+    const { chapterSkillKinds, figuresFor } = await import('@/lib/figures');
+    const { programmesFor, programmeNotions } = await import('@/lib/programmes');
+    for (const country of ['fr', 'ci', 'sn', 'us']) for (const ch of programmesFor(country, 1)[0]!.chapters) expect(chapterSkillKinds(ch), `${country} ${ch.title.fr}`).not.toEqual([]);
+    // les parcours de 5e ne débordent ni sur la 6e ni sur le lycée
+    for (const country of ['fr', 'ma', 'ci', 'sn', 'us']) for (const grade of [0, 3, 6]) for (const p of programmesFor(country, grade)) {
+      expect(figuresFor(p, programmeNotions(p).map(n => n.id), grade).filter(k => ['primes', 'angles', 'surfaces', 'chance'].includes(k)), `${country} ${grade}`).toEqual([]);
+    }
+    for (let seed = 0; seed < 40; seed++) {
+      const sum = getSkill('ang-sum')!.build(seed).steps[0]!;
+      if (sum.type !== 'number' || !sum.scene?.labels) throw new Error();
+      const [a, b] = sum.scene.labels.slice(0, 2).map(l => Number(l.text.replace('°', '')));
+      expect(a! + b! + sum.answer).toBe(180);
+      const factor = getSkill('prime-factor')!.build(seed).steps[0]!;
+      if (factor.type !== 'number') throw new Error();
+      const [n, ...shown] = (factor.prompt.fr.match(/\d+/g) ?? []).map(Number);
+      expect(shown.reduce((x, y) => x * y, 1) * factor.answer).toBe(n);
+      expect([2, 3, 5, 7]).toContain(factor.answer);
+      const urn = getSkill('chance-urn')!.build(seed).steps[1]!;
+      if (urn.type !== 'choice') throw new Error();
+      expect(new Set(urn.options.map(o => o.fr)).size).toBe(urn.options.length);
+      const dice = getSkill('chance-dice')!.build(seed).steps[1]!;
+      if (dice.type !== 'choice') throw new Error();
+      expect(new Set(dice.options.map(o => o.fr)).size).toBe(3);
     }
   });
   it('decimal traps are really traps: 2,5 > 2,45 and 2,5 = 2,50', () => {
