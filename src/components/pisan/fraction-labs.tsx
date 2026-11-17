@@ -1,10 +1,26 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import type { Lang } from '@/lib/i18n';
 import { analyzeFractionResponse, type FractionDiagnosis, type FractionTask } from '@/lib/fraction-diagnosis';
 
 type Fraction = { n: number; d: number };
-type BaseProps = { lang: Lang; locked?: boolean; onComplete?: (correct: boolean) => void; onDiagnosis?: (diagnosis: FractionDiagnosis) => void };
+export type FractionWidgetKind = 'fraction-equivalence' | 'fraction-addition' | 'fraction-numberline';
+export type FractionInteractionEvent = {
+  widgetKind: FractionWidgetKind;
+  sequence: number;
+  /** Horodatage navigateur indicatif ; ne doit jamais servir à mesurer une durée fiable côté serveur. */
+  occurredAtClient: string;
+  action: 'part-toggled' | 'position-changed' | 'verified' | 'reset';
+  state: { selectedParts?: number[]; position?: number; correct?: boolean };
+};
+type BaseProps = { lang: Lang; locked?: boolean; onComplete?: (correct: boolean) => void; onDiagnosis?: (diagnosis: FractionDiagnosis) => void; onInteraction?: (event: FractionInteractionEvent) => void };
+function useInteractionRecorder(widgetKind: FractionWidgetKind, onInteraction?: BaseProps['onInteraction']) {
+  const sequence = useRef(0);
+  return (action: FractionInteractionEvent['action'], state: FractionInteractionEvent['state']) => {
+    sequence.current += 1;
+    onInteraction?.({ widgetKind, sequence: sequence.current, occurredAtClient: new Date().toISOString(), action, state });
+  };
+}
 const copy = {
   fr: { shade: 'Parts coloriées', check: 'Vérifier', reset: 'Recommencer', good: 'Bravo ! La représentation est correcte.', retry: 'Observe les parts et réessaie.', source: 'Fraction de départ', target: 'Fraction à construire', result: 'Résultat', numberline: 'Déplace le point sur la droite graduée.', position: 'Position choisie', add: 'Additionne les parts de même taille.', equivalent: 'Les deux bandes doivent représenter la même quantité.', whole: '0', one: '1', scaleHint: 'Tu as peut-être modifié un seul terme. Pour garder la même quantité, il faut transformer les deux.', addHint: 'Vérifie que tu conserves la taille des parts : avec un même dénominateur, on additionne les numérateurs.' },
   en: { shade: 'Shaded parts', check: 'Check', reset: 'Try again', good: 'Well done! The representation is correct.', retry: 'Look at the parts and try again.', source: 'Starting fraction', target: 'Build this fraction', result: 'Result', numberline: 'Move the point along the number line.', position: 'Selected position', add: 'Add parts of the same size.', equivalent: 'Both bars must represent the same amount.', whole: '0', one: '1', scaleHint: 'You may have changed only one term. To keep the same amount, transform both.', addHint: 'Keep the part size unchanged: with equal denominators, add the numerators.' },
@@ -25,45 +41,45 @@ function useParts(d: number) {
 
 /** Student constructs an equivalent fraction by shading the refined partition. */
 export function FractionEquivalenceLab({ lang, source, factor, locked = false, onComplete, onDiagnosis }: BaseProps & { source: Fraction; factor: number }) {
-  const c = copy[lang], target = { n: source.n * factor, d: source.d * factor }, parts = useParts(target.d);
+  const c = copy[lang], target = { n: source.n * factor, d: source.d * factor }, parts = useParts(target.d);\n  const record = useInteractionRecorder('fraction-equivalence', onInteraction);
   const [checked, setChecked] = useState<boolean | null>(null), [diagnosis, setDiagnosis] = useState<FractionDiagnosis | null>(null);
   const valid = Number.isSafeInteger(source.n) && Number.isSafeInteger(source.d) && source.d > 0 && source.n >= 0 && source.n <= source.d && Number.isSafeInteger(factor) && factor >= 2 && target.d <= 16;
   if (!valid) throw new Error('Invalid equivalence lab parameters');
-  const verify = () => { const ok = parts.selected.length === target.n; const task: FractionTask = { kind: 'equivalent', value: source, expected: target }; const result = analyzeFractionResponse(task, `${parts.selected.length}/${target.d}`); setDiagnosis(result); onDiagnosis?.(result); setChecked(ok); onComplete?.(ok); };
+  const verify = () => { const ok = parts.selected.length === target.n; record('verified', { selectedParts: parts.selected, correct: ok }); const task: FractionTask = { kind: 'equivalent', value: source, expected: target }; const result = analyzeFractionResponse(task, `${parts.selected.length}/${target.d}`); setDiagnosis(result); onDiagnosis?.(result); setChecked(ok); onComplete?.(ok); };
   return <section className="space-y-3">
     <p className="text-sm font-semibold">{c.source}: {source.n}/{source.d} = ?/{target.d}</p>
     <p className="text-xs text-muted-foreground">{c.equivalent}</p>
     <p className="text-sm font-semibold">{c.target}: {target.n}/{target.d}</p>
-    <Parts lang={lang} d={target.d} selected={parts.selected} onToggle={i => { parts.toggle(i); setChecked(null); setDiagnosis(null); }} locked={locked || checked === true} />
+    <Parts lang={lang} d={target.d} selected={parts.selected} onToggle={i => { parts.toggle(i); record('part-toggled', { selectedParts: parts.selected.includes(i) ? parts.selected.filter(x => x !== i) : [...parts.selected, i].concat().sort((a, b) => a - b) }); setChecked(null); setDiagnosis(null); }} locked={locked || checked === true} />
     <p className="text-xs text-muted-foreground">{c.shade}: {parts.selected.length}/{target.d}</p>
-    <div className="flex gap-2"><Button type="button" onClick={verify} disabled={locked}>{c.check}</Button><Button type="button" variant="outline" disabled={locked} onClick={() => { parts.reset(); setChecked(null); setDiagnosis(null); }}>{c.reset}</Button></div>
+    <div className="flex gap-2"><Button type="button" onClick={verify} disabled={locked}>{c.check}</Button><Button type="button" variant="outline" disabled={locked} onClick={() => { parts.reset(); record('reset', { selectedParts: [] }); setChecked(null); setDiagnosis(null); }}>{c.reset}</Button></div>
     {checked !== null && <p role="status" className={checked ? 'font-semibold text-primary' : 'font-semibold text-destructive'}>{checked ? c.good : c.retry}{!checked && diagnosis && <span className="block text-sm font-normal">{diagnosis.misconception === 'fraction-scale-one-term' ? c.scaleHint : diagnosis.misconception === 'fraction-add-denominators' ? c.addHint : c.retry}</span>}</p>}
   </section>;
 }
 
 /** Adds two fractions with a common denominator through a third manipulable bar. */
 export function FractionAdditionLab({ lang, left, right, locked = false, onComplete, onDiagnosis }: BaseProps & { left: Fraction; right: Fraction }) {
-  const c = copy[lang], total = left.n + right.n, parts = useParts(left.d);
+  const c = copy[lang], total = left.n + right.n, parts = useParts(left.d);\n  const record = useInteractionRecorder('fraction-addition', onInteraction);
   const [checked, setChecked] = useState<boolean | null>(null), [diagnosis, setDiagnosis] = useState<FractionDiagnosis | null>(null);
   const valid = left.d === right.d && left.d > 0 && left.d <= 16 && left.n >= 0 && right.n >= 0 && total <= left.d;
   if (!valid) throw new Error('Addition lab requires non-negative fractions with a common denominator and sum ≤ 1');
-  const verify = () => { const ok = parts.selected.length === total; const task: FractionTask = { kind: 'add', left, right }; const result = analyzeFractionResponse(task, `${parts.selected.length}/${left.d}`); setDiagnosis(result); onDiagnosis?.(result); setChecked(ok); onComplete?.(ok); };
+  const verify = () => { const ok = parts.selected.length === total; record('verified', { selectedParts: parts.selected, correct: ok }); const task: FractionTask = { kind: 'add', left, right }; const result = analyzeFractionResponse(task, `${parts.selected.length}/${left.d}`); setDiagnosis(result); onDiagnosis?.(result); setChecked(ok); onComplete?.(ok); };
   return <section className="space-y-3">
     <p className="text-sm font-semibold">{left.n}/{left.d} + {right.n}/{right.d}</p>
     <p className="text-xs text-muted-foreground">{c.add}</p>
     <p className="text-sm font-semibold">{c.result}: ?/{left.d}</p>
-    <Parts lang={lang} d={left.d} selected={parts.selected} onToggle={i => { parts.toggle(i); setChecked(null); setDiagnosis(null); }} locked={locked || checked === true} />
+    <Parts lang={lang} d={left.d} selected={parts.selected} onToggle={i => { parts.toggle(i); record('part-toggled', { selectedParts: parts.selected.includes(i) ? parts.selected.filter(x => x !== i) : [...parts.selected, i].concat().sort((a, b) => a - b) }); setChecked(null); setDiagnosis(null); }} locked={locked || checked === true} />
     <p className="text-xs text-muted-foreground">{c.shade}: {parts.selected.length}/{left.d}</p>
-    <div className="flex gap-2"><Button type="button" onClick={verify} disabled={locked}>{c.check}</Button><Button type="button" variant="outline" disabled={locked} onClick={() => { parts.reset(); setChecked(null); }}>{c.reset}</Button></div>
+    <div className="flex gap-2"><Button type="button" onClick={verify} disabled={locked}>{c.check}</Button><Button type="button" variant="outline" disabled={locked} onClick={() => { parts.reset(); record('reset', { selectedParts: [] }); setChecked(null); }}>{c.reset}</Button></div>
     {checked !== null && <p role="status" className={checked ? 'font-semibold text-primary' : 'font-semibold text-destructive'}>{checked ? c.good : c.retry}{!checked && diagnosis && <span className="block text-sm font-normal">{diagnosis.evidence}</span>}</p>}
   </section>;
 }
 
 /** Places a fraction on a continuous 0–1 number line using a controlled slider. */
 export function FractionNumberLineLab({ lang, target, locked = false, onComplete }: BaseProps & { target: Fraction }) {
-  const c = copy[lang], [position, setPosition] = useState(0), [checked, setChecked] = useState<boolean | null>(null);
+  const c = copy[lang], [position, setPosition] = useState(0), [checked, setChecked] = useState<boolean | null>(null);\n  const record = useInteractionRecorder('fraction-numberline', onInteraction);
   if (!Number.isSafeInteger(target.n) || !Number.isSafeInteger(target.d) || target.d <= 0 || target.n < 0 || target.n > target.d) throw new Error('Number line target must be between 0 and 1');
-  const verify = () => { const ok = Math.abs(position - target.n / target.d) <= 0.006; setChecked(ok); onComplete?.(ok); };
+  const verify = () => { const ok = Math.abs(position - target.n / target.d) <= 0.006; record('verified', { position, correct: ok }); setChecked(ok); onComplete?.(ok); };
   return <section className="space-y-3">
     <p className="text-sm font-semibold">{c.numberline} {target.n}/{target.d}</p>
     <div className="relative px-2 pt-5" dir="ltr">
@@ -71,7 +87,7 @@ export function FractionNumberLineLab({ lang, target, locked = false, onComplete
       <div className="absolute left-2 right-2 top-0 flex justify-between text-xs"><span>{c.whole}</span><span>{c.one}</span></div>
       <div className="absolute top-[13px] h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-primary" style={{ left: `${position * 100}%` }} />
     </div>
-    <input aria-label={c.position} type="range" min="0" max="1" step="0.005" value={position} disabled={locked || checked === true} onChange={e => { setPosition(Number(e.target.value)); setChecked(null); }} className="w-full accent-[var(--primary)]" />
+    <input aria-label={c.position} type="range" min="0" max="1" step="0.005" value={position} disabled={locked || checked === true} onChange={e => { const next = Number(e.target.value); setPosition(next); record('position-changed', { position: next }); setChecked(null); }} className="w-full accent-[var(--primary)]" />
     <p className="text-xs text-muted-foreground">{c.position}: {position.toFixed(3)}</p>
     <Button type="button" onClick={verify} disabled={locked}>{c.check}</Button>
     {checked !== null && <p role="status" className={checked ? 'font-semibold text-primary' : 'font-semibold text-destructive'}>{checked ? c.good : c.retry}</p>}
