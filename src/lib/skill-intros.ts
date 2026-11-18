@@ -6,6 +6,7 @@ import type { L } from './curriculum';
 import { NOMBRES_INTROS } from './skill-intros-nombres';
 import { ALGEBRE_INTROS } from './skill-intros-algebre';
 import { GEOMETRIE_INTROS } from './skill-intros-geometrie';
+import { DONNEES_INTROS } from './skill-intros-donnees';
 
 const t = (fr: string, en: string, ar: string, es: string): L => ({ fr, en, ar, es });
 
@@ -56,6 +57,24 @@ export type Manip =
   | { kind: 'trig-ratio'; angle: number; mode: 'size' | 'angle' }
   /** Verser des pyramides dans le prisme de même base et même hauteur. */
   | { kind: 'pour'; times: number }
+  /** Colorier n parts d'une bande partagée en d parts égales. */
+  | { kind: 'frac-color'; n: number; d: number }
+  /** Regrouper les parts d'une bande par paquets de k : n/d devient (n÷k)/(d÷k). */
+  | { kind: 'frac-merge'; n: number; d: number; k: number }
+  /** n/d d'une quantité : une barre de `total` partagée en d parts, on en prend n (méthode de Singapour). */
+  | { kind: 'frac-of'; n: number; d: number; total: number; unit: string }
+  /** Modèle d'aire du produit a/b × c/d : on colorie a/b dans un sens, c/d dans l'autre. */
+  | { kind: 'frac-area'; a: number; b: number; c: number; d: number }
+  /** Tableau de proportionnalité : chaque quantité donne un point ; les points sont alignés avec l'origine. */
+  | { kind: 'ratio-graph'; unit: number; label: string }
+  /** Bande de 100 % coupée en dix parts de 10 % : on en prend p %. */
+  | { kind: 'percent-bar'; total: number; pct: number }
+  /** Ranger une série puis retirer les extrêmes deux à deux : il reste la médiane. */
+  | { kind: 'line-up'; values: number[] }
+  /** Dépouiller une enquête réponse par réponse : les barres montent. */
+  | { kind: 'tally'; categories: L[]; answers: number[] }
+  /** Simuler une expérience aléatoire (dé, sac) : la fréquence se rapproche de la probabilité. */
+  | { kind: 'sim'; outcomes: { label: L; weight: number }[]; event: number[]; seed: number }
   /** Sauts sur une droite graduée de `min` à `max`, par pas de `step`, de `start` jusqu'à `target`. */
   | { kind: 'hops'; min: number; max: number; step: number; start: number; target: number }
   /** Jetons + et − : on associe les paires nulles, il reste a + b. */
@@ -172,7 +191,7 @@ const PROTOTYPE: Record<string, Intro> = {
   },
 };
 
-export const INTROS: Record<string, Intro> = { ...PROTOTYPE, ...NOMBRES_INTROS, ...ALGEBRE_INTROS, ...GEOMETRIE_INTROS };
+export const INTROS: Record<string, Intro> = { ...PROTOTYPE, ...NOMBRES_INTROS, ...ALGEBRE_INTROS, ...GEOMETRIE_INTROS, ...DONNEES_INTROS };
 export const introFor = (skillId: string): Intro | null => INTROS[skillId] ?? null;
 
 /** Valeur arrondie au milliardième (les × 10 et ÷ 10 successifs ne doivent pas laisser 0,30000000000000004). */
@@ -229,3 +248,19 @@ export function tileAreas(rows: { x: number; u: number }, cols: { x: number; u: 
 export const angleKind = (deg: number): 'nul' | 'aigu' | 'droit' | 'obtus' | 'plat' => (deg === 0 ? 'nul' : deg < 90 ? 'aigu' : deg === 90 ? 'droit' : deg < 180 ? 'obtus' : 'plat');
 /** Inégalité triangulaire : le plus grand côté est strictement plus petit que la somme des deux autres. */
 export const closes = (a: number, b: number, c: number) => Math.max(a, b, c) * 2 < a + b + c;
+
+/** La médiane d'une série. */
+export function median(values: number[]): number {
+  const v = [...values].sort((a, b) => a - b), m = v.length / 2;
+  return v.length % 2 ? v[Math.floor(m)]! : (v[m - 1]! + v[m]!) / 2;
+}
+/** Tirages pseudo-aléatoires reproductibles (même graine → mêmes résultats) pour les simulations. */
+export function simulate(weights: number[], count: number, seed: number): number[] {
+  let s = seed >>> 0 || 1;
+  const total = weights.reduce((a, w) => a + w, 0);
+  return Array.from({ length: count }, () => {
+    s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+    let r = (s / 2 ** 32) * total;
+    return weights.findIndex(w => (r -= w) < 0);
+  });
+}

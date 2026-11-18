@@ -112,7 +112,7 @@ function meaning(seed: number): Activity {
     t(`${p} parts prises sur ${n + p} parts égales`, `${p} parts taken out of ${n + p} equal parts`, `${p} أجزاء مأخوذة من أصل ${n + p} أجزاء متساوية`, `${p} partes tomadas de ${n + p} partes iguales`),
   ];
   const secondN = pick(rng, [3, 4, 5, 6, 8, 10]);
-  const secondP = pick(rng, Array.from({ length: secondN }, (_, i) => i));
+  const secondP = pick(rng, Array.from({ length: secondN - 1 }, (_, i) => i + 1));
   return {
     title: t('Comprendre une fraction', 'Understanding a fraction', 'فهم الكسر', 'Comprender una fracción'),
     summary: `${p}/${n} : numérateur = parts prises ; dénominateur = parts égales du tout`,
@@ -267,15 +267,16 @@ function addSubtract(seed: number): Activity {
   const a = pick(rng, Array.from({ length: d - 1 }, (_, i) => i + 1));
   const b = pick(rng, Array.from({ length: d - a }, (_, i) => i + 1));
   const sum = a + b;
-  const d2 = pick(rng, [2, 3, 4, 5]);
-  const x = pick(rng, [1, 2, 3].filter(v => v < d2));
-  const y = pick(rng, [1, 2, 3].filter(v => v <= x && v < d2));
+  // La soustraction donne un résultat non nul (y < x < d2).
+  const d2 = pick(rng, [5, 6, 7, 8]);
+  const x = pick(rng, Array.from({ length: d2 - 3 }, (_, i) => i + 3));
+  const y = pick(rng, Array.from({ length: x - 1 }, (_, i) => i + 1));
   return {
     title: t('Additionner et soustraire des fractions', 'Adding and subtracting fractions', 'جمع وطرح الكسور', 'Sumar y restar fracciones'),
     summary: 'Rendre les dénominateurs identiques avant d’additionner ou de soustraire les numérateurs.',
     steps: [
       { type: 'number', answer: sum, tolerance: 0, prompt: t(`Calcule le numérateur : ${a}/${d} + ${b}/${d} = ?/${d}.`, `Find the numerator: ${a}/${d} + ${b}/${d} = ?/${d}.`, `احسب البسط: ${a}/${d} + ${b}/${d} = ?/${d}.`, `Calcula el numerador: ${a}/${d} + ${b}/${d} = ?/${d}.`), hint: t('Les dénominateurs sont identiques : additionne les numérateurs et conserve le dénominateur.', 'The denominators are the same: add the numerators and keep the denominator.', 'المقامات متساوية: اجمع البسطين واحتفظ بالمقام.', 'Los denominadores son iguales: suma los numeradores y conserva el denominador.') },
-      { type: 'number', answer: x - y, tolerance: 0, prompt: t(`Calcule le numérateur : ${x}/${d2} - ${y}/${d2} = ?/${d2}.`, `Find the numerator: ${x}/${d2} - ${y}/${d2} = ?/${d2}.`, `احسب البسط: ${x}/${d2} - ${y}/${d2} = ?/${d2}.`, `Calcula el numerador: ${x}/${d2} - ${y}/${d2} = ?/${d2}.`), hint: t('Les dénominateurs sont identiques : soustrais les numérateurs et conserve le dénominateur.', 'The denominators are the same: subtract the numerators and keep the denominator.', 'المقامات متساوية: اطرح البسطين واحتفظ بالمقام.', 'Los denominadores son iguales: resta los numeradores y conserva el denominador.') },
+      { type: 'number', answer: x - y, tolerance: 0, prompt: t(`Calcule le numérateur : ${x}/${d2} − ${y}/${d2} = ?/${d2}.`, `Find the numerator: ${x}/${d2} − ${y}/${d2} = ?/${d2}.`, `احسب البسط: ${x}/${d2} − ${y}/${d2} = ?/${d2}.`, `Calcula el numerador: ${x}/${d2} − ${y}/${d2} = ?/${d2}.`), hint: t('Les dénominateurs sont identiques : soustrais les numérateurs et conserve le dénominateur.', 'The denominators are the same: subtract the numerators and keep the denominator.', 'المقامات متساوية: اطرح البسطين واحتفظ بالمقام.', 'Los denominadores son iguales: resta los numeradores y conserva el denominador.') },
     ],
   };
 }

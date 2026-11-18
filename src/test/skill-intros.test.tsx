@@ -3,7 +3,8 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { applyBalance, balanceOps, balanceSolved, digitsByRank, INTROS, isPrime, rectanglePairs, zeroPairs, type Side } from '@/lib/skill-intros';
 import type { FigureKind } from '@/lib/figures';
 import { bestStars, starsFor, stepPoints, totalPoints } from '@/lib/rewards';
-import { getSkill, skillsFor } from '@/lib/skills';
+import { getSkill, skillsFor, SKILLS } from '@/lib/skills';
+const await_skills = { SKILLS };
 import { SkillActivity } from '@/components/pisan/skills';
 import { localEngine } from '@/lib/skill-session';
 import type { Attempt } from '@/lib/pisan';
@@ -22,8 +23,8 @@ function solve(left: Side, right: Side): number | null {
 }
 
 describe('Introductions (modèle de Singapour)', () => {
-  const DONE: FigureKind[] = ['primes', 'linear', 'relatives', 'signs', 'decimals', 'arith', 'powers', 'sci', 'roots', 'expressions', 'literal', 'identities', 'equations', 'inequalities', 'systems', 'affine', 'seq', 'deriv', 'lines', 'polygons', 'angles', 'symmetry', 'measures', 'surfaces', 'solids', 'pythagoras', 'thales', 'trigo', 'inscribed', 'vectors'];
-  const LYCEE: FigureKind[] = ['seq', 'deriv'];
+  const DONE: FigureKind[] = ['primes', 'linear', 'relatives', 'signs', 'decimals', 'arith', 'powers', 'sci', 'roots', 'expressions', 'literal', 'identities', 'equations', 'inequalities', 'systems', 'affine', 'seq', 'deriv', 'lines', 'polygons', 'angles', 'symmetry', 'measures', 'surfaces', 'solids', 'pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'fractions', 'proportion', 'stats', 'data', 'chance', 'proba'];
+  const LYCEE: FigureKind[] = ['seq', 'deriv', 'proba'];
   /** Une compétence « manipule » si son introduction a une manipulation ou si l'entraînement en contient une (widget, quadrillage). */
   const manipulates = (id: string) => Boolean(INTROS[id]?.manip) || getSkill(id)!.build(1).steps.some(st => st.type === 'widget' || st.type === 'grid' || st.type === 'tap');
   it('every skill of the finished chapters has a lesson card in four languages (and a goal with its manipulation)', () => {
@@ -35,6 +36,11 @@ describe('Introductions (modèle de Singapour)', () => {
     }
     // dans les chapitres finis, au moins la moitié des compétences commencent par manipuler
     for (const k of DONE.filter(k => !LYCEE.includes(k))) expect(skillsFor(k).filter(s => manipulates(s.id)).length * 2, k).toBeGreaterThanOrEqual(skillsFor(k).length);
+  });
+  it('every skill of PiSan now has its lesson card', () => {
+    const { SKILLS } = await_skills;
+    expect(SKILLS.filter(sk => !INTROS[sk.id]).map(sk => sk.id)).toEqual([]);
+    expect(Object.keys(INTROS).filter(id => !getSkill(id))).toEqual([]);
   });
   it('every manipulation can reach its goal', () => {
     for (const [id, intro] of Object.entries(INTROS)) {
@@ -210,6 +216,41 @@ describe('Manipulations de la famille Géométrie', () => {
     open('area-parallelogram');
     fireEvent.click(screen.getByRole('button', { name: /Découper le triangle/ }));
     expect(screen.getByRole('status').textContent).toMatch(/rectangle 6 × 3.*18/);
+  });
+});
+
+describe('Manipulations de la famille Données, hasard, proportionnalité', () => {
+  const engine = () => localEngine({ secret: 'test', hash: '7'.repeat(64) });
+  const open = (id: string) => render(<SkillActivity lang="fr" skill={getSkill(id)!} engine={engine()} attempts={[]} onBack={vi.fn()} />);
+  it('3/4 of 24 L with the Singapore bar', () => {
+    open('frac-problem');
+    fireEvent.click(screen.getByRole('button', { name: /Partager en 4/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Prendre 3 parts/ }));
+    expect(screen.getByRole('status').textContent).toMatch(/= 18 L/);
+  });
+  it('the area model gives 3/5 × 2/3 = 6/15', () => {
+    open('frac-multiply-divide');
+    fireEvent.click(screen.getByRole('button', { name: 'Colorier 3/5' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Colorier 2/3' }));
+    expect(screen.getByRole('status').textContent).toMatch(/= 6\/15/);
+  });
+  it('the median: sort, then remove the extremes', () => {
+    open('stats-median');
+    fireEvent.click(screen.getByRole('button', { name: /Ranger/ }));
+    for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole('button', { name: /Retirer la plus petite/ }));
+    expect(screen.getByRole('status').textContent).toMatch(/médiane vaut 11/);
+  });
+  it('the frequency gets close to the probability over many rolls', () => {
+    open('chance-frequency');
+    fireEvent.click(screen.getByRole('button', { name: '+1000' }));
+    const text = screen.getByRole('status').textContent!;
+    const f = Number(text.match(/fréquence \((0,\d+)\)/)![1]!.replace(',', '.'));
+    expect(Math.abs(f - 1 / 6)).toBeLessThan(0.04);
+  });
+  it('the 4th proportional starts by sharing the bar', () => {
+    open('prop-fourth');
+    fireEvent.click(screen.getByRole('button', { name: /Partager 4,5 € en 3/ }));
+    expect(screen.getByRole('status').textContent).toMatch(/x = 1,5/);
   });
 });
 

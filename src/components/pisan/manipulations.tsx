@@ -4,8 +4,9 @@ import { useState, type ReactNode } from 'react';
 import { Minus, Plus, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Lang } from '@/lib/i18n';
+import type { L } from '@/lib/curriculum';
 import { say } from '@/lib/pisan';
-import { applyBalance, balanceOps, balanceSolved, clean, digitsByRank, isPrime, PLACE_RANKS, rectanglePairs, angleKind, closes, runMachine, tileAreas, type BalanceOp, type Manip, type Side } from '@/lib/skill-intros';
+import { applyBalance, balanceOps, balanceSolved, clean, digitsByRank, isPrime, PLACE_RANKS, rectanglePairs, angleKind, closes, median, runMachine, simulate, tileAreas, type BalanceOp, type Manip, type Side } from '@/lib/skill-intros';
 
 type Done = (found: string) => void;
 
@@ -38,6 +39,15 @@ export function Manipulation({ manip, lang, onDone }: { manip: Manip; lang: Lang
   if (manip.kind === 'enlarge') return <Enlarge w={manip.w} h={manip.h} solid={manip.solid ?? false} lang={lang} onDone={onDone} />;
   if (manip.kind === 'trig-ratio') return <TrigRatio angle={manip.angle} mode={manip.mode} lang={lang} onDone={onDone} />;
   if (manip.kind === 'pour') return <Pour times={manip.times} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'frac-color') return <FracColor n={manip.n} d={manip.d} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'frac-merge') return <FracMerge n={manip.n} d={manip.d} k={manip.k} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'frac-of') return <FracOf n={manip.n} d={manip.d} total={manip.total} unit={manip.unit} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'frac-area') return <FracArea a={manip.a} b={manip.b} c={manip.c} d={manip.d} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'ratio-graph') return <RatioGraph unit={manip.unit} label={manip.label} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'percent-bar') return <PercentBar total={manip.total} pct={manip.pct} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'line-up') return <LineUp values={manip.values} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'tally') return <Tally categories={manip.categories} answers={manip.answers} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'sim') return <Sim outcomes={manip.outcomes} event={manip.event} seed={manip.seed} lang={lang} onDone={onDone} />;
   return <Bars parts={manip.parts} extra={manip.extra} total={manip.total} unit={manip.unit} rectangle={manip.rectangle ?? false} lang={lang} onDone={onDone} />;
 }
 
@@ -183,20 +193,20 @@ function Balance({ left: l0, right: r0, lang, onDone }: { left: Side; right: Sid
 // ───────────── Modèle en barres (méthode de Singapour) ─────────────
 
 function Bars({ parts, extra, total, unit, rectangle, lang, onDone }: { parts: number; extra: number; total: number; unit: string; rectangle: boolean; lang: Lang; onDone: Done }) {
-  const [stage, setStage] = useState<0 | 1 | 2>(0);
-  const rest = total - extra, each = rest / parts;
+  const [stage, setStage] = useState<0 | 1 | 2>(extra ? 0 : 1);
+  const rest = total - extra, each = clean(rest / parts);
   return <div className="manip">
     <div className="bar-model" aria-label={say(lang, 'Modèle en barres', 'Bar model', 'نموذج شريطي', 'Modelo de barras')}>
       <div className="bar-line">
-        {Array.from({ length: parts }, (_, i) => <span key={i} className="bar-part">{stage === 2 ? `${each} ${unit}` : 'x'}</span>)}
-        <span className={`bar-extra ${stage >= 1 ? 'bar-gone' : ''}`} style={{ flexGrow: Math.max(0.6, (extra / total) * parts * 1.6) }}>{extra} {unit}</span>
+        {Array.from({ length: parts }, (_, i) => <span key={i} className="bar-part">{stage === 2 ? `${num(each)} ${unit}` : 'x'}</span>)}
+        {extra > 0 && <span className={`bar-extra ${stage >= 1 ? 'bar-gone' : ''}`} style={{ flexGrow: Math.max(0.6, (extra / total) * parts * 1.6) }}>{extra} {unit}</span>}
       </div>
-      <div className="bar-brace"><span>{stage >= 1 ? `${rest} ${unit}` : `${total} ${unit}`}</span></div>
+      <div className="bar-brace"><span>{stage >= 1 ? `${num(rest)} ${unit}` : `${num(total)} ${unit}`}</span></div>
     </div>
-    <p className="manip-equation">{stage === 0 ? `${Array(parts).fill('x').join(' + ')} + ${extra} = ${total}` : stage === 1 ? `${parts}x = ${rest}` : `x = ${each}`}</p>
+    <p className="manip-equation">{stage === 0 ? `${Array(parts).fill('x').join(' + ')} + ${extra} = ${total}` : stage === 1 ? `${parts}x = ${num(rest)}` : `x = ${num(each)}`}</p>
     {stage === 0 && <Button variant="soft" className="h-auto min-h-10 whitespace-normal" onClick={() => setStage(1)}>{say(lang, `Enlever le morceau connu (${extra} ${unit})`, `Remove the known piece (${extra} ${unit})`, `أزل الجزء المعلوم (${extra} ${unit})`, `Quita la parte conocida (${extra} ${unit})`)}</Button>}
-    {stage === 1 && <Button variant="soft" className="h-auto min-h-10 whitespace-normal" onClick={() => { setStage(2); onDone(String(each)); }}>{say(lang, `Partager ${rest} ${unit} en ${parts} barres égales`, `Share ${rest} ${unit} into ${parts} equal bars`, `اقسم ${rest} على ${parts} أشرطة متساوية`, `Reparte ${rest} entre ${parts} barras iguales`)}</Button>}
-    {stage === 2 && <p className="manip-discovery" role="status">{rectangle ? say(lang, `La largeur mesure ${each} ${unit}, la longueur ${each + extra} ${unit}. Vérification : 2 × (${each} + ${each + extra}) = ${2 * total} ✓`, `The width is ${each} ${unit}, the length ${each + extra} ${unit}. Check: 2 × (${each} + ${each + extra}) = ${2 * total} ✓`, `العرض ${each} والطول ${each + extra}.`, `El ancho mide ${each} ${unit} y el largo ${each + extra} ${unit}.`) : say(lang, `Une barre vaut ${each}${unit ? ' ' + unit : ''} : x = ${each}. Vérification : ${parts} × ${each} + ${extra} = ${total} ✓`, `One bar is ${each}${unit ? ' ' + unit : ''}: x = ${each}. Check: ${parts} × ${each} + ${extra} = ${total} ✓`, `الشريط يساوي ${each}: x = ${each}.`, `Una barra vale ${each}: x = ${each}.`)}</p>}
+    {stage === 1 && <Button variant="soft" className="h-auto min-h-10 whitespace-normal" onClick={() => { setStage(2); onDone(String(each)); }}>{say(lang, `Partager ${num(rest)} ${unit} en ${parts} barres égales`, `Share ${num(rest)} ${unit} into ${parts} equal bars`, `اقسم ${num(rest)} على ${parts} أشرطة متساوية`, `Reparte ${rest} entre ${parts} barras iguales`)}</Button>}
+    {stage === 2 && <p className="manip-discovery" role="status">{rectangle ? say(lang, `La largeur mesure ${each} ${unit}, la longueur ${each + extra} ${unit}. Vérification : 2 × (${each} + ${each + extra}) = ${2 * total} ✓`, `The width is ${each} ${unit}, the length ${each + extra} ${unit}. Check: 2 × (${each} + ${each + extra}) = ${2 * total} ✓`, `العرض ${each} والطول ${each + extra}.`, `El ancho mide ${each} ${unit} y el largo ${each + extra} ${unit}.`) : say(lang, `Une barre vaut ${num(each)}${unit ? ' ' + unit : ''} : x = ${num(each)}. Vérification : ${parts} × ${num(each)}${extra ? ` + ${extra}` : ''} = ${num(total)} ✓`, `One bar is ${each}${unit ? ' ' + unit : ''}: x = ${each}. Check: ${parts} × ${each} + ${extra} = ${total} ✓`, `الشريط يساوي ${each}: x = ${each}.`, `Una barra vale ${each}: x = ${each}.`)}</p>}
   </div>;
 }
 
@@ -806,5 +816,148 @@ function Pour({ times, lang, onDone }: { times: number; lang: Lang; onDone: Done
     <p className="manip-feedback">{say(lang, `${poured} pyramide${poured > 1 ? 's' : ''} versée${poured > 1 ? 's' : ''}`, `${poured} pyramid${poured > 1 ? 's' : ''} poured`, `${poured} أهرام`, `${poured} pirámides`)}</p>
     {poured < times ? <Button variant="soft" onClick={pour}>{say(lang, 'Verser une pyramide', 'Pour a pyramid', 'صبّ هرمًا', 'Verter una pirámide')}</Button>
       : <p className="manip-discovery" role="status">{say(lang, `Il faut ${times} pyramides pour remplir le prisme : une pyramide, c’est le tiers. V = aire de la base × hauteur ÷ 3.`, `It takes ${times} pyramids to fill the prism: a pyramid is a third. V = base area × height ÷ 3.`, `الهرم ثلث الموشور.`, `La pirámide es un tercio.`)}</p>}
+  </div>;
+}
+
+// ───────────── Fractions, proportionnalité, statistiques, probabilités ─────────────
+
+function FracBar({ d, shaded, onTap, label }: { d: number; shaded: (i: number) => boolean; onTap?: (i: number) => void; label?: (i: number) => string }) {
+  return <div className="frac-bar" style={{ gridTemplateColumns: `repeat(${d}, 1fr)` }}>
+    {Array.from({ length: d }, (_, i) => onTap
+      ? <button key={i} type="button" className={`frac-part ${shaded(i) ? 'frac-on' : ''}`} onClick={() => onTap(i)} aria-pressed={shaded(i)} aria-label={`${i + 1}/${d}`}>{label?.(i)}</button>
+      : <span key={i} className={`frac-part ${shaded(i) ? 'frac-on' : ''}`}>{label?.(i)}</span>)}
+  </div>;
+}
+
+function FracColor({ n, d, lang, onDone }: { n: number; d: number; lang: Lang; onDone: Done }) {
+  const [on, setOn] = useState<boolean[]>(Array(d).fill(false));
+  const [seen, setSeen] = useState<number[]>([]);
+  const count = on.filter(Boolean).length;
+  function tap(i: number) { const next = on.map((v, j) => (j === i ? !v : v)); setOn(next); const c = next.filter(Boolean).length; const all = seen.includes(c) ? seen : [...seen, c]; setSeen(all); if (all.includes(1) && all.includes(n)) onDone(`${n}/${d}`); }
+  return <div className="manip">
+    <FracBar d={d} shaded={i => on[i]!} onTap={tap} />
+    <p className="manip-equation" aria-live="polite">{count}/{d}</p>
+    <p className="manip-feedback">{say(lang, `${count} part${count > 1 ? 's' : ''} coloriée${count > 1 ? 's' : ''} sur ${d} parts égales`, `${count} of ${d} equal parts shaded`, `${count} من ${d} أجزاء ملونة`, `${count} de ${d} partes`)}</p>
+    {seen.includes(1) && seen.includes(n) && <p className="manip-discovery" role="status">{say(lang, `Le dénominateur ${d} ne change pas (les parts du tout) ; le numérateur compte les parts coloriées : 1/${d}, puis ${n}/${d}.`, `The denominator ${d} stays (the parts of the whole); the numerator counts shaded parts: 1/${d}, then ${n}/${d}.`, `المقام ${d} ثابت والبسط يعد الأجزاء الملونة.`, `El denominador ${d} no cambia; el numerador cuenta.`)}</p>}
+  </div>;
+}
+
+function FracMerge({ n, d, k, lang, onDone }: { n: number; d: number; k: number; lang: Lang; onDone: Done }) {
+  const [merged, setMerged] = useState(false);
+  return <div className="manip">
+    <FracBar d={d} shaded={i => i < n} />
+    <FracBar d={merged ? d / k : d} shaded={i => i < (merged ? n / k : n)} />
+    <p className="manip-equation">{n}/{d}{merged ? ` = ${n / k}/${d / k}` : ''}</p>
+    {!merged ? <Button variant="soft" onClick={() => { setMerged(true); onDone(`${n / k}/${d / k}`); }}>{say(lang, `Regrouper les parts par ${k}`, `Group the parts in ${k}s`, `اجمع الأجزاء ${k} ${k}`, `Agrupar de ${k} en ${k}`)}</Button>
+      : <p className="manip-discovery" role="status">{say(lang, `Même quantité coloriée : ${n}/${d} = ${n / k}/${d / k}. On a divisé le numérateur et le dénominateur par ${k}.`, `Same shaded amount: ${n}/${d} = ${n / k}/${d / k}. Top and bottom divided by ${k}.`, `نفس الكمية: ${n}/${d} = ${n / k}/${d / k}.`, `Misma cantidad: ${n}/${d} = ${n / k}/${d / k}.`)}</p>}
+  </div>;
+}
+
+function FracOf({ n, d, total, unit, lang, onDone }: { n: number; d: number; total: number; unit: string; lang: Lang; onDone: Done }) {
+  const [stage, setStage] = useState(0);
+  const part = total / d;
+  return <div className="manip">
+    <div className="bar-model"><FracBar d={stage ? d : 1} shaded={i => stage === 2 && i < n} label={i => (stage ? `${num(part)}` : i === 0 ? `${total} ${unit}` : '')} /><div className="bar-brace"><span>{total} {unit}</span></div></div>
+    <p className="manip-equation">{stage === 0 ? `${n}/${d} × ${total}` : stage === 1 ? `${total} ÷ ${d} = ${num(part)}` : `${num(part)} × ${n} = ${num(part * n)} ${unit}`}</p>
+    {stage === 0 && <Button variant="soft" onClick={() => setStage(1)}>{say(lang, `Partager en ${d} parts égales`, `Split into ${d} equal parts`, `اقسم إلى ${d} أجزاء`, `Dividir en ${d} partes`)}</Button>}
+    {stage === 1 && <Button variant="soft" onClick={() => { setStage(2); onDone(String(part * n)); }}>{say(lang, `Prendre ${n} parts`, `Take ${n} parts`, `خذ ${n} أجزاء`, `Tomar ${n} partes`)}</Button>}
+    {stage === 2 && <p className="manip-discovery" role="status">{say(lang, `${n}/${d} de ${total} ${unit} = ${num(part * n)} ${unit} : on divise par ${d}, puis on multiplie par ${n}.`, `${n}/${d} of ${total} ${unit} = ${num(part * n)} ${unit}: divide by ${d}, then multiply by ${n}.`, `${num(part * n)} ${unit}.`, `${num(part * n)} ${unit}.`)}</p>}
+  </div>;
+}
+
+function FracArea({ a, b, c, d, lang, onDone }: { a: number; b: number; c: number; d: number; lang: Lang; onDone: Done }) {
+  const [cols, setCols] = useState(false), [rows, setRows] = useState(false);
+  const both = cols && rows;
+  function go(which: 'c' | 'r') { if (which === 'c') setCols(true); else setRows(true); if ((which === 'c' ? rows : cols)) onDone(`${a * c}/${b * d}`); }
+  return <div className="manip">
+    <div className="area-grid" style={{ gridTemplateColumns: `repeat(${b}, 1fr)`, gridTemplateRows: `repeat(${d}, 1fr)` }} aria-hidden>
+      {Array.from({ length: b * d }, (_, i) => { const x = i % b, y = Math.floor(i / b), inC = cols && x < a, inR = rows && y < c; return <span key={i} className={`area-cell ${inC ? 'area-col' : ''} ${inR ? 'area-row' : ''} ${inC && inR ? 'area-both' : ''}`} />; })}
+    </div>
+    <div className="manip-controls">
+      <Button variant="soft" disabled={cols} onClick={() => go('c')}>{say(lang, `Colorier ${a}/${b}`, `Shade ${a}/${b}`, `لوّن ${a}/${b}`, `Colorear ${a}/${b}`)}</Button>
+      <Button variant="soft" disabled={rows} onClick={() => go('r')}>{say(lang, `Colorier ${c}/${d}`, `Shade ${c}/${d}`, `لوّن ${c}/${d}`, `Colorear ${c}/${d}`)}</Button>
+    </div>
+    {both && <p className="manip-discovery" role="status">{say(lang, `La partie colorée deux fois : ${a * c} cases sur ${b * d}. ${a}/${b} × ${c}/${d} = ${a * c}/${b * d} : on multiplie les numérateurs et les dénominateurs.`, `Double-shaded: ${a * c} of ${b * d} cells. ${a}/${b} × ${c}/${d} = ${a * c}/${b * d}.`, `${a}/${b} × ${c}/${d} = ${a * c}/${b * d}.`, `${a}/${b} × ${c}/${d} = ${a * c}/${b * d}.`)}</p>}
+  </div>;
+}
+
+function RatioGraph({ unit, label, lang, onDone }: { unit: number; label: string; lang: Lang; onDone: Done }) {
+  const [qs, setQs] = useState<number[]>([]);
+  const [q, setQ] = useState(0);
+  function go(v: number) { const n = Math.max(0, Math.min(8, v)); setQ(n); const all = qs.includes(n) ? qs : [...qs, n]; setQs(all); if (all.length === 4) onDone('prop'); }
+  const W = 200, H = 130, sx = W / 9, sy = H / (unit * 9);
+  return <div className="manip">
+    <svg viewBox={`0 0 ${W + 10} ${H + 10}`} className="manip-svg" aria-hidden>
+      <line x1={5} y1={H} x2={W} y2={H} className="svg-ray" /><line x1={5} y1={H} x2={5} y2={0} className="svg-ray" />
+      {qs.length >= 4 && <line x1={5} y1={H} x2={5 + 8.5 * sx} y2={H - 8.5 * unit * sy} className="svg-height" />}
+      {qs.map(v => <circle key={v} cx={5 + v * sx} cy={H - v * unit * sy} r={4} className="svg-point" />)}
+    </svg>
+    <Stepper lang={lang} label={`${q} → ${num(q * unit)} ${label}`} onMinus={() => go(q - 1)} onPlus={() => go(q + 1)} minus={say(lang, 'Un de moins', 'One fewer', 'واحد أقل', 'Uno menos')} plus={say(lang, 'Un de plus', 'One more', 'واحد أكثر', 'Uno más')} />
+    {qs.length >= 4 && <p className="manip-discovery" role="status">{say(lang, `Chaque prix = nombre × ${num(unit)} : les points sont alignés avec l’origine. C’est la proportionnalité.`, `Each price = number × ${num(unit)}: the points line up with the origin. That is proportionality.`, `النقط مستقيمية مع الأصل: التناسبية.`, `Los puntos se alinean con el origen.`)}</p>}
+  </div>;
+}
+
+function PercentBar({ total, pct, lang, onDone }: { total: number; pct: number; lang: Lang; onDone: Done }) {
+  const [on, setOn] = useState(0);
+  const target = pct / 10;
+  function tap(i: number) { const next = i + 1 === on ? i : i + 1; setOn(next); if (next === target) onDone(String((total * pct) / 100)); }
+  return <div className="manip">
+    <FracBar d={10} shaded={i => i < on} onTap={tap} label={() => '10 %'} />
+    <p className="manip-equation">{on * 10} % {say(lang, 'de', 'of', 'من', 'de')} {total} = {num((total * on) / 10)}</p>
+    {on === target && <p className="manip-discovery" role="status">{say(lang, `Une part de 10 % = ${num(total / 10)} (un dixième). ${pct} % de ${total} = ${num((total * pct) / 100)}, donc le prix soldé = ${num(total - (total * pct) / 100)}.`, `One 10% part = ${num(total / 10)}. ${pct}% of ${total} = ${num((total * pct) / 100)}, so the sale price = ${num(total - (total * pct) / 100)}.`, `${pct} % من ${total} = ${num((total * pct) / 100)}.`, `${pct} % de ${total} = ${num((total * pct) / 100)}.`)}</p>}
+  </div>;
+}
+
+function LineUp({ values, lang, onDone }: { values: number[]; lang: Lang; onDone: Done }) {
+  const [sorted, setSorted] = useState(false);
+  const [removed, setRemoved] = useState(0);
+  const list = sorted ? [...values].sort((a, b) => a - b) : values;
+  const canRemove = sorted && list.length - 2 * removed > 2;
+  const finished = sorted && !canRemove;
+  function remove() { const r = removed + 1; setRemoved(r); if (values.length - 2 * r <= 2) onDone(String(median(values))); }
+  return <div className="manip">
+    <div className="lineup">{list.map((v, i) => <span key={i} className={`lineup-card ${sorted && (i < removed || i >= list.length - removed) ? 'lineup-out' : ''}`}>{num(v)}</span>)}</div>
+    {!sorted ? <Button variant="soft" onClick={() => setSorted(true)}>{say(lang, 'Ranger du plus petit au plus grand', 'Sort from smallest to largest', 'رتّب تصاعديًا', 'Ordenar de menor a mayor')}</Button>
+      : canRemove ? <Button variant="soft" onClick={remove}>{say(lang, 'Retirer la plus petite et la plus grande', 'Remove the smallest and the largest', 'أزل الأصغر والأكبر', 'Quitar el menor y el mayor')}</Button> : null}
+    {finished && <p className="manip-discovery" role="status">{say(lang, `Il reste le milieu : la médiane vaut ${num(median(values))}. Autant de valeurs en dessous qu’au-dessus.`, `The middle is left: the median is ${num(median(values))}. As many values below as above.`, `الوسيط ${num(median(values))}.`, `La mediana es ${num(median(values))}.`)}</p>}
+  </div>;
+}
+
+function Tally({ categories, answers, lang, onDone }: { categories: L[]; answers: number[]; lang: Lang; onDone: Done }) {
+  const [i, setI] = useState(0);
+  const [counts, setCounts] = useState<number[]>(categories.map(() => 0));
+  const [wrong, setWrong] = useState(false);
+  const top = Math.max(...categories.map((_, k) => answers.filter(a => a === k).length));
+  function tap(k: number) {
+    if (i >= answers.length) return;
+    if (k !== answers[i]) { setWrong(true); return; }
+    setWrong(false); const next = counts.map((c, j) => (j === k ? c + 1 : c)); setCounts(next); setI(i + 1);
+    if (i + 1 === answers.length) onDone('tally');
+  }
+  const best = counts.indexOf(Math.max(...counts));
+  return <div className="manip">
+    {i < answers.length && <p className="manip-equation" aria-live="polite">{say(lang, `Élève ${i + 1} : « ${categories[answers[i]!]![lang]} »`, `Pupil ${i + 1}: “${categories[answers[i]!]![lang]}”`, `التلميذ ${i + 1}: « ${categories[answers[i]!]![lang]} »`, `Alumno ${i + 1}: «${categories[answers[i]!]![lang]}»`)}</p>}
+    <div className="tally-bars">{categories.map((c, k) => <button key={k} type="button" className="tally-col" onClick={() => tap(k)} aria-label={`${c[lang]} : ${counts[k]}`}>
+      <span className="tally-count">{counts[k]}</span><span className="tally-bar" style={{ height: `${(counts[k]! / top) * 100}%` }} /><span className="tally-label">{c[lang]}</span>
+    </button>)}</div>
+    {wrong && <p className="manip-feedback manip-bad" role="alert">{say(lang, 'Regarde bien la réponse de l’élève.', 'Look carefully at the pupil’s answer.', 'انظر جيدًا إلى جواب التلميذ.', 'Mira bien la respuesta.')}</p>}
+    {i === answers.length && <p className="manip-discovery" role="status">{say(lang, `${answers.length} réponses dépouillées. La plus haute barre : ${categories[best]![lang]} (${counts[best]}). La hauteur d’une barre = l’effectif.`, `${answers.length} answers tallied. Tallest bar: ${categories[best]![lang]} (${counts[best]}). Bar height = count.`, `أعلى عمود: ${categories[best]![lang]}.`, `Barra más alta: ${categories[best]![lang]}.`)}</p>}
+  </div>;
+}
+
+function Sim({ outcomes, event, seed, lang, onDone }: { outcomes: { label: L; weight: number }[]; event: number[]; seed: number; lang: Lang; onDone: Done }) {
+  const [results, setResults] = useState<number[]>([]);
+  const total = outcomes.reduce((a, o) => a + o.weight, 0);
+  const p = event.reduce((a, k) => a + outcomes[k]!.weight, 0) / total;
+  function roll(n: number) { const next = [...results, ...simulate(outcomes.map(o => o.weight), n, seed + results.length)]; setResults(next); if (next.length >= 1000) onDone('freq'); }
+  const hits = results.filter(r => event.includes(r)).length;
+  const freq = results.length ? hits / results.length : 0;
+  const counts = outcomes.map((_, k) => results.filter(r => r === k).length);
+  const top = Math.max(1, ...counts);
+  return <div className="manip">
+    <div className="tally-bars">{outcomes.map((o, k) => <div key={k} className={`tally-col ${event.includes(k) ? 'tally-event' : ''}`}><span className="tally-count">{counts[k]}</span><span className="tally-bar" style={{ height: `${(counts[k]! / top) * 100}%` }} /><span className="tally-label">{o.label[lang]}</span></div>)}</div>
+    <div className="manip-controls">{[1, 10, 100, 1000].map(n => <Button key={n} variant="soft" size="sm" onClick={() => roll(n)}>+{n}</Button>)}</div>
+    <p className="manip-equation">{say(lang, `${results.length} essais · fréquence ${num(Math.round(freq * 1000) / 1000)} · probabilité ${num(Math.round(p * 1000) / 1000)}`, `${results.length} trials · frequency ${(Math.round(freq * 1000) / 1000)} · probability ${(Math.round(p * 1000) / 1000)}`, `${results.length} تجربة · التردد ${num(Math.round(freq * 1000) / 1000)}`, `${results.length} intentos · frecuencia ${num(Math.round(freq * 1000) / 1000)}`)}</p>
+    {results.length >= 1000 && <p className="manip-discovery" role="status">{say(lang, `Avec ${results.length} essais, la fréquence (${num(Math.round(freq * 100) / 100)}) est très proche de la probabilité (${num(Math.round(p * 100) / 100)}). Avec peu d’essais, elle variait beaucoup plus.`, `With ${results.length} trials, the frequency (${(Math.round(freq * 100) / 100)}) is very close to the probability (${(Math.round(p * 100) / 100)}).`, `التردد قريب جدًا من الاحتمال.`, `La frecuencia se acerca a la probabilidad.`)}</p>}
   </div>;
 }

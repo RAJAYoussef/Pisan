@@ -970,3 +970,26 @@ html[data-dys-bg="dark"] { --brand-p: #8f93ff; }
 .stick { stroke-width: 6; stroke-linecap: round; }
 .stick-a { stroke: var(--sky); } .stick-b { stroke: var(--sun-deep); } .stick-c { stroke: var(--primary); }
 .pour-fill { fill: color-mix(in oklab, var(--sky) 60%, transparent); }
+
+/* ───────────── Manipulations « Données, hasard, proportionnalité » ───────────── */
+.frac-bar { display: grid; gap: 3px; width: 100%; max-width: 420px; }
+.frac-part { display: flex; min-height: 44px; align-items: center; justify-content: center; border-radius: 6px; border: 2px solid var(--primary); background: var(--card); font-size: .72rem; font-weight: 800; transition: background .2s; }
+button.frac-part { cursor: pointer; }
+.frac-on { background: var(--primary); color: var(--primary-foreground); }
+.area-grid { display: grid; gap: 2px; width: 100%; max-width: 280px; aspect-ratio: 1; padding: 2px; border: 2px solid var(--foreground); border-radius: 6px; }
+.area-cell { background: var(--card); border-radius: 2px; transition: background .3s; }
+.area-col { background: color-mix(in oklab, var(--sky) 45%, transparent); }
+.area-row { background: color-mix(in oklab, var(--sun) 55%, transparent); }
+.area-both { background: var(--primary); }
+.svg-point { fill: var(--primary); }
+.lineup { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.lineup-card { display: inline-flex; min-width: 2.6rem; height: 2.6rem; align-items: center; justify-content: center; border-radius: 10px; background: var(--sky-soft); border: 2px solid var(--sky); font-family: var(--font-display); font-weight: 800; transition: all .3s; }
+.lineup-out { opacity: .25; transform: scale(.85); }
+.tally-bars { display: flex; align-items: flex-end; justify-content: center; gap: 10px; width: 100%; max-width: 420px; height: 170px; }
+.tally-col { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; background: transparent; border-radius: 10px; }
+button.tally-col { cursor: pointer; }
+button.tally-col:hover .tally-bar { filter: brightness(1.08); }
+.tally-bar { width: 100%; min-height: 4px; border-radius: 6px 6px 0 0; background: var(--sky); transition: height .3s; }
+.tally-event .tally-bar { background: var(--primary); }
+.tally-count { font-weight: 800; font-size: .85rem; }
+.tally-label { font-size: .75rem; font-weight: 700; text-align: center; }
