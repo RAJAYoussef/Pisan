@@ -769,3 +769,94 @@ html[data-dys-bg="dark"] { --brand-p: #8f93ff; }
 .ws-family-glyph:last-child { margin-inline-end: 0; }
 .ws-family-glyph svg { width: 100%; height: 100%; }
 .ws-family-body { padding: 0 12px 12px; }
+
+/* ───────────── Modèle de Singapour : les trois temps d'une compétence ───────────── */
+.phase-stepper { display: flex; gap: 6px; margin: 0 0 16px; padding: 0; list-style: none; }
+.phase-stepper li { flex: 1; min-width: 0; }
+.phase { display: flex; width: 100%; align-items: center; justify-content: center; gap: 6px; padding: 8px 6px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); font-size: .78rem; font-weight: 700; color: var(--muted-foreground); white-space: nowrap; }
+.phase-icon { display: inline-flex; }
+.phase-current { border-color: var(--primary); background: var(--primary-soft); color: var(--primary-deep); }
+.phase-done { color: var(--primary-deep); cursor: pointer; }
+.phase:disabled { opacity: .6; cursor: default; }
+
+.manip { display: grid; gap: 14px; justify-items: center; }
+.manip-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; }
+.manip-count { min-width: 6.5rem; text-align: center; font-weight: 800; }
+.manip-feedback { text-align: center; font-weight: 600; }
+.manip-good { color: var(--primary-deep); }
+.manip-bad { color: var(--destructive); }
+.manip-discovery { width: 100%; padding: 12px 14px; border-radius: 14px; background: var(--success-soft); color: var(--foreground); font-weight: 700; text-align: center; animation: pop .35s ease-out; }
+.manip-found { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; }
+.manip-equation { font-family: var(--font-display); font-size: 1.35rem; font-weight: 800; letter-spacing: .02em; }
+.manip-actions { display: grid; width: 100%; gap: 8px; }
+.manip-log { margin: 0; padding-inline-start: 1.2rem; font-size: .85rem; color: var(--muted-foreground); }
+
+.token-field { display: grid; gap: 6px; padding: 12px; border-radius: 16px; background: var(--muted); max-width: 100%; overflow-x: auto; }
+.token-row { display: flex; gap: 6px; }
+.token { width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; background: var(--sun); box-shadow: inset 0 -3px 0 var(--sun-deep); transition: background .2s; }
+.token-ok { background: var(--primary); box-shadow: inset 0 -3px 0 var(--primary-deep); }
+.token-left { background: var(--destructive); box-shadow: none; opacity: .8; }
+
+.tree { display: flex; justify-content: center; max-width: 100%; overflow-x: auto; padding: 4px; }
+.tree-node { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.tree-kids { display: flex; gap: 14px; padding-top: 10px; border-top: 2px solid var(--border); }
+.tree-value { display: inline-flex; min-width: 2.6rem; height: 2.6rem; align-items: center; justify-content: center; padding: 0 8px; border-radius: 12px; background: var(--card); border: 2px solid var(--border); font-weight: 800; }
+.tree-open { border-color: var(--sun-deep); background: var(--sun-soft); cursor: pointer; }
+.tree-active { outline: 3px solid var(--ring); }
+.tree-prime { border-color: var(--primary); background: var(--primary-soft); color: var(--primary-deep); }
+
+.balance { position: relative; width: 100%; max-width: 420px; padding-top: 6px; transition: transform .4s; }
+.balance-tilt { transform: rotate(-6deg); }
+.balance-beam { height: 6px; margin: 0 6%; border-radius: 3px; background: var(--foreground); }
+.balance-pans { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: -2px; }
+.pan { display: flex; flex-direction: column; justify-content: flex-end; min-height: 104px; }
+.pan-items { display: flex; flex-wrap: wrap-reverse; align-content: flex-start; justify-content: center; gap: 4px; padding: 6px; min-height: 64px; }
+.pan-box { display: inline-flex; width: 30px; height: 30px; align-items: center; justify-content: center; border-radius: 7px; background: var(--sky); color: #fff; font-weight: 800; box-shadow: inset 0 -3px 0 rgba(0,0,0,.18); }
+.pan-unit { width: 16px; height: 16px; margin-top: 7px; border-radius: 50%; background: var(--sun); box-shadow: inset 0 -2px 0 var(--sun-deep); }
+.pan-plate { height: 10px; border-radius: 0 0 40px 40px; background: var(--muted-foreground); opacity: .5; }
+.balance-foot { width: 0; height: 0; margin: 4px auto 0; border-inline: 18px solid transparent; border-bottom: 26px solid var(--foreground); }
+
+.bar-model { width: 100%; max-width: 440px; }
+.bar-line { display: flex; gap: 4px; }
+.bar-part, .bar-extra { display: flex; flex: 1 1 0; height: 44px; align-items: center; justify-content: center; border-radius: 8px; font-weight: 800; transition: all .45s; }
+.bar-part { background: var(--sky-soft); border: 2px solid var(--sky); }
+.bar-extra { background: var(--sun-soft); border: 2px dashed var(--sun-deep); }
+.bar-gone { flex-grow: 0 !important; width: 0; padding: 0; border-width: 0; opacity: 0; overflow: hidden; }
+.bar-brace { margin-top: 6px; padding-top: 4px; border-top: 2px solid var(--foreground); text-align: center; font-weight: 800; }
+
+.lesson-card { padding: 16px; border-radius: 18px; border: 2px solid var(--primary-soft); background: color-mix(in oklab, var(--primary-soft) 45%, var(--card)); }
+.lesson-compact { font-size: .92rem; }
+.lesson-kicker { display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--primary-deep); }
+.lesson-points { margin: 10px 0 0; padding-inline-start: 1.1rem; display: grid; gap: 8px; line-height: 1.5; }
+.lesson-example { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: var(--card); border-inline-start: 4px solid var(--sun); display: grid; gap: 4px; }
+
+/* ───────────── Ludification ───────────── */
+.points-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.points-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; background: var(--sun-soft); color: var(--sun-deep); font-weight: 800; font-size: .85rem; }
+.points-stars { background: var(--primary-soft); color: var(--primary-deep); }
+.combo-badge { display: inline-flex; padding: 4px 10px; border-radius: 999px; background: var(--accent); color: var(--accent-foreground); font-weight: 800; font-size: .8rem; animation: pop .35s ease-out; }
+.ws-score { display: flex; flex-wrap: wrap; gap: 8px; margin: -6px 0 16px; }
+.mini-stars { display: inline-flex; gap: 1px; color: var(--border); }
+.mini-stars svg { width: 15px; height: 15px; fill: currentColor; }
+.mini-stars .star-on { color: var(--sun); }
+
+.celebration { position: relative; display: grid; justify-items: center; gap: 10px; padding: 8px 0; text-align: center; overflow: hidden; }
+.celebration-mascot { width: 92px; height: 92px; object-fit: contain; animation: bounce-in .6s ease-out; }
+.celebration-title { font-family: var(--font-display); font-size: 1.6rem; font-weight: 800; }
+.celebration-stars { display: flex; gap: 8px; }
+.celebration-star { width: 44px; height: 44px; color: var(--border); fill: currentColor; }
+.celebration-star.star-on { color: var(--sun); animation: star-pop .45s ease-out both; }
+.celebration-points { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; font-size: 1.15rem; font-weight: 800; color: var(--sun-deep); }
+.confetti { position: absolute; inset: 0; pointer-events: none; }
+.confetto { position: absolute; top: -12px; width: 8px; height: 14px; border-radius: 2px; animation: confetto-fall 1.8s ease-in forwards; }
+.confetto-0 { background: var(--primary); } .confetto-1 { background: var(--sun); } .confetto-2 { background: var(--sky); } .confetto-3 { background: var(--accent); }
+
+@keyframes pop { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes bounce-in { 0% { transform: translateY(20px) scale(.8); opacity: 0; } 60% { transform: translateY(-6px) scale(1.05); opacity: 1; } 100% { transform: none; } }
+@keyframes star-pop { 0% { transform: scale(0) rotate(-30deg); } 70% { transform: scale(1.25) rotate(8deg); } 100% { transform: scale(1); } }
+@keyframes confetto-fall { to { transform: translateY(420px) rotate(540deg); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .confetti { display: none; }
+  .celebration-mascot, .celebration-star.star-on, .combo-badge, .manip-discovery { animation: none; }
+  .balance, .bar-part, .bar-extra { transition: none; }
+}

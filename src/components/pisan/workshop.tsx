@@ -64,7 +64,7 @@ export function Workshop(props: Props) {
   }
   const due = dueReviews(attempts);
   if (review) return <ReviewActivity lang={lang} skills={review} engine={props.engine} onBack={() => setReview(null)} />;
-  if (skill) return <SkillActivity key={skill.id} lang={lang} skill={skill} engine={props.engine} onBack={() => setSkill(null)} onAdaptiveSkill={setAdaptiveSkillId} onJournalEvent={event => props.onJournalEvent?.(skill.id, event)} />;
+  if (skill) return <SkillActivity key={skill.id} lang={lang} skill={skill} engine={props.engine} attempts={attempts} onBack={() => setSkill(null)} onAdaptiveSkill={setAdaptiveSkillId} onJournalEvent={event => props.onJournalEvent?.(skill.id, event)} />;
   async function openReview() { setBusy(true); setError(''); try { if (await onStart()) setReview(due); } catch { setError(say(lang, 'Exercice indisponible. Réessaie.', 'Exercise unavailable. Try again.', 'التمرين غير متاح.', 'Ejercicio no disponible.')); } finally { setBusy(false); } }
   async function openSkill(next: Skill) { setBusy(true); setError(''); try { if (await onStart()) { setSkill(next); setAdaptiveSkillId(null); } } catch { setError(say(lang, 'Exercice indisponible. Réessaie.', 'Exercise unavailable. Try again.', 'التمرين غير متاح.', 'Ejercicio no disponible.')); } finally { setBusy(false); } }
   if (highActive) return <HighSchool {...props} modes={modes} onBack={() => setHighActive(false)} />;

@@ -1,12 +1,14 @@
 // Accueil de l'atelier : un « prochain pas », une grille compacte de chapitres, puis le parcours d'un chapitre.
 import { useState, type ReactNode } from 'react';
-import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronRight, RotateCcw } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronRight, RotateCcw, Star, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { FigureKind } from '@/lib/figures';
 import type { Lang } from '@/lib/i18n';
 import { say, type Attempt } from '@/lib/pisan';
 import { skillsFor, skillStatus, type Skill, type SkillStatus } from '@/lib/skills';
 import { CHAPTER_NAMES } from './skills';
+import { Stars } from './skill-intro';
+import { bestStars, starsOf, totalPoints } from '@/lib/rewards';
 
 /**
  * Les familles de chapitres (thèmes des programmes) : au-delà de FAMILY_THRESHOLD chapitres, l'atelier les regroupe
@@ -103,6 +105,10 @@ export function WorkshopHome({ lang, assignments, kinds, attempts, chapterLabel,
   };
   return <section className="mx-auto max-w-4xl">
     <div className="section-heading"><span className="eyebrow">{say(lang, 'Atelier', 'Workshop', 'الورشة', 'Taller')}</span><h1>{say(lang, 'Comprendre en manipulant', 'Learn by doing', 'أفهم بالتجريب', 'Aprender manipulando')}</h1></div>
+    <div className="ws-score" aria-label={say(lang, 'Mes récompenses', 'My rewards', 'مكافآتي', 'Mis recompensas')}>
+      <span className="points-badge"><Zap className="h-4 w-4" aria-hidden />{totalPoints(attempts)} {say(lang, 'points', 'points', 'نقطة', 'puntos')}</span>
+      <span className="points-badge points-stars"><Star className="h-4 w-4" aria-hidden />{starsOf(attempts, kinds.flatMap(k => skillsFor(k).map(s => s.id)))} / {kinds.reduce((n, k) => n + skillsFor(k).length, 0) * 3}</span>
+    </div>
 
     {due > 0 && <button type="button" className="ws-review" disabled={busy} onClick={onReview}>
       <RotateCcw className="h-5 w-5 shrink-0" aria-hidden />
@@ -189,7 +195,7 @@ export function ChapterPath({ lang, kind, attempts, chapterLabel, busy, onSkill,
             <span className="block text-sm text-muted-foreground">{s.desc[lang]}</span>
             {isCurrent && <span className="ws-go">{st === 'todo' ? say(lang, 'Commencer', 'Start', 'ابدأ', 'Empezar') : say(lang, 'Continuer', 'Continue', 'تابع', 'Continuar')}<ArrowRight className="h-4 w-4 rtl:rotate-180" /></span>}
           </span>
-          {!isCurrent && <span className={`ws-state ws-state-${st}`}>{STATUS_TEXT[st](lang)}</span>}
+          {!isCurrent && (bestStars(attempts, s.id) > 0 ? <Stars value={bestStars(attempts, s.id)} lang={lang} /> : <span className={`ws-state ws-state-${st}`}>{STATUS_TEXT[st](lang)}</span>)}
         </button>
       </li>;
     })}</ol>

@@ -1,6 +1,6 @@
 // Parcours de compétences : déroule les étapes d'une activité (src/lib/skills.ts) et dessine les figures.
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
-import { ArrowRight, Check, CheckCircle2, Delete, RefreshCw, RotateCcw } from 'lucide-react';
+import { ArrowRight, BookOpen, Check, CheckCircle2, Delete, RefreshCw, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { INSCRIBED_SPAN, type FigureKind, type InscribedProblem, type ThalesProblem } from '@/lib/figures';
 import { localizeMath, type L } from '@/lib/curriculum';
@@ -11,6 +11,9 @@ import { curvePoints } from '@/lib/skills-lycee';
 import { chipsOk, fmt, numberOk, reviewStep, spoken,  sentenceOk, skillNotion, skillsFor, skillStatus, type Blank, type SkillStatus, type Table, type P, type Scene, type Skill, type Step } from '@/lib/skills';
 import { InscribedFigure, ThalesFigure, inscribedRange } from './figures';
 import { Speaker, Tutor } from './shared';
+import { Celebration, DiscoverPanel, LessonCard, PhaseStepper, PointsBadge, type Phase } from './skill-intro';
+import { introFor } from '@/lib/skill-intros';
+import { starsFor, stepPoints } from '@/lib/rewards';
 import { minusSign, Rich } from './math-text';
 import { FractionBars } from './fraction-bars';
 import { FractionAdditionLab, FractionEquivalenceLab, FractionNumberLineLab, type FractionInteractionEvent } from './fraction-labs';
@@ -22,10 +25,10 @@ import type { SkillEngine, StepAnswer } from '@/lib/skill-session';
 type WidgetState = Extract<StepAnswer, { type: 'widget' }>['state'];
 
 export type FractionInteractionContext = FractionReasoningEvent;
-type Props = { lang: Lang; skill: Skill; engine: SkillEngine; onBack: () => void; onFractionInteraction?: (event: FractionInteractionContext) => void; onFractionAnalysis?: (analysis: FractionSequenceAnalysis) => void; onAdaptiveSkill?: (skillId: string | null) => void; onJournalEvent?: (event: { activityId: string; type: FractionJournalEventType; payload: Record<string, unknown>; clientOccurredAt?: string }) => void };
+type Props = { lang: Lang; skill: Skill; engine: SkillEngine; onBack: () => void; /** Tentatives de l'élève : la première fois, le parcours commence par manipuler. */ attempts?: Attempt[] | undefined; onFractionInteraction?: (event: FractionInteractionContext) => void; onFractionAnalysis?: (analysis: FractionSequenceAnalysis) => void; onAdaptiveSkill?: (skillId: string | null) => void; onJournalEvent?: (event: { activityId: string; type: FractionJournalEventType; payload: Record<string, unknown>; clientOccurredAt?: string }) => void };
 
 /** Une compétence : les étapes s'enchaînent ; une étape ratée au premier essai ne compte pas comme réussie. */
-export function SkillActivity({ lang, skill, engine, onBack, onFractionInteraction, onFractionAnalysis, onAdaptiveSkill, onJournalEvent }: Props) {
+export function SkillActivity({ lang, skill, engine, onBack, attempts, onFractionInteraction, onFractionAnalysis, onAdaptiveSkill, onJournalEvent }: Props) {
   // Le serveur tire l'énoncé et signe un jeton ; chaque vérification lui passe la réponse brute.
   const [seed, setSeed] = useState<number | null>(null);
   const [ticket, setTicket] = useState('');
@@ -52,6 +55,22 @@ export function SkillActivity({ lang, skill, engine, onBack, onFractionInteracti
   const [transferAnswers, setTransferAnswers] = useState<Record<string, string>>({});
   const journaledHypotheses = useRef<string[]>([]);
   const journaledCorrections = useRef<string[]>([]);
+  // Modèle de Singapour : manipuler puis retenir avant de s'entraîner (la première fois) ; ludification du parcours.
+  const intro = introFor(skill.id);
+  const [phase, setPhase] = useState<Phase>(intro && attempts && !attempts.some(a => a.skill === skill.id) ? 'discover' : 'practice');
+  const [lessonOpen, setLessonOpen] = useState(false);
+  const [points, setPoints] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [bestCombo, setBestCombo] = useState(0);
+  const back = <Button variant="ghost" onClick={onBack} className="mb-4">← {say(lang, 'Retour', 'Back', 'رجوع', 'Volver')}</Button>;
+  const heading = <div className="section-heading"><span className="eyebrow">{say(lang, 'Parcours de compétences', 'Skill pathway', 'مسار الكفايات', 'Itinerario de competencias')}</span><h1>{skill.title[lang]}</h1></div>;
+  if (intro && phase !== 'practice') return <section className="mx-auto max-w-4xl">
+    {back}{heading}
+    <PhaseStepper lang={lang} phase={phase} onPhase={setPhase} />
+    {phase === 'discover'
+      ? <DiscoverPanel lang={lang} intro={intro} onNext={() => setPhase('lesson')} />
+      : <div className="activity-panel"><LessonCard lang={lang} lesson={intro.lesson} /><Button className="mt-5 w-full" onClick={() => setPhase('practice')}>{say(lang, 'Je m’entraîne', 'Let’s practise', 'أتمرّن', 'A practicar')}<ArrowRight /></Button></div>}
+  </section>;
   if (activity === null || seed === null) return <Loading lang={lang} failed={startError} onBack={onBack} onRetry={() => setRound(r => r + 1)} />;
   function recordFractionInteraction(event: FractionInteractionContext) {
     const sameSequence = fractionEvents.current.filter(item =>
@@ -92,7 +111,14 @@ export function SkillActivity({ lang, skill, engine, onBack, onFractionInteracti
     try {
       const r = await engine.check(ticket, reply);
       setTicket(r.ticket);
-      if (r.ok) { setSolved(true); setHint(''); return; }
+      if (r.ok) {
+        const firstTry = !missed.includes(index);
+        const run = firstTry ? streak + 1 : 0;
+        const gain = stepPoints(firstTry, run);
+        setPoints(p => p + gain.points); setStreak(run); setBestCombo(b => Math.max(b, run));
+        setSolved(true); setHint(''); return;
+      }
+      setStreak(0);
       setMissed(m => m.includes(index) ? m : [...m, index]);
       setHint(show(step.hint));
     } catch { setSaveError(checkFailed(lang)); }
@@ -105,17 +131,23 @@ export function SkillActivity({ lang, skill, engine, onBack, onFractionInteracti
     catch { setSaveError(say(lang, 'Résultat non sauvegardé. Réessaie.', 'Result not saved. Try again.', 'لم تُحفظ النتيجة. حاول مجددًا.', 'Resultado no guardado. Reintenta.')); }
     finally { setBusy(false); }
   }
-  const restart = () => { fractionEvents.current = []; setFractionAnalysis(null); setVerificationAnswers({}); setTransferAnswers({}); setRound(r => r + 1); setIndex(0); setMissed([]); setSolved(false); setHint(''); setDone(null); };
+  const restart = () => { fractionEvents.current = []; setFractionAnalysis(null); setVerificationAnswers({}); setTransferAnswers({}); setRound(r => r + 1); setIndex(0); setMissed([]); setSolved(false); setHint(''); setDone(null); setPoints(0); setStreak(0); setBestCombo(0); };
 
   return <section className="mx-auto max-w-4xl">
-    <Button variant="ghost" onClick={onBack} className="mb-4">← {say(lang, 'Retour', 'Back', 'رجوع', 'Volver')}</Button>
+    {back}
     <div className="section-heading"><span className="eyebrow">{say(lang, 'Parcours de compétences', 'Skill pathway', 'مسار الكفايات', 'Itinerario de competencias')}</span><h1>{show(activity.title)}</h1></div>
+    {intro && <PhaseStepper lang={lang} phase="practice" onPhase={setPhase} />}
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <PointsBadge lang={lang} points={points} combo={streak} />
+      {intro && !done && <Button variant="ghost" size="sm" aria-expanded={lessonOpen} onClick={() => setLessonOpen(o => !o)}><BookOpen />{lessonOpen ? say(lang, 'Masquer le cours', 'Hide the lesson', 'إخفاء الدرس', 'Ocultar la lección') : say(lang, 'Revoir le cours', 'See the lesson', 'مراجعة الدرس', 'Ver la lección')}</Button>}
+    </div>
+    {intro && lessonOpen && !done && <div className="mb-4"><LessonCard lang={lang} lesson={intro.lesson} compact /></div>}
     <div className="skill-progress" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={done ? total : index} aria-label={say(lang, 'Étapes', 'Steps', 'المراحل', 'Pasos')}>
       {activity.steps.map((_, i) => <span key={i} className={done || i < index ? (missed.includes(i) ? 'skill-dot skill-dot-missed' : 'skill-dot skill-dot-done') : i === index ? 'skill-dot skill-dot-active' : 'skill-dot'} />)}
     </div>
     <div className="activity-panel">
       {done
-        ? <div className="text-center"><CheckCircle2 className="mx-auto h-12 w-12 text-primary" /><p className="my-4 text-xl font-bold">{done.correct === done.total ? say(lang, 'Compétence acquise !', 'Skill mastered!', 'تم اكتساب الكفاية!', '¡Competencia adquirida!') : say(lang, `${done.correct} étapes sur ${done.total} du premier coup. Recommence pour l’acquérir.`, `${done.correct} of ${done.total} steps at the first try. Go again to master it.`, `${done.correct} من ${done.total} مراحل من المحاولة الأولى. أعد للاكتساب.`, `${done.correct} de ${done.total} pasos al primer intento. Repite para adquirirla.`)}</p><p className="mb-5 text-sm text-muted-foreground" dir="ltr"><Rich lang={lang} text={localizeMath(activity.summary, lang)} /></p><Button onClick={restart}><RefreshCw />{say(lang, 'Nouvel énoncé', 'New exercise', 'تمرين جديد', 'Nuevo enunciado')}</Button></div>
+        ? <Celebration lang={lang} stars={starsFor(done.correct, done.total)} points={points} bestCombo={bestCombo} message={done.correct === done.total ? say(lang, 'Compétence acquise !', 'Skill mastered!', 'تم اكتساب الكفاية!', '¡Competencia adquirida!') : say(lang, `${done.correct} étapes sur ${done.total} du premier coup. Recommence pour l’acquérir.`, `${done.correct} of ${done.total} steps at the first try. Go again to master it.`, `${done.correct} من ${done.total} مراحل من المحاولة الأولى. أعد للاكتساب.`, `${done.correct} de ${done.total} pasos al primer intento. Repite para adquirirla.`)}><p className="mb-5 text-sm text-muted-foreground" dir="ltr"><Rich lang={lang} text={localizeMath(activity.summary, lang)} /></p><Button onClick={restart}><RefreshCw />{say(lang, 'Nouvel énoncé', 'New exercise', 'تمرين جديد', 'Nuevo enunciado')}</Button></Celebration>
         : <>
           <div className="mb-5 flex items-start justify-between gap-4"><p className="text-lg font-semibold leading-snug"><Rich lang={lang} text={show(step.prompt)} /></p><Speaker text={spoken(show(step.prompt), lang)} lang={lang} /></div>
           <StepView key={`${seed}-${index}`} lang={lang} step={step} solved={solved} onAnswer={answer} onFractionInteraction={(event, widget) => recordFractionInteraction({ ...event, skillId: skill.id, activitySeed: seed, stepIndex: index, widget })} />
