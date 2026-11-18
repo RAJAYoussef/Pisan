@@ -5,7 +5,7 @@ import { Minus, Plus, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Lang } from '@/lib/i18n';
 import { say } from '@/lib/pisan';
-import { applyBalance, balanceOps, balanceSolved, clean, digitsByRank, isPrime, PLACE_RANKS, rectanglePairs, runMachine, tileAreas, type BalanceOp, type Manip, type Side } from '@/lib/skill-intros';
+import { applyBalance, balanceOps, balanceSolved, clean, digitsByRank, isPrime, PLACE_RANKS, rectanglePairs, angleKind, closes, runMachine, tileAreas, type BalanceOp, type Manip, type Side } from '@/lib/skill-intros';
 
 type Done = (found: string) => void;
 
@@ -27,6 +27,17 @@ export function Manipulation({ manip, lang, onDone }: { manip: Manip; lang: Lang
   if (manip.kind === 'test-values') return <TestValues {...manip} lang={lang} onDone={onDone} />;
   if (manip.kind === 'guess') return <Guess {...manip} lang={lang} onDone={onDone} />;
   if (manip.kind === 'sequence') return <Sequence {...manip} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'angle-builder') return <AngleBuilder target={manip.target} pair={manip.pair ?? false} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'triangle-angles') return <TriangleAngles lang={lang} onDone={onDone} />;
+  if (manip.kind === 'resize-rect') return <ResizeRect w={manip.w} h={manip.h} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'area-transform') return <AreaTransform shape={manip.shape} b={manip.b} h={manip.h} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'unroll') return <Unroll d={manip.d} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'cubes') return <Cubes l={manip.l} w={manip.w} h={manip.h} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'sticks') return <Sticks a={manip.a} b={manip.b} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'thales-slide') return <ThalesSlide ab={manip.ab} ac={manip.ac} bc={manip.bc} free={manip.free ?? false} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'enlarge') return <Enlarge w={manip.w} h={manip.h} solid={manip.solid ?? false} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'trig-ratio') return <TrigRatio angle={manip.angle} mode={manip.mode} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'pour') return <Pour times={manip.times} lang={lang} onDone={onDone} />;
   return <Bars parts={manip.parts} extra={manip.extra} total={manip.total} unit={manip.unit} rectangle={manip.rectangle ?? false} lang={lang} onDone={onDone} />;
 }
 
@@ -550,5 +561,250 @@ function Sequence({ u0, a, b, n, lang, onDone }: { u0: number; a: number; b: num
       : <p className="manip-discovery" role="status">{b === 0
         ? say(lang, `On multiplie toujours par ${num(a)} : suite géométrique, elle grimpe de plus en plus vite.`, `Always × ${num(a)}: a geometric sequence, climbing faster and faster.`, `نضرب دائمًا في ${num(a)}: متتالية هندسية.`, `Siempre × ${num(a)}: sucesión geométrica.`)
         : say(lang, `Les termes se rapprochent de ${num(fixed!)} : c’est le point fixe, ℓ = ${num(a)}ℓ + ${num(b)}.`, `The terms approach ${num(fixed!)}: the fixed point, ℓ = ${num(a)}ℓ + ${num(b)}.`, `تقترب الحدود من ${num(fixed!)}.`, `Los términos se acercan a ${num(fixed!)}.`)}</p>}
+  </div>;
+}
+
+// ───────────── Géométrie ─────────────
+
+const KIND_NAMES: Record<ReturnType<typeof angleKind>, (lang: Lang) => string> = {
+  nul: lang => say(lang, 'nul', 'zero', 'منعدمة', 'nulo'), aigu: lang => say(lang, 'aigu', 'acute', 'حادة', 'agudo'), droit: lang => say(lang, 'droit', 'right', 'قائمة', 'recto'),
+  obtus: lang => say(lang, 'obtus', 'obtuse', 'منفرجة', 'obtuso'), plat: lang => say(lang, 'plat', 'straight', 'مستقيمة', 'llano'),
+};
+const rad = (d: number) => (d * Math.PI) / 180;
+const Stepper = ({ label, onMinus, onPlus, minus, plus }: { label: string; onMinus: () => void; onPlus: () => void; lang: Lang; minus: string; plus: string }) => <div className="manip-controls">
+  <Button variant="soft" size="icon" aria-label={minus} onClick={onMinus}><Minus /></Button>
+  <span className="manip-count" aria-live="polite">{label}</span>
+  <Button variant="soft" size="icon" aria-label={plus} onClick={onPlus}><Plus /></Button>
+</div>;
+
+function AngleBuilder({ target, pair, lang, onDone }: { target: number; pair: boolean; lang: Lang; onDone: Done }) {
+  const [deg, setDeg] = useState(pair ? 30 : 0);
+  const [seen, setSeen] = useState<string[]>([]);
+  const [finished, setFinished] = useState(false);
+  function go(v: number) {
+    const d = Math.max(0, Math.min(180, v)); setDeg(d);
+    const kinds = seen.includes(angleKind(d)) ? seen : [...seen, angleKind(d)];
+    setSeen(kinds);
+    if (!finished && d === target && (pair || target !== 180 || ['aigu', 'droit', 'obtus'].every(k => kinds.includes(k)))) { setFinished(true); onDone(String(d)); }
+  }
+  const R = 80, cx = 100, cy = 100, x = cx + R * Math.cos(rad(deg)), y = cy - R * Math.sin(rad(deg));
+  const large = deg > 180 ? 1 : 0, ax = cx + 26 * Math.cos(rad(deg)), ay = cy - 26 * Math.sin(rad(deg));
+  return <div className="manip">
+    <svg viewBox="0 0 200 116" className="manip-svg" aria-hidden>
+      {!pair && Array.from({ length: 19 }, (_, i) => { const a = rad(i * 10), r1 = i % 9 === 0 ? 70 : 76; return <line key={i} x1={cx + r1 * Math.cos(a)} y1={cy - r1 * Math.sin(a)} x2={cx + 84 * Math.cos(a)} y2={cy - 84 * Math.sin(a)} className="svg-tick" />; })}
+      <line x1={pair ? cx - R : cx} y1={cy} x2={cx + R} y2={cy} className="svg-ray" />
+      <line x1={cx} y1={cy} x2={x} y2={y} className="svg-ray svg-ray-move" />
+      {deg > 0 && <path d={`M ${cx + 26} ${cy} A 26 26 0 ${large} 0 ${ax} ${ay}`} className="svg-arc" />}
+      {pair && <path d={`M ${ax} ${ay} A 26 26 0 0 0 ${cx - 26} ${cy}`} className="svg-arc svg-arc-2" />}
+      <circle cx={cx} cy={cy} r={3} className="svg-dot" />
+    </svg>
+    <Stepper lang={lang} label={pair ? `${deg}° + ${180 - deg}° = 180°` : `${deg}° · ${KIND_NAMES[angleKind(deg)](lang)}`} onMinus={() => go(deg - 15)} onPlus={() => go(deg + 15)} minus={say(lang, 'Fermer de 15°', 'Close by 15°', 'أغلق 15°', 'Cerrar 15°')} plus={say(lang, 'Ouvrir de 15°', 'Open by 15°', 'افتح 15°', 'Abrir 15°')} />
+    <div className="manip-controls"><Button variant="ghost" size="sm" onClick={() => go(deg - 5)}>−5°</Button><Button variant="ghost" size="sm" onClick={() => go(deg + 5)}>+5°</Button></div>
+    {!finished && <p className="manip-feedback">{say(lang, `Cible : ${target}°`, `Target: ${target}°`, `الهدف: ${target}°`, `Meta: ${target}°`)}</p>}
+    {finished && <p className="manip-discovery" role="status">{pair
+      ? say(lang, `Quand l’un grandit, l’autre rapetisse : ${target}° + ${180 - target}° = 180°. Ils sont supplémentaires.`, `As one grows, the other shrinks: ${target}° + ${180 - target}° = 180°. They are supplementary.`, `${target}° + ${180 - target}° = 180°: متكاملتان.`, `${target}° + ${180 - target}° = 180°: suplementarios.`)
+      : target === 180 ? say(lang, 'Aigu, puis droit à 90°, puis obtus, puis plat à 180° : une demi-droite prolonge l’autre.', 'Acute, then right at 90°, then obtuse, then straight at 180°.', 'حادة ثم قائمة ثم منفرجة ثم مستقيمة.', 'Agudo, recto, obtuso y llano.')
+      : say(lang, `${target}° : un angle ${KIND_NAMES[angleKind(target)](lang)}.`, `${target}°: an ${KIND_NAMES[angleKind(target)](lang)} angle.`, `${target}°: زاوية ${KIND_NAMES[angleKind(target)](lang)}.`, `${target}°: ángulo ${KIND_NAMES[angleKind(target)](lang)}.`)}</p>}
+  </div>;
+}
+
+function TriangleAngles({ lang, onDone }: { lang: Lang; onDone: Done }) {
+  const [apex, setApex] = useState(2);
+  const [shapes, setShapes] = useState<number[]>([2]);
+  const A = { x: 20, y: 110 }, B = { x: 180, y: 110 }, C = { x: 20 + apex * 20, y: 30 };
+  const ang = (P: { x: number; y: number }, Q: { x: number; y: number }, R: { x: number; y: number }) => { const a = Math.atan2(Q.y - P.y, Q.x - P.x), b = Math.atan2(R.y - P.y, R.x - P.x); let d = Math.abs(a - b) * 180 / Math.PI; if (d > 180) d = 360 - d; return d; };
+  const a = Math.round(ang(A, B, C)), b = Math.round(ang(B, A, C)), c = 180 - a - b;
+  function go(v: number) { const n = Math.max(0, Math.min(8, v)); setApex(n); const all = shapes.includes(n) ? shapes : [...shapes, n]; setShapes(all); if (all.length === 4) onDone('180'); }
+  return <div className="manip">
+    <svg viewBox="0 0 200 130" className="manip-svg" aria-hidden>
+      <polygon points={`${A.x},${A.y} ${B.x},${B.y} ${C.x},${C.y}`} className="svg-shape" />
+      <text x={A.x + 14} y={A.y - 6} className="svg-label">{a}°</text><text x={B.x - 32} y={B.y - 6} className="svg-label">{b}°</text><text x={C.x - 10} y={C.y + 22} className="svg-label">{c}°</text>
+    </svg>
+    <Stepper lang={lang} label={`${a}° + ${b}° + ${c}° = ${a + b + c}°`} onMinus={() => go(apex - 1)} onPlus={() => go(apex + 1)} minus={say(lang, 'Sommet vers la gauche', 'Vertex left', 'الرأس يسارًا', 'Vértice a la izquierda')} plus={say(lang, 'Sommet vers la droite', 'Vertex right', 'الرأس يمينًا', 'Vértice a la derecha')} />
+    {shapes.length >= 4 && <p className="manip-discovery" role="status">{say(lang, `${shapes.length} triangles différents… et toujours 180° : c’est vrai pour tous les triangles.`, `${shapes.length} different triangles… always 180°: true for every triangle.`, `دائمًا 180°.`, `Siempre 180°.`)}</p>}
+  </div>;
+}
+
+function ResizeRect({ w: w0, h: h0, lang, onDone }: { w: number; h: number; lang: Lang; onDone: Done }) {
+  const [w, setW] = useState(w0), [h, setH] = useState(h0);
+  const [seen, setSeen] = useState<string[]>([`${w0}x${h0}`]);
+  const [finished, setFinished] = useState(false);
+  function set(nw: number, nh: number) { const W = Math.max(1, Math.min(8, nw)), H = Math.max(1, Math.min(6, nh)); setW(W); setH(H); const all = seen.includes(`${W}x${H}`) ? seen : [...seen, `${W}x${H}`]; setSeen(all); if (!finished && all.length >= 4) { setFinished(true); onDone('rect'); } }
+  return <div className="manip">
+    <div className="square-grid rect-grid" style={{ gridTemplateColumns: `repeat(${w}, 22px)` }} aria-hidden>{Array.from({ length: w * h }, (_, i) => <span key={i} className="square-cell square-ok" />)}</div>
+    <div className="manip-controls">
+      <span className="text-sm font-bold">{say(lang, 'Longueur', 'Length', 'الطول', 'Largo')}</span>
+      <Button variant="soft" size="icon" aria-label={say(lang, 'Longueur − 1', 'Length − 1', 'الطول − 1', 'Largo − 1')} onClick={() => set(w - 1, h)}><Minus /></Button><span className="manip-count">{w}</span><Button variant="soft" size="icon" aria-label={say(lang, 'Longueur + 1', 'Length + 1', 'الطول + 1', 'Largo + 1')} onClick={() => set(w + 1, h)}><Plus /></Button>
+    </div>
+    <div className="manip-controls">
+      <span className="text-sm font-bold">{say(lang, 'Largeur', 'Width', 'العرض', 'Ancho')}</span>
+      <Button variant="soft" size="icon" aria-label={say(lang, 'Largeur − 1', 'Width − 1', 'العرض − 1', 'Ancho − 1')} onClick={() => set(w, h - 1)}><Minus /></Button><span className="manip-count">{h}</span><Button variant="soft" size="icon" aria-label={say(lang, 'Largeur + 1', 'Width + 1', 'العرض + 1', 'Ancho + 1')} onClick={() => set(w, h + 1)}><Plus /></Button>
+    </div>
+    <p className="manip-equation">{say(lang, 'Périmètre', 'Perimeter', 'المحيط', 'Perímetro')} 2 × ({w} + {h}) = {2 * (w + h)} · {say(lang, 'Aire', 'Area', 'المساحة', 'Área')} {w} × {h} = {w * h}</p>
+    {finished && <p className="manip-discovery" role="status">{say(lang, 'Le périmètre compte les bords, l’aire compte les carreaux : deux rectangles de même périmètre peuvent avoir des aires différentes.', 'Perimeter counts edges, area counts squares: two rectangles with the same perimeter can have different areas.', 'المحيط يعد الحواف والمساحة تعد المربعات.', 'El perímetro cuenta bordes; el área, cuadros.')}</p>}
+  </div>;
+}
+
+function AreaTransform({ shape, b, h, lang, onDone }: { shape: 'parallelogram' | 'triangle'; b: number; h: number; lang: Lang; onDone: Done }) {
+  const [moved, setMoved] = useState(false);
+  const u = 22, s = 2, W = (b + s) * u + 20, H = h * u + 20;
+  const base = (x: number) => 10 + x * u, top = 10, bot = 10 + h * u;
+  return <div className="manip">
+    <svg viewBox={`0 0 ${W} ${H}`} className="manip-svg" aria-hidden>
+      {Array.from({ length: b + s + 1 }, (_, i) => <line key={`v${i}`} x1={base(i)} y1={top} x2={base(i)} y2={bot} className="svg-grid" />)}
+      {Array.from({ length: h + 1 }, (_, i) => <line key={`h${i}`} x1={base(0)} y1={top + i * u} x2={base(b + s)} y2={top + i * u} className="svg-grid" />)}
+      {shape === 'parallelogram' ? <>
+        <polygon points={`${base(s)},${top} ${base(b)},${top} ${base(b)},${bot} ${base(s)},${bot}`} className="svg-shape" />
+        <polygon points={moved ? `${base(b)},${top} ${base(b + s)},${top} ${base(b)},${bot}` : `${base(0)},${bot} ${base(s)},${top} ${base(s)},${bot}`} className="svg-shape svg-piece" />
+        <polygon points={`${base(b)},${top} ${base(b + s)},${top} ${base(b)},${bot}`} className="svg-ghost" />
+      </> : <>
+        <polygon points={`${base(0)},${bot} ${base(b)},${bot} ${base(s)},${top}`} className="svg-shape" />
+        {moved && <polygon points={`${base(s)},${top} ${base(b + s)},${top} ${base(b)},${bot}`} className="svg-shape svg-piece" />}
+      </>}
+      <line x1={base(s)} y1={top} x2={base(s)} y2={bot} className="svg-height" />
+    </svg>
+    {!moved ? <Button variant="soft" onClick={() => { setMoved(true); onDone('moved'); }}>{shape === 'parallelogram' ? say(lang, 'Découper le triangle et le recoller à droite', 'Cut the triangle and stick it on the right', 'قص المثلث وألصقه يمينًا', 'Recortar y pegar a la derecha') : say(lang, 'Ajouter une copie retournée', 'Add a flipped copy', 'أضف نسخة مقلوبة', 'Añadir una copia girada')}</Button>
+      : <p className="manip-discovery" role="status">{shape === 'parallelogram'
+        ? say(lang, `C’est devenu un rectangle ${b} × ${h} : l’aire du parallélogramme est base × hauteur = ${b * h}.`, `It became a ${b} × ${h} rectangle: area = base × height = ${b * h}.`, `أصبح مستطيلًا: المساحة ${b * h}.`, `Es un rectángulo: área ${b * h}.`)
+        : say(lang, `Deux triangles font un parallélogramme d’aire ${b} × ${h} = ${b * h} : un triangle, c’est la moitié, ${b * h / 2}.`, `Two triangles make a parallelogram of area ${b * h}: one triangle is half, ${b * h / 2}.`, `مثلثان يكوّنان متوازي أضلاع: المثلث نصفه ${b * h / 2}.`, `Un triángulo es la mitad: ${b * h / 2}.`)}</p>}
+  </div>;
+}
+
+function Unroll({ d, lang, onDone }: { d: number; lang: Lang; onDone: Done }) {
+  const [rolled, setRolled] = useState(false);
+  const u = 16, r = (d * u) / 2, len = Math.PI * d * u, W = Math.max(len + 2 * r + 30, 200);
+  return <div className="manip">
+    <svg viewBox={`0 0 ${W} ${2 * r + 46}`} className="manip-svg" aria-hidden>
+      <circle cx={r + 6} cy={r + 6} r={r} className="svg-shape" style={{ transform: rolled ? `translateX(${len}px) rotate(360deg)` : 'none', transformOrigin: `${r + 6}px ${r + 6}px`, transition: 'transform 1.4s ease-in-out' }} />
+      <line x1={6} y1={2 * r + 6} x2={6 + (rolled ? len : 0)} y2={2 * r + 6} className="svg-unrolled" style={{ transition: 'all 1.4s ease-in-out' }} />
+      {rolled && Array.from({ length: 4 }, (_, i) => <g key={i}><rect x={6 + i * d * u} y={2 * r + 14} width={Math.min(d * u, len - i * d * u) - 2} height={10} rx={3} className={i < 3 ? 'svg-diam' : 'svg-diam svg-diam-part'} /></g>)}
+    </svg>
+    {!rolled ? <Button variant="soft" onClick={() => { setRolled(true); onDone('pi'); }}>{say(lang, 'Faire rouler le cercle d’un tour', 'Roll the circle one turn', 'دحرج الدائرة دورة', 'Rodar una vuelta')}</Button>
+      : <p className="manip-discovery" role="status">{say(lang, `Un tour = 3 diamètres et un petit bout : π × ${d} ≈ ${num(Math.round(Math.PI * d * 100) / 100)}. Ce nombre « un peu plus que 3 » s’appelle π ≈ 3,14.`, `One turn = 3 diameters and a bit: π × ${d} ≈ ${(Math.PI * d).toFixed(2)}. That “a bit more than 3” is π ≈ 3.14.`, `دورة = 3 أقطار وقليل: π ≈ 3,14.`, `Una vuelta = 3 diámetros y algo: π ≈ 3,14.`)}</p>}
+  </div>;
+}
+
+function Cubes({ l, w, h, lang, onDone }: { l: number; w: number; h: number; lang: Lang; onDone: Done }) {
+  const [floors, setFloors] = useState(1);
+  function more() { if (floors >= h) return; setFloors(floors + 1); if (floors + 1 === h) onDone(String(l * w * h)); }
+  const c = 18, dx = 9, dy = 7;
+  const W = l * c + w * dx + 10, H = h * c + w * dy + 10;
+  const cubes: { x: number; y: number; z: number }[] = [];
+  for (let z = 0; z < floors; z++) for (let y = w - 1; y >= 0; y--) for (let x = 0; x < l; x++) cubes.push({ x, y, z });
+  return <div className="manip">
+    <svg viewBox={`0 0 ${W} ${H}`} className="manip-svg manip-cubes" aria-hidden>
+      {cubes.map(({ x, y, z }, i) => { const px = 4 + x * c + y * dx, py = H - 4 - (z + 1) * c - y * dy; return <g key={i}>
+        <polygon points={`${px},${py} ${px + c},${py} ${px + c + dx},${py - dy} ${px + dx},${py - dy}`} className="cube-top" />
+        <polygon points={`${px + c},${py} ${px + c + dx},${py - dy} ${px + c + dx},${py - dy + c} ${px + c},${py + c}`} className="cube-side" />
+        <rect x={px} y={py} width={c} height={c} className="cube-front" />
+      </g>; })}
+    </svg>
+    <p className="manip-equation">{l} × {w} = {l * w} {say(lang, 'par étage', 'per layer', 'في كل طابق', 'por piso')} · {floors} {say(lang, `étage${floors > 1 ? 's' : ''}`, `layer${floors > 1 ? 's' : ''}`, 'طوابق', 'pisos')} → {l * w * floors}</p>
+    {floors < h ? <Button variant="soft" onClick={more}>{say(lang, 'Ajouter un étage', 'Add a layer', 'أضف طابقًا', 'Añadir un piso')}</Button>
+      : <p className="manip-discovery" role="status">{say(lang, `Volume = ${l} × ${w} × ${h} = ${l * w * h} cubes : aire de la base × hauteur.`, `Volume = ${l} × ${w} × ${h} = ${l * w * h} cubes: base area × height.`, `الحجم = ${l * w * h}.`, `Volumen = ${l * w * h}.`)}</p>}
+  </div>;
+}
+
+function Sticks({ a, b, lang, onDone }: { a: number; b: number; lang: Lang; onDone: Done }) {
+  const [c, setC] = useState(a + b + 1);
+  const [seen, setSeen] = useState<boolean[]>([]);
+  const [finished, setFinished] = useState(false);
+  const ok = closes(a, b, c), u = 14;
+  function go(v: number) { const n = Math.max(1, Math.min(a + b + 2, v)); setC(n); const all = [...seen, closes(a, b, n)]; setSeen(all); if (!finished && all.includes(true) && all.includes(false) && all.length >= 3) { setFinished(true); onDone('ineq'); } }
+  // Triangle de côtés c (base), a et b quand il existe ; sinon les deux bâtons couchés qui ne se rejoignent pas.
+  const xA = 10, xB = 10 + c * u;
+  const px = ok ? (c * c + a * a - b * b) / (2 * c) : 0, py = ok ? Math.sqrt(Math.max(0, a * a - px * px)) : 0;
+  return <div className="manip">
+    <svg viewBox={`0 0 ${Math.max(xB, 10 + (a + b) * u) + 20} ${Math.max(py * u, 20) + 30}`} className="manip-svg" aria-hidden>
+      <line x1={xA} y1={py * u + 15} x2={xB} y2={py * u + 15} className="stick stick-c" />
+      {ok ? <><line x1={xA} y1={py * u + 15} x2={xA + px * u} y2={15} className="stick stick-a" /><line x1={xB} y1={py * u + 15} x2={xA + px * u} y2={15} className="stick stick-b" /></>
+        : <><line x1={xA} y1={py * u + 15} x2={xA + a * u * 0.96} y2={py * u + 5} className="stick stick-a" /><line x1={xB} y1={py * u + 15} x2={xB - b * u * 0.96} y2={py * u + 5} className="stick stick-b" /></>}
+    </svg>
+    <Stepper lang={lang} label={`${a} · ${b} · ${c}`} onMinus={() => go(c - 1)} onPlus={() => go(c + 1)} minus={say(lang, 'Troisième bâton plus court', 'Shorter third stick', 'العود الثالث أقصر', 'Tercer palo más corto')} plus={say(lang, 'Troisième bâton plus long', 'Longer third stick', 'العود الثالث أطول', 'Tercer palo más largo')} />
+    <p className={`manip-feedback ${ok ? 'manip-good' : 'manip-bad'}`}>{ok ? say(lang, `${c} < ${a} + ${b} : le triangle se ferme.`, `${c} < ${a} + ${b}: the triangle closes.`, 'يُغلق المثلث.', 'Se cierra.') : say(lang, `Les bâtons ${a} et ${b} ne se rejoignent pas.`, `Sticks ${a} and ${b} don’t meet.`, 'لا يلتقيان.', 'No se juntan.')}</p>
+    {finished && <p className="manip-discovery" role="status">{say(lang, `Ça marche seulement si le plus grand bâton est plus court que les deux autres réunis (ici, le troisième entre ${a - b + 1} et ${a + b - 1}).`, `It only works if the longest stick is shorter than the other two together (here the third between ${a - b + 1} and ${a + b - 1}).`, 'أطول عود أقصر من مجموع الآخرين.', 'El mayor debe ser menor que la suma.')}</p>}
+  </div>;
+}
+
+function ThalesSlide({ ab, ac, bc, free, lang, onDone }: { ab: number; ac: number; bc: number; free: boolean; lang: Lang; onDone: Done }) {
+  const [m, setM] = useState(2), [n, setN] = useState(free ? 1 : 2); // positions en quarts : AM = m/4 × AB
+  const [moves, setMoves] = useState(0);
+  const [finished, setFinished] = useState(false);
+  const am = (ab * m) / 4, an = (ac * (free ? n : m)) / 4;
+  const parallel = am / ab === an / ac;
+  const A = { x: 100, y: 12 }, B = { x: 20, y: 132 }, C = { x: 185, y: 132 };
+  const at = (P: { x: number; y: number }, k: number) => ({ x: A.x + (P.x - A.x) * k, y: A.y + (P.y - A.y) * k });
+  const M = at(B, m / 4), N = at(C, (free ? n : m) / 4);
+  function step(setter: (v: number) => void, v: number) { setter(Math.max(1, Math.min(3, v))); const k = moves + 1; setMoves(k); if (!finished && k >= 2) { setFinished(true); onDone('ratios'); } }
+  const r = (v: number) => num(Math.round(v * 100) / 100);
+  return <div className="manip">
+    <svg viewBox="0 0 200 145" className="manip-svg" aria-hidden>
+      <polygon points={`${A.x},${A.y} ${B.x},${B.y} ${C.x},${C.y}`} className="svg-shape" />
+      <line x1={M.x} y1={M.y} x2={N.x} y2={N.y} className={`svg-ray ${parallel ? 'svg-ray-move' : 'svg-ray-bad'}`} />
+      {[['A', A], ['B', B], ['C', C], ['M', M], ['N', N]].map(([l, P]) => <text key={l as string} x={(P as { x: number }).x + 4} y={(P as { y: number }).y - 4} className="svg-label">{l as string}</text>)}
+    </svg>
+    <Stepper lang={lang} label={`AM = ${r(am)}`} onMinus={() => step(setM, m - 1)} onPlus={() => step(setM, m + 1)} minus={say(lang, 'M vers A', 'M towards A', 'M نحو A', 'M hacia A')} plus={say(lang, 'M vers B', 'M towards B', 'M نحو B', 'M hacia B')} />
+    {free && <Stepper lang={lang} label={`AN = ${r(an)}`} onMinus={() => step(setN, n - 1)} onPlus={() => step(setN, n + 1)} minus={say(lang, 'N vers A', 'N towards A', 'N نحو A', 'N hacia A')} plus={say(lang, 'N vers C', 'N towards C', 'N نحو C', 'N hacia C')} />}
+    <p className="manip-equation">AM/AB = {r(am / ab)} · AN/AC = {r(an / ac)}{free ? '' : ` · MN/BC = ${r(am / ab)}`}</p>
+    <p className={`manip-feedback ${parallel ? 'manip-good' : 'manip-bad'}`}>{parallel ? say(lang, '(MN) ∥ (BC)', '(MN) ∥ (BC)', '(MN) ∥ (BC)', '(MN) ∥ (BC)') : say(lang, '(MN) n’est pas parallèle à (BC)', '(MN) is not parallel to (BC)', '(MN) غير موازٍ لـ (BC)', '(MN) no es paralela a (BC)')}</p>
+    {finished && <p className="manip-discovery" role="status">{free
+      ? say(lang, 'Les rapports sont égaux exactement quand (MN) est parallèle à (BC) : c’est la réciproque de Thalès.', 'The ratios are equal exactly when (MN) is parallel to (BC): the converse.', 'تتساوى النسب بالضبط عند التوازي.', 'Las razones son iguales justo cuando son paralelas.')
+      : say(lang, 'Quand (MN) ∥ (BC), les trois rapports restent égaux, où que soit M.', 'When (MN) ∥ (BC), the three ratios stay equal wherever M is.', 'تبقى النسب الثلاث متساوية.', 'Las tres razones siguen iguales.')}</p>}
+  </div>;
+}
+
+function Enlarge({ w, h, solid, lang, onDone }: { w: number; h: number; solid: boolean; lang: Lang; onDone: Done }) {
+  const ks = [0.5, 1, 1.5, 2, 3];
+  const [i, setI] = useState(1);
+  const [seen, setSeen] = useState<number[]>([1]);
+  const k = ks[i]!;
+  function go(v: number) { const j = Math.max(0, Math.min(ks.length - 1, v)); setI(j); const all = seen.includes(j) ? seen : [...seen, j]; setSeen(all); if (all.length === 3) onDone(String(ks[j])); }
+  const u = 18;
+  return <div className="manip">
+    <svg viewBox={`0 0 ${w * 3 * u + 20} ${h * 3 * u + 20}`} className="manip-svg" aria-hidden>
+      <rect x={10} y={10 + h * 3 * u - h * u} width={w * u} height={h * u} className="svg-ghost" />
+      <rect x={10} y={10 + h * 3 * u - h * k * u} width={w * k * u} height={h * k * u} className="svg-shape" style={{ transition: 'all .4s' }} />
+    </svg>
+    <Stepper lang={lang} label={`k = ${num(k)}`} onMinus={() => go(i - 1)} onPlus={() => go(i + 1)} minus={say(lang, 'Rapport plus petit', 'Smaller factor', 'نسبة أصغر', 'Razón menor')} plus={say(lang, 'Rapport plus grand', 'Larger factor', 'نسبة أكبر', 'Razón mayor')} />
+    <p className="manip-equation">{say(lang, 'côté', 'side', 'ضلع', 'lado')} {w} → {num(w * k)} · {say(lang, 'aire', 'area', 'مساحة', 'área')} {w * h} → {num(w * h * k * k)}{solid ? ` · volume ${w * h * w} → ${num(w * h * w * k ** 3)}` : ''}</p>
+    {seen.length >= 3 && <p className="manip-discovery" role="status">{say(lang, `Les longueurs sont multipliées par k, les aires par k² (k × k)${solid ? ', les volumes par k³' : ''}.`, `Lengths × k, areas × k²${solid ? ', volumes × k³' : ''}.`, `الأطوال × k والمساحات × k²${solid ? ' والأحجام × k³' : ''}.`, `Longitudes × k, áreas × k²${solid ? ', volúmenes × k³' : ''}.`)}</p>}
+  </div>;
+}
+
+function TrigRatio({ angle: a0, mode, lang, onDone }: { angle: number; mode: 'size' | 'angle'; lang: Lang; onDone: Done }) {
+  const [size, setSize] = useState(2), [angle, setAngle] = useState(a0);
+  const [moves, setMoves] = useState(0);
+  const hyp = size * 2, adj = hyp * Math.cos(rad(angle)), opp = hyp * Math.sin(rad(angle));
+  function bump(f: () => void) { f(); const k = moves + 1; setMoves(k); if (k === 3) onDone('trig'); }
+  const u = 28, S = { x: 10, y: 120 }, R = { x: 10 + adj * u, y: 120 }, T = { x: 10 + adj * u, y: 120 - opp * u };
+  const r2 = (v: number) => num(Math.round(v * 100) / 100);
+  return <div className="manip">
+    <svg viewBox="0 0 200 130" className="manip-svg" aria-hidden>
+      <polygon points={`${S.x},${S.y} ${R.x},${R.y} ${T.x},${T.y}`} className="svg-shape" style={{ transition: 'all .4s' }} />
+      <text x={S.x + 18} y={S.y - 4} className="svg-label">{angle}°</text>
+    </svg>
+    {mode === 'size'
+      ? <Stepper lang={lang} label={say(lang, `hypoténuse ${r2(hyp)}`, `hypotenuse ${r2(hyp)}`, `الوتر ${r2(hyp)}`, `hipotenusa ${r2(hyp)}`)} onMinus={() => bump(() => setSize(Math.max(1, size - 0.5)))} onPlus={() => bump(() => setSize(Math.min(3.5, size + 0.5)))} minus={say(lang, 'Triangle plus petit', 'Smaller triangle', 'مثلث أصغر', 'Triángulo menor')} plus={say(lang, 'Triangle plus grand', 'Larger triangle', 'مثلث أكبر', 'Triángulo mayor')} />
+      : <Stepper lang={lang} label={`${angle}°`} onMinus={() => bump(() => setAngle(Math.max(10, angle - 10)))} onPlus={() => bump(() => setAngle(Math.min(80, angle + 10)))} minus={say(lang, 'Angle plus petit', 'Smaller angle', 'زاوية أصغر', 'Ángulo menor')} plus={say(lang, 'Angle plus grand', 'Larger angle', 'زاوية أكبر', 'Ángulo mayor')} />}
+    <p className="manip-equation">{say(lang, 'adj', 'adj', 'مجاور', 'ady')}/{say(lang, 'hyp', 'hyp', 'وتر', 'hip')} = {r2(adj / hyp)} · {say(lang, 'opp', 'opp', 'مقابل', 'op')}/{say(lang, 'hyp', 'hyp', 'وتر', 'hip')} = {r2(opp / hyp)}</p>
+    {moves >= 3 && <p className="manip-discovery" role="status">{mode === 'size'
+      ? say(lang, `La taille change, les rapports non : ils ne dépendent que de l’angle. cos ${angle}° ≈ ${r2(Math.cos(rad(angle)))}.`, `Size changes, the ratios don’t: they depend only on the angle. cos ${angle}° ≈ ${r2(Math.cos(rad(angle)))}.`, 'النسب لا تتعلق إلا بالزاوية.', 'Las razones solo dependen del ángulo.')
+      : say(lang, 'Quand l’angle grandit, le cosinus diminue et le sinus augmente. La calculatrice fait le chemin inverse avec cos⁻¹.', 'As the angle grows, cosine falls and sine rises. The calculator goes back with cos⁻¹.', 'كلما كبرت الزاوية نقص cos وزاد sin.', 'Al crecer el ángulo, el coseno baja.')}</p>}
+  </div>;
+}
+
+function Pour({ times, lang, onDone }: { times: number; lang: Lang; onDone: Done }) {
+  const [poured, setPoured] = useState(0);
+  function pour() { if (poured >= times) return; setPoured(poured + 1); if (poured + 1 === times) onDone(String(times)); }
+  return <div className="manip">
+    <svg viewBox="0 0 200 120" className="manip-svg" aria-hidden>
+      <polygon points="20,110 70,110 45,20" className={`svg-shape ${poured < times ? '' : 'svg-ghost'}`} />
+      <rect x={110} y={20} width={70} height={90} className="svg-ghost" />
+      <rect x={110} y={110 - (90 * poured) / times} width={70} height={(90 * poured) / times} className="pour-fill" style={{ transition: 'all .5s' }} />
+      {Array.from({ length: times - 1 }, (_, i) => <line key={i} x1={110} x2={180} y1={110 - (90 * (i + 1)) / times} y2={110 - (90 * (i + 1)) / times} className="svg-grid" />)}
+    </svg>
+    <p className="manip-feedback">{say(lang, `${poured} pyramide${poured > 1 ? 's' : ''} versée${poured > 1 ? 's' : ''}`, `${poured} pyramid${poured > 1 ? 's' : ''} poured`, `${poured} أهرام`, `${poured} pirámides`)}</p>
+    {poured < times ? <Button variant="soft" onClick={pour}>{say(lang, 'Verser une pyramide', 'Pour a pyramid', 'صبّ هرمًا', 'Verter una pirámide')}</Button>
+      : <p className="manip-discovery" role="status">{say(lang, `Il faut ${times} pyramides pour remplir le prisme : une pyramide, c’est le tiers. V = aire de la base × hauteur ÷ 3.`, `It takes ${times} pyramids to fill the prism: a pyramid is a third. V = base area × height ÷ 3.`, `الهرم ثلث الموشور.`, `La pirámide es un tercio.`)}</p>}
   </div>;
 }

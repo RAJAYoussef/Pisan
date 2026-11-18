@@ -5,6 +5,7 @@
 import type { L } from './curriculum';
 import { NOMBRES_INTROS } from './skill-intros-nombres';
 import { ALGEBRE_INTROS } from './skill-intros-algebre';
+import { GEOMETRIE_INTROS } from './skill-intros-geometrie';
 
 const t = (fr: string, en: string, ar: string, es: string): L => ({ fr, en, ar, es });
 
@@ -33,6 +34,28 @@ export type Manip =
   | { kind: 'guess'; a: number; b: number; c: number; e: number; d: number; min: number; max: number }
   /** Construire une suite terme à terme : uₙ₊₁ = a uₙ + b. */
   | { kind: 'sequence'; u0: number; a: number; b: number; n: number }
+  /** Ouvrir un angle de 0° à 180° (et, avec `pair`, voir son supplémentaire). */
+  | { kind: 'angle-builder'; target: number; pair?: boolean }
+  /** Déformer un triangle : ses angles changent, leur somme reste 180°. */
+  | { kind: 'triangle-angles' }
+  /** Redimensionner un rectangle sur quadrillage : périmètre et aire. */
+  | { kind: 'resize-rect'; w: number; h: number }
+  /** Découper un parallélogramme (ou doubler un triangle) pour retrouver un rectangle. */
+  | { kind: 'area-transform'; shape: 'parallelogram' | 'triangle'; b: number; h: number }
+  /** Dérouler un cercle de diamètre d : un peu plus de 3 diamètres. */
+  | { kind: 'unroll'; d: number }
+  /** Remplir une boîte de cubes : une couche, puis des étages. */
+  | { kind: 'cubes'; l: number; w: number; h: number }
+  /** Trois bâtons : peut-on fermer le triangle ? */
+  | { kind: 'sticks'; a: number; b: number }
+  /** Faire glisser M sur [AB] ; avec `free`, N se déplace aussi : les rapports et le parallélisme. */
+  | { kind: 'thales-slide'; ab: number; ac: number; bc: number; free?: boolean }
+  /** Agrandir ou réduire de rapport k : longueurs × k, aires × k², volumes × k³. */
+  | { kind: 'enlarge'; w: number; h: number; solid?: boolean }
+  /** Triangle rectangle : changer sa taille (angle fixe) ou son angle ; les rapports trigonométriques. */
+  | { kind: 'trig-ratio'; angle: number; mode: 'size' | 'angle' }
+  /** Verser des pyramides dans le prisme de même base et même hauteur. */
+  | { kind: 'pour'; times: number }
   /** Sauts sur une droite graduée de `min` à `max`, par pas de `step`, de `start` jusqu'à `target`. */
   | { kind: 'hops'; min: number; max: number; step: number; start: number; target: number }
   /** Jetons + et − : on associe les paires nulles, il reste a + b. */
@@ -149,7 +172,7 @@ const PROTOTYPE: Record<string, Intro> = {
   },
 };
 
-export const INTROS: Record<string, Intro> = { ...PROTOTYPE, ...NOMBRES_INTROS, ...ALGEBRE_INTROS };
+export const INTROS: Record<string, Intro> = { ...PROTOTYPE, ...NOMBRES_INTROS, ...ALGEBRE_INTROS, ...GEOMETRIE_INTROS };
 export const introFor = (skillId: string): Intro | null => INTROS[skillId] ?? null;
 
 /** Valeur arrondie au milliardième (les × 10 et ÷ 10 successifs ne doivent pas laisser 0,30000000000000004). */
@@ -201,3 +224,8 @@ export const runMachine = (ops: { op: '×' | '+' | '−'; k: number }[], x: numb
 export function tileAreas(rows: { x: number; u: number }, cols: { x: number; u: number }) {
   return { x2: rows.x * cols.x, x: rows.x * cols.u + rows.u * cols.x, u: rows.u * cols.u };
 }
+
+/** La nature d'un angle selon sa mesure. */
+export const angleKind = (deg: number): 'nul' | 'aigu' | 'droit' | 'obtus' | 'plat' => (deg === 0 ? 'nul' : deg < 90 ? 'aigu' : deg === 90 ? 'droit' : deg < 180 ? 'obtus' : 'plat');
+/** Inégalité triangulaire : le plus grand côté est strictement plus petit que la somme des deux autres. */
+export const closes = (a: number, b: number, c: number) => Math.max(a, b, c) * 2 < a + b + c;

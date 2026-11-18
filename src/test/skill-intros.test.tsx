@@ -22,10 +22,10 @@ function solve(left: Side, right: Side): number | null {
 }
 
 describe('Introductions (modèle de Singapour)', () => {
-  const DONE: FigureKind[] = ['primes', 'linear', 'relatives', 'signs', 'decimals', 'arith', 'powers', 'sci', 'roots', 'expressions', 'literal', 'identities', 'equations', 'inequalities', 'systems', 'affine', 'seq', 'deriv'];
+  const DONE: FigureKind[] = ['primes', 'linear', 'relatives', 'signs', 'decimals', 'arith', 'powers', 'sci', 'roots', 'expressions', 'literal', 'identities', 'equations', 'inequalities', 'systems', 'affine', 'seq', 'deriv', 'lines', 'polygons', 'angles', 'symmetry', 'measures', 'surfaces', 'solids', 'pythagoras', 'thales', 'trigo', 'inscribed', 'vectors'];
   const LYCEE: FigureKind[] = ['seq', 'deriv'];
   /** Une compétence « manipule » si son introduction a une manipulation ou si l'entraînement en contient une (widget, quadrillage). */
-  const manipulates = (id: string) => Boolean(INTROS[id]?.manip) || getSkill(id)!.build(1).steps.some(st => st.type === 'widget' || st.type === 'grid');
+  const manipulates = (id: string) => Boolean(INTROS[id]?.manip) || getSkill(id)!.build(1).steps.some(st => st.type === 'widget' || st.type === 'grid' || st.type === 'tap');
   it('every skill of the finished chapters has a lesson card in four languages (and a goal with its manipulation)', () => {
     for (const id of DONE.flatMap(k => skillsFor(k)).map(s => s.id)) {
       const intro = INTROS[id];
@@ -174,6 +174,42 @@ describe('Manipulations de la famille Calcul littéral et fonctions', () => {
     open('sys-combination');
     for (let i = 0; i < 7; i++) fireEvent.click(screen.getByRole('button', { name: 'x plus grand' }));
     expect(screen.getByRole('status').textContent).toMatch(/\(7 ; 3\)/);
+  });
+});
+
+describe('Manipulations de la famille Géométrie', () => {
+  const engine = () => localEngine({ secret: 'test', hash: '8'.repeat(64) });
+  const open = (id: string) => render(<SkillActivity lang="fr" skill={getSkill(id)!} engine={engine()} attempts={[]} onBack={vi.fn()} />);
+  it('the angle sum stays 180° however the triangle is reshaped', () => {
+    open('ang-sum');
+    for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole('button', { name: 'Sommet vers la droite' }));
+    expect(screen.getByText(/= 180°$/)).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toMatch(/toujours 180°/);
+  });
+  it('the sticks close only when the longest is shorter than the two others', () => {
+    open('poly-inequality');
+    expect(screen.getByText(/ne se rejoignent pas/)).toBeTruthy();
+    for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole('button', { name: 'Troisième bâton plus court' }));
+    expect(screen.getByText(/le triangle se ferme/)).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toMatch(/entre 4 et 8/);
+  });
+  it('three pyramids fill the prism', () => {
+    open('solid-pyramid');
+    for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole('button', { name: 'Verser une pyramide' }));
+    expect(screen.getByRole('status').textContent).toMatch(/le tiers/);
+  });
+  it('the converse of Thales: equal ratios exactly when parallel', () => {
+    open('thales-converse');
+    expect(screen.getByText(/n’est pas parallèle/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'N vers C' }));
+    expect(screen.getByText('(MN) ∥ (BC)')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'M vers B' }));
+    expect(screen.getByRole('status').textContent).toMatch(/réciproque/);
+  });
+  it('the cut parallelogram becomes a rectangle', () => {
+    open('area-parallelogram');
+    fireEvent.click(screen.getByRole('button', { name: /Découper le triangle/ }));
+    expect(screen.getByRole('status').textContent).toMatch(/rectangle 6 × 3.*18/);
   });
 });
 

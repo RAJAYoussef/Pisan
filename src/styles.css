@@ -944,3 +944,29 @@ html[data-dys-bg="dark"] { --brand-p: #8f93ff; }
 .seq-bars { display: flex; align-items: flex-end; gap: 6px; width: 100%; max-width: 420px; height: 150px; padding: 0 4px; border-bottom: 2px solid var(--foreground); }
 .seq-bar { position: relative; flex: 1; border-radius: 6px 6px 0 0; background: var(--sky); animation: pop .3s ease-out; }
 .seq-bar span { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: .7rem; font-weight: 800; white-space: nowrap; }
+
+/* ───────────── Manipulations « Géométrie » ───────────── */
+.manip-svg { width: 100%; max-width: 380px; height: auto; overflow: visible; }
+.svg-tick { stroke: var(--muted-foreground); stroke-width: 1; }
+.svg-ray { stroke: var(--foreground); stroke-width: 3; stroke-linecap: round; }
+.svg-ray-move { stroke: var(--primary); }
+.svg-ray-bad { stroke: var(--destructive); }
+.svg-arc { fill: none; stroke: var(--accent); stroke-width: 3; }
+.svg-arc-2 { stroke: var(--sky); }
+.svg-dot { fill: var(--foreground); }
+.svg-shape { fill: color-mix(in oklab, var(--primary) 22%, transparent); stroke: var(--primary-deep); stroke-width: 2; stroke-linejoin: round; }
+.svg-piece { fill: color-mix(in oklab, var(--sun) 55%, transparent); stroke: var(--sun-deep); transition: all .6s; }
+.svg-ghost { fill: none; stroke: var(--muted-foreground); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.svg-grid { stroke: var(--border); stroke-width: 1; }
+.svg-height { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 4 3; }
+.svg-label { font-size: 11px; font-weight: 800; fill: var(--foreground); }
+.svg-unrolled { stroke: var(--primary-deep); stroke-width: 4; stroke-linecap: round; }
+.svg-diam { fill: var(--sky); }
+.svg-diam-part { fill: var(--accent); }
+.rect-grid { max-width: none; width: auto !important; }
+.cube-front { fill: var(--sky); stroke: #fff; stroke-width: 1; }
+.cube-top { fill: color-mix(in oklab, var(--sky) 60%, #fff); stroke: #fff; stroke-width: 1; }
+.cube-side { fill: color-mix(in oklab, var(--sky) 70%, #000); stroke: #fff; stroke-width: 1; }
+.stick { stroke-width: 6; stroke-linecap: round; }
+.stick-a { stroke: var(--sky); } .stick-b { stroke: var(--sun-deep); } .stick-c { stroke: var(--primary); }
+.pour-fill { fill: color-mix(in oklab, var(--sky) 60%, transparent); }
