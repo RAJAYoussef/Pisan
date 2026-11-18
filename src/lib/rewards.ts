@@ -1,6 +1,6 @@
 // Ludification des parcours : points, combos, étoiles. Tout se déduit des tentatives déjà enregistrées
 // (aucune donnée nouvelle à stocker), sauf le combo qui ne vit que le temps d'un parcours.
-// Pur, couvert par src/test/rewards.test.ts.
+// Pur, couvert par src/test/skill-intros.test.tsx et src/test/rewards-screen.test.tsx.
 import type { Attempt } from './pisan';
 
 export const POINTS_FIRST_TRY = 10;
@@ -35,4 +35,41 @@ export function totalPoints(attempts: Attempt[]): number {
 /** Étoiles cumulées sur une liste de compétences (sur 3 × leur nombre). */
 export function starsOf(attempts: Attempt[], skillIds: string[]): number {
   return skillIds.reduce((sum, id) => sum + bestStars(attempts, id), 0);
+}
+
+// ───────────── Niveaux, médailles, jours d'activité ─────────────
+
+/** Points pour passer du niveau n au niveau n + 1 : 100, puis 150, 200… (de plus en plus long). */
+export const levelCost = (level: number) => 50 + 50 * level;
+/** Niveau atteint avec un total de points, et l'avancée vers le suivant. */
+export function levelOf(points: number): { level: number; into: number; need: number } {
+  let level = 1, left = Math.max(0, points);
+  while (left >= levelCost(level)) { left -= levelCost(level); level++; }
+  return { level, into: left, need: levelCost(level) };
+}
+
+export type Medal = 'none' | 'bronze' | 'silver' | 'gold';
+export const MEDALS: Medal[] = ['bronze', 'silver', 'gold'];
+/** Médaille d'un chapitre : bronze dès une compétence acquise, argent à la moitié, or quand tout est acquis. */
+export function medalFor(mastered: number, total: number): Medal {
+  if (!total || mastered <= 0) return 'none';
+  if (mastered >= total) return 'gold';
+  return mastered * 2 >= total ? 'silver' : 'bronze';
+}
+/** Combien de compétences acquises manquent pour la médaille suivante (null si l'or est déjà là). */
+export function toNextMedal(mastered: number, total: number): { medal: Medal; missing: number } | null {
+  if (mastered >= total) return null;
+  if (mastered === 0) return { medal: 'bronze', missing: 1 };
+  const half = Math.ceil(total / 2);
+  return mastered < half ? { medal: 'silver', missing: half - mastered } : { medal: 'gold', missing: total - mastered };
+}
+
+/** Les 7 derniers jours (le plus ancien d'abord) : l'élève a-t-il travaillé ce jour-là ? Jours au format AAAA-MM-JJ. */
+export function lastDays(attempts: Attempt[], today: string, dayOf: (iso: string) => string, count = 7): { day: string; active: boolean }[] {
+  const active = new Set(attempts.map(a => dayOf(a.date)));
+  const base = Date.parse(`${today}T12:00:00Z`);
+  return Array.from({ length: count }, (_, i) => {
+    const day = new Date(base - (count - 1 - i) * 86400000).toISOString().slice(0, 10);
+    return { day, active: active.has(day) };
+  });
 }

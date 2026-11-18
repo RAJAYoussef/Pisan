@@ -1,6 +1,6 @@
 // Accueil de l'atelier : un « prochain pas », une grille compacte de chapitres, puis le parcours d'un chapitre.
 import { useState, type ReactNode } from 'react';
-import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronRight, RotateCcw, Star, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronRight, Flame, RotateCcw, Star, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { FigureKind } from '@/lib/figures';
 import type { Lang } from '@/lib/i18n';
@@ -8,7 +8,8 @@ import { say, type Attempt } from '@/lib/pisan';
 import { skillsFor, skillStatus, type Skill, type SkillStatus } from '@/lib/skills';
 import { CHAPTER_NAMES } from './skills';
 import { Stars } from './skill-intro';
-import { bestStars, starsOf, totalPoints } from '@/lib/rewards';
+import { bestStars, levelOf, medalFor, starsOf, totalPoints } from '@/lib/rewards';
+import { streakNow, type StreakView } from './streak';
 
 /**
  * Les familles de chapitres (thèmes des programmes) : au-delà de FAMILY_THRESHOLD chapitres, l'atelier les regroupe
@@ -23,13 +24,13 @@ export const KIND_FAMILY: Record<FigureKind, Family> = {
   lines: 'geometry', polygons: 'geometry', angles: 'geometry', symmetry: 'geometry', measures: 'geometry', surfaces: 'geometry', solids: 'geometry', pythagoras: 'geometry', thales: 'geometry', trigo: 'geometry', inscribed: 'geometry', vectors: 'geometry',
   proportion: 'data', data: 'data', stats: 'data', chance: 'data', proba: 'data',
 };
-const FAMILY_NAMES: Record<Family, (lang: Lang) => string> = {
+export const FAMILY_NAMES: Record<Family, (lang: Lang) => string> = {
   numbers: lang => say(lang, 'Nombres et calculs', 'Numbers', 'الأعداد والحساب', 'Números y cálculo'),
   algebra: lang => say(lang, 'Calcul littéral et fonctions', 'Algebra and functions', 'الحساب الحرفي والدوال', 'Álgebra y funciones'),
   geometry: lang => say(lang, 'Géométrie', 'Geometry', 'الهندسة', 'Geometría'),
   data: lang => say(lang, 'Données, hasard, proportionnalité', 'Data, chance, proportion', 'المعطيات والاحتمال والتناسبية', 'Datos, azar, proporcionalidad'),
 };
-const FAMILY_TONE: Record<Family, string> = { numbers: 'module-sun', algebra: 'module-sky', geometry: 'module-teal', data: 'module-coral' };
+export const FAMILY_TONE: Record<Family, string> = { numbers: 'module-sun', algebra: 'module-sky', geometry: 'module-teal', data: 'module-coral' };
 
 /** Couleur de chaque chapitre (mêmes variables que les modules de l'accueil). */
 export const KIND_TONE: Record<FigureKind, string> = { pythagoras: 'module-teal', thales: 'module-coral', trigo: 'module-sky', inscribed: 'module-sun', vectors: 'module-coral', affine: 'module-teal', stats: 'module-sky', seq: 'module-sun', deriv: 'module-coral', proba: 'module-teal', fractions: 'module-sun', decimals: 'module-teal', proportion: 'module-coral', lines: 'module-sky', symmetry: 'module-sun', measures: 'module-coral', relatives: 'module-sky', data: 'module-teal', arith: 'module-coral', powers: 'module-sun', expressions: 'module-sky', equations: 'module-teal', polygons: 'module-coral', primes: 'module-sun', angles: 'module-sky', surfaces: 'module-teal', chance: 'module-coral', signs: 'module-sky', sci: 'module-sun', literal: 'module-teal', linear: 'module-coral', roots: 'module-sun', identities: 'module-sky', inequalities: 'module-coral', systems: 'module-teal', solids: 'module-sun' };
@@ -84,11 +85,12 @@ function Segments({ kind, attempts }: { kind: FigureKind; attempts: Attempt[] })
 export type Tile = { id: string; title: string; note: string; icon: ReactNode; tone: string; onOpen: () => void };
 
 /** Accueil de l'atelier. */
-export function WorkshopHome({ lang, assignments, kinds, attempts, chapterLabel, next, due, extras, busy, onChapter, onSkill, onReview, lastKind }: {
+export function WorkshopHome({ lang, assignments, kinds, attempts, chapterLabel, next, due, extras, busy, onChapter, onSkill, onReview, lastKind, streak, onRewards }: {
   lang: Lang; assignments?: ReactNode[]; kinds: FigureKind[]; attempts: Attempt[]; chapterLabel: (k: FigureKind) => string | null;
   next: { skill: Skill; resumed: boolean } | null; due: number; extras: Tile[]; busy: boolean;
   onChapter: (k: FigureKind) => void; onSkill: (s: Skill) => void; onReview: () => void;
   /** Le dernier chapitre ouvert : sa famille reste dépliée au retour. */ lastKind?: FigureKind | null;
+  /** La série de jours (serveur) et l'ouverture de l'écran « Mes récompenses ». */ streak?: StreakView | undefined; onRewards?: () => void;
 }) {
   const mastered = (k: FigureKind) => skillsFor(k).filter(s => skillStatus(attempts, s.id) === 'mastered').length;
   const grouped = kinds.length > FAMILY_THRESHOLD;
@@ -98,17 +100,24 @@ export function WorkshopHome({ lang, assignments, kinds, attempts, chapterLabel,
   const tile = (k: FigureKind) => {
     const done = mastered(k), total = skillsFor(k).length;
     return <button key={k} type="button" className={`ws-tile ${KIND_TONE[k]}`} onClick={() => onChapter(k)} aria-label={`${CHAPTER_NAMES[k][lang]} · ${done}/${total}`}>
-      <span className="ws-tile-top"><span className="ws-tile-glyph"><ChapterGlyph kind={k} /></span>{done === total ? <span className="ws-done"><Check className="h-3.5 w-3.5" /></span> : !chapterLabel(k) && <span className="ws-tag">{say(lang, 'Rappel', 'Review', 'تذكير', 'Repaso')}</span>}</span>
+      <span className="ws-tile-top"><span className="ws-tile-glyph"><ChapterGlyph kind={k} /></span>{medalFor(done, total) !== 'none' ? <span className={`ws-medal medal-${medalFor(done, total)}`} title={medalFor(done, total)}>🏅</span> : !chapterLabel(k) && <span className="ws-tag">{say(lang, 'Rappel', 'Review', 'تذكير', 'Repaso')}</span>}</span>
       <span className="ws-tile-title">{CHAPTER_NAMES[k][lang]}</span>
       <span className="flex items-center gap-2"><Segments kind={k} attempts={attempts} /><span className="text-xs font-bold text-muted-foreground">{done}/{total}</span></span>
     </button>;
   };
   return <section className="mx-auto max-w-4xl">
     <div className="section-heading"><span className="eyebrow">{say(lang, 'Atelier', 'Workshop', 'الورشة', 'Taller')}</span><h1>{say(lang, 'Comprendre en manipulant', 'Learn by doing', 'أفهم بالتجريب', 'Aprender manipulando')}</h1></div>
-    <div className="ws-score" aria-label={say(lang, 'Mes récompenses', 'My rewards', 'مكافآتي', 'Mis recompensas')}>
-      <span className="points-badge"><Zap className="h-4 w-4" aria-hidden />{totalPoints(attempts)} {say(lang, 'points', 'points', 'نقطة', 'puntos')}</span>
-      <span className="points-badge points-stars"><Star className="h-4 w-4" aria-hidden />{starsOf(attempts, kinds.flatMap(k => skillsFor(k).map(s => s.id)))} / {kinds.reduce((n, k) => n + skillsFor(k).length, 0) * 3}</span>
-    </div>
+    {(() => {
+      const points = totalPoints(attempts), lvl = levelOf(points), flame = streak ? streakNow(streak) : 0;
+      const won = kinds.filter(k => mastered(k) > 0).length;
+      return <button type="button" className="ws-score" onClick={onRewards} aria-label={say(lang, `Mes récompenses : niveau ${lvl.level}, ${flame} jours d’affilée, ${won} médailles`, `My rewards: level ${lvl.level}, ${flame}-day streak, ${won} medals`, `مكافآتي: المستوى ${lvl.level}`, `Mis recompensas: nivel ${lvl.level}`)}>
+        <span className={`points-badge rw-flame-chip ${flame ? 'rw-flame-on' : ''}`}><Flame className="h-4 w-4" aria-hidden />{flame}</span>
+        <span className="points-badge"><Zap className="h-4 w-4" aria-hidden />{say(lang, `Niv. ${lvl.level}`, `Lv. ${lvl.level}`, `م ${lvl.level}`, `Niv. ${lvl.level}`)}<span className="ws-score-bar"><span style={{ width: `${(lvl.into / lvl.need) * 100}%` }} /></span></span>
+        <span className="points-badge points-stars"><Star className="h-4 w-4" aria-hidden />{starsOf(attempts, kinds.flatMap(k => skillsFor(k).map(sk => sk.id)))}</span>
+        <span className="points-badge rw-medals-count">🏅 {won}/{kinds.length}</span>
+        <ChevronRight className="ms-auto h-5 w-5 shrink-0 text-muted-foreground rtl:rotate-180" aria-hidden />
+      </button>;
+    })()}
 
     {due > 0 && <button type="button" className="ws-review" disabled={busy} onClick={onReview}>
       <RotateCcw className="h-5 w-5 shrink-0" aria-hidden />

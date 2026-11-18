@@ -11,6 +11,8 @@ import { AskPi } from './coach';
 import { ConcreteObjects } from './concrete';
 import { ReviewActivity, SkillActivity } from './skills';
 import { ChapterPath, WorkshopHome, type Tile } from './workshop-home';
+import { RewardsScreen } from './rewards-screen';
+import type { StreakView } from './streak';
 import { dueReviews, getSkill, nextSkill, type Skill } from '@/lib/skills';
 import { assignmentNext, visibleAssignments, type Assignment } from '@/lib/assignments';
 import type { SkillEngine } from '@/lib/skill-session';
@@ -19,7 +21,7 @@ import { FIGURE_NOTIONS, figureChapter, figuresFor, type FigureKind } from '@/li
 import { ArrowLeft, ChevronRight, TrendingUp } from 'lucide-react';
 import { emptyProgress, type Progress } from '@/lib/pisan';
 
-type Props = { engine: SkillEngine; onJournalEvent?: (skillId: string, event: { activityId: string; type: import('@/lib/fraction-journal').FractionJournalEventType; payload: Record<string, unknown>; clientOccurredAt?: string }) => void; lang: Lang; level: number; country: string; onSave: (a: Attempt) => Promise<void>; onStart: () => Promise<boolean>; notions?: Notion[] | undefined; focus?: NotionId | undefined; programme?: Programme | null | undefined; progress?: Progress | undefined; assignments?: Assignment[] | undefined };
+type Props = { engine: SkillEngine; onJournalEvent?: (skillId: string, event: { activityId: string; type: import('@/lib/fraction-journal').FractionJournalEventType; payload: Record<string, unknown>; clientOccurredAt?: string }) => void; lang: Lang; level: number; country: string; onSave: (a: Attempt) => Promise<void>; onStart: () => Promise<boolean>; notions?: Notion[] | undefined; focus?: NotionId | undefined; programme?: Programme | null | undefined; progress?: Progress | undefined; assignments?: Assignment[] | undefined ; streak?: StreakView | undefined };
 
 function figureChapterTitle(programme: Programme | null | undefined, kind: FigureKind, lang: Lang): string | null {
   return figureChapter(programme, kind)?.[lang] ?? null;
@@ -46,9 +48,10 @@ export function Workshop(props: Props) {
   const [review, setReview] = useState<Skill[] | null>(null);
   const [chapter, setChapter] = useState<FigureKind | null>(null);
   const [lastChapter, setLastChapter] = useState<FigureKind | null>(null);
+  const [rewards, setRewards] = useState(false);
   const [bars, setBars] = useState(false);
   // Chaque changement d'écran repart du haut de la page.
-  useEffect(() => { if (typeof window !== 'undefined') window.scrollTo(0, 0); }, [chapter, bars, skill, review, exercise, highActive]);
+  useEffect(() => { if (typeof window !== 'undefined') window.scrollTo(0, 0); }, [chapter, bars, skill, review, exercise, highActive, rewards]);
   const attempts = (props.progress ?? emptyProgress).attempts;
   // Parcours de compétences en géométrie : quand le programme les contient (ou par niveau, sans programme connu).
   const figures = figuresFor(programme, ids, level);
@@ -72,6 +75,7 @@ export function Workshop(props: Props) {
   const back = say(lang, 'Atelier', 'Workshop', 'الورشة', 'Taller');
   const errorBox = error && <p role="alert" className="mt-3 text-destructive">{error}</p>;
   const problemList = (list: Exercise[], showChapter = true) => <div className="ws-list">{list.map((ex, i) => <button key={ex.id} type="button" className="ws-problem" disabled={busy} onClick={() => void start(ex)}><span className={`mini-model ws-problem-model model-${i % 3}`} aria-hidden>{ex.bars.map((b, j) => <span className="flex gap-0.5" key={j}>{Array.from({ length: b.units }, (_, k) => <span className="min-w-0 flex-1" key={k} />)}{b.extra && <span className="extra" />}</span>)}</span><span className="min-w-0 flex-1 text-start">{showChapter && chapterOf(programme, ex.notion, lang) && <span className="block text-xs font-bold text-primary-deep">{chapterOf(programme, ex.notion, lang)}</span>}<span className="block font-bold">{ex.title[lang]}</span><span className="block text-sm text-muted-foreground">{ex.story[lang]}</span></span><ChevronRight className="h-5 w-5 shrink-0 self-center text-muted-foreground rtl:rotate-180" aria-hidden /></button>)}</div>;
+  if (rewards) return <RewardsScreen lang={lang} kinds={figures} attempts={attempts} streak={props.streak} onBack={() => setRewards(false)} onChapter={k => { setRewards(false); setLastChapter(k); setChapter(k); }} />;
   if (chapter) {
     const problems = problemsFor(chapter);
     return <><ChapterPath lang={lang} kind={chapter} attempts={attempts} chapterLabel={figureChapterTitle(programme, chapter, lang)} busy={busy} onSkill={next => void openSkill(next)} onBack={() => setChapter(null)}>
@@ -91,7 +95,7 @@ export function Workshop(props: Props) {
   ];
   const adaptiveSkill = adaptiveSkillId ? (getSkill(adaptiveSkillId)) : null;
   const next = adaptiveSkill ? { skill: adaptiveSkill, resumed: true } : nextSkill(attempts, figures);
-  return <><WorkshopHome lang={lang} assignments={visibleAssignments(props.assignments ?? [], attempts).map(a => <AssignmentRow key={a.id} lang={lang} assignment={a} attempts={attempts} onOpen={() => { const next = assignmentNext(attempts, a); if (next) void openSkill(next); }} />)} kinds={figures} attempts={attempts} chapterLabel={k => figureChapterTitle(programme, k, lang)} next={next} due={due.length} extras={extras} busy={busy} lastKind={lastChapter} onChapter={k => { setLastChapter(k); setChapter(k); }} onSkill={next => void openSkill(next)} onReview={() => void openReview()} />{errorBox}</>;
+  return <><WorkshopHome lang={lang} assignments={visibleAssignments(props.assignments ?? [], attempts).map(a => <AssignmentRow key={a.id} lang={lang} assignment={a} attempts={attempts} onOpen={() => { const next = assignmentNext(attempts, a); if (next) void openSkill(next); }} />)} kinds={figures} attempts={attempts} chapterLabel={k => figureChapterTitle(programme, k, lang)} next={next} due={due.length} extras={extras} busy={busy} lastKind={lastChapter} streak={props.streak} onRewards={() => setRewards(true)} onChapter={k => { setLastChapter(k); setChapter(k); }} onSkill={next => void openSkill(next)} onReview={() => void openReview()} />{errorBox}</>;
 }
 
 /** Icône des problèmes en barres. */
