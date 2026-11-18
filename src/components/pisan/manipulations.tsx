@@ -137,8 +137,8 @@ function Balance({ left: l0, right: r0, lang, onDone }: { left: Side; right: Sid
   function cheat() { setTilt(true); window.setTimeout(() => setTilt(false), 1400); }
   return <div className="manip">
     <div className={`balance ${tilt ? 'balance-tilt' : ''}`}>
-      <div className="balance-beam" />
       <div className="balance-pans"><Pan side={left} lang={lang} label={say(lang, 'Plateau gauche', 'Left pan', 'الكفة اليسرى', 'Plato izquierdo')} /><Pan side={right} lang={lang} label={say(lang, 'Plateau droit', 'Right pan', 'الكفة اليمنى', 'Plato derecho')} /></div>
+      <div className="balance-beam" />
       <div className="balance-foot" />
     </div>
     <p className="manip-equation" aria-live="polite">{sideText(left)} = {sideText(right)}</p>
