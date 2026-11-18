@@ -57,7 +57,7 @@ export function SkillActivity({ lang, skill, engine, onBack, attempts, onFractio
   const journaledCorrections = useRef<string[]>([]);
   // Modèle de Singapour : manipuler puis retenir avant de s'entraîner (la première fois) ; ludification du parcours.
   const intro = introFor(skill.id);
-  const [phase, setPhase] = useState<Phase>(intro && attempts && !attempts.some(a => a.skill === skill.id) ? 'discover' : 'practice');
+  const [phase, setPhase] = useState<Phase>(intro && attempts && !attempts.some(a => a.skill === skill.id) ? (intro.manip ? 'discover' : 'lesson') : 'practice');
   const [lessonOpen, setLessonOpen] = useState(false);
   const [points, setPoints] = useState(0);
   const [streak, setStreak] = useState(0);
@@ -66,7 +66,7 @@ export function SkillActivity({ lang, skill, engine, onBack, attempts, onFractio
   const heading = <div className="section-heading"><span className="eyebrow">{say(lang, 'Parcours de compétences', 'Skill pathway', 'مسار الكفايات', 'Itinerario de competencias')}</span><h1>{skill.title[lang]}</h1></div>;
   if (intro && phase !== 'practice') return <section className="mx-auto max-w-4xl">
     {back}{heading}
-    <PhaseStepper lang={lang} phase={phase} onPhase={setPhase} />
+    <PhaseStepper lang={lang} phase={phase} onPhase={setPhase} manipulate={Boolean(intro.manip)} />
     {phase === 'discover'
       ? <DiscoverPanel lang={lang} intro={intro} onNext={() => setPhase('lesson')} />
       : <div className="activity-panel"><LessonCard lang={lang} lesson={intro.lesson} /><Button className="mt-5 w-full" onClick={() => setPhase('practice')}>{say(lang, 'Je m’entraîne', 'Let’s practise', 'أتمرّن', 'A practicar')}<ArrowRight /></Button></div>}
@@ -136,7 +136,7 @@ export function SkillActivity({ lang, skill, engine, onBack, attempts, onFractio
   return <section className="mx-auto max-w-4xl">
     {back}
     <div className="section-heading"><span className="eyebrow">{say(lang, 'Parcours de compétences', 'Skill pathway', 'مسار الكفايات', 'Itinerario de competencias')}</span><h1>{show(activity.title)}</h1></div>
-    {intro && <PhaseStepper lang={lang} phase="practice" onPhase={setPhase} />}
+    {intro && <PhaseStepper lang={lang} phase="practice" onPhase={setPhase} manipulate={Boolean(intro.manip)} />}
     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
       <PointsBadge lang={lang} points={points} combo={streak} />
       {intro && !done && <Button variant="ghost" size="sm" aria-expanded={lessonOpen} onClick={() => setLessonOpen(o => !o)}><BookOpen />{lessonOpen ? say(lang, 'Masquer le cours', 'Hide the lesson', 'إخفاء الدرس', 'Ocultar la lección') : say(lang, 'Revoir le cours', 'See the lesson', 'مراجعة الدرس', 'Ver la lección')}</Button>}

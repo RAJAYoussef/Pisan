@@ -18,10 +18,11 @@ const PHASES: { id: Phase; icon: typeof Hand; label: (lang: Lang) => string }[] 
   { id: 'practice', icon: Sparkles, label: lang => say(lang, 'Je m’entraîne', 'I practise', 'أتمرّن', 'Practico') },
 ];
 
-export function PhaseStepper({ lang, phase, onPhase }: { lang: Lang; phase: Phase; onPhase: (p: Phase) => void }) {
-  const at = PHASES.findIndex(p => p.id === phase);
-  return <ol className="phase-stepper" aria-label={say(lang, 'Les trois temps', 'Three stages', 'المراحل الثلاث', 'Las tres etapas')}>
-    {PHASES.map((p, i) => <li key={p.id}>
+export function PhaseStepper({ lang, phase, onPhase, manipulate = true }: { lang: Lang; phase: Phase; onPhase: (p: Phase) => void; manipulate?: boolean }) {
+  const phases = manipulate ? PHASES : PHASES.filter(p => p.id !== 'discover');
+  const at = phases.findIndex(p => p.id === phase);
+  return <ol className="phase-stepper" aria-label={say(lang, 'Les étapes', 'Stages', 'المراحل', 'Las etapas')}>
+    {phases.map((p, i) => <li key={p.id}>
       <button type="button" className={`phase ${i === at ? 'phase-current' : i < at ? 'phase-done' : ''}`} aria-current={i === at ? 'step' : undefined} disabled={i > at} onClick={() => onPhase(p.id)}>
         <span className="phase-icon"><p.icon className="h-4 w-4" aria-hidden /></span>{p.label(lang)}
       </button>
@@ -32,10 +33,10 @@ export function PhaseStepper({ lang, phase, onPhase }: { lang: Lang; phase: Phas
 /** Je manipule : la manipulation, puis le bouton pour passer au cours dès que la découverte est faite. */
 export function DiscoverPanel({ lang, intro, onNext }: { lang: Lang; intro: Intro; onNext: () => void }) {
   const [found, setFound] = useState(false);
-  const goal = intro.goal[lang];
+  const goal = intro.goal?.[lang] ?? '';
   return <div className="activity-panel">
     <div className="mb-4 flex items-start justify-between gap-4"><p className="text-lg font-semibold leading-snug">{goal}</p><Speaker text={goal} lang={lang} /></div>
-    <Manipulation manip={intro.manip} lang={lang} onDone={() => setFound(true)} />
+    {intro.manip && <Manipulation manip={intro.manip} lang={lang} onDone={() => setFound(true)} />}
     <Button className="mt-5 w-full" variant={found ? 'default' : 'soft'} onClick={onNext}>{found ? say(lang, 'J’ai compris, voir le cours', 'Got it, see the lesson', 'فهمت، أرني الدرس', 'Entendido, ver la lección') : say(lang, 'Passer au cours', 'Skip to the lesson', 'الانتقال إلى الدرس', 'Ir a la lección')}<ArrowRight /></Button>
   </div>;
 }

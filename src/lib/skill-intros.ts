@@ -3,6 +3,7 @@
 // avant « Je m'entraîne » (les étapes notées par le serveur). Prototype : nombres premiers et équations.
 // Données pures, couvertes par src/test/skill-intros.test.ts.
 import type { L } from './curriculum';
+import { NOMBRES_INTROS } from './skill-intros-nombres';
 
 const t = (fr: string, en: string, ar: string, es: string): L => ({ fr, en, ar, es });
 
@@ -16,12 +17,27 @@ export type Manip =
   /** Garder la balance en équilibre : même opération des deux côtés jusqu'à isoler x. */
   | { kind: 'balance'; left: Side; right: Side }
   /** Modèle en barres : `parts` barres égales (l'inconnue) plus un morceau connu `extra`, pour un total. */
-  | { kind: 'bars'; parts: number; extra: number; total: number; unit: string };
+  | { kind: 'bars'; parts: number; extra: number; total: number; unit: string }
+  /** Sauts sur une droite graduée de `min` à `max`, par pas de `step`, de `start` jusqu'à `target`. */
+  | { kind: 'hops'; min: number; max: number; step: number; start: number; target: number }
+  /** Jetons + et − : on associe les paires nulles, il reste a + b. */
+  | { kind: 'zero-pairs'; a: number; b: number }
+  /** Faire des paquets de `by` avec n jetons : quotient et reste. */
+  | { kind: 'share'; n: number; by: number }
+  /** Tableau de numération : × 10 et ÷ 10 font glisser les chiffres, de `start` jusqu'à `target`. */
+  | { kind: 'place-value'; start: number; target: number }
+  /** Multiplier `base` par lui-même jusqu'à l'exposant `exponent`. */
+  | { kind: 'repeat'; base: number; exponent: number }
+  /** Prolonger la suite a × 3, a × 2, a × 1, a × 0… pour chaque a : la règle des signes apparaît. */
+  | { kind: 'pattern'; factors: number[]; divide?: boolean }
+  /** Construire un carré de jetons d'aire `area` (ou l'encadrer). */
+  | { kind: 'square'; area: number };
 
 export type Lesson = { points: L[]; example: { title: L; lines: L[] } };
-export type Intro = { goal: L; manip: Manip; lesson: Lesson };
+/** Une compétence a toujours sa carte de cours ; la manipulation est facultative (sinon on commence par le cours). */
+export type Intro = { lesson: Lesson; goal?: L; manip?: Manip };
 
-export const INTROS: Record<string, Intro> = {
+const PROTOTYPE: Record<string, Intro> = {
   // ───────────── Multiples et nombres premiers ─────────────
   'prime-multiples': {
     goal: t('Range les 12 jetons en rectangles bien remplis. Trouve tous les rectangles possibles.', 'Arrange the 12 counters into full rectangles. Find every possible rectangle.', 'رتّب 12 قطعة في مستطيلات ممتلئة. جد كل المستطيلات الممكنة.', 'Ordena las 12 fichas en rectángulos completos. Encuentra todos los posibles.'),
@@ -118,7 +134,19 @@ export const INTROS: Record<string, Intro> = {
   },
 };
 
+export const INTROS: Record<string, Intro> = { ...PROTOTYPE, ...NOMBRES_INTROS };
 export const introFor = (skillId: string): Intro | null => INTROS[skillId] ?? null;
+
+/** Valeur arrondie au milliardième (les × 10 et ÷ 10 successifs ne doivent pas laisser 0,30000000000000004). */
+export const clean = (v: number) => Math.round(v * 1e9) / 1e9;
+/** Les chiffres d'un nombre par rang, des milliers aux millièmes. */
+export const PLACE_RANKS = [1000, 100, 10, 1, 0.1, 0.01, 0.001];
+export function digitsByRank(v: number): number[] {
+  const units = Math.round(Math.abs(v) * 1000);
+  return PLACE_RANKS.map(r => Math.floor(units / Math.round(r * 1000)) % 10);
+}
+/** Ce qu'il reste après avoir associé les paires nulles. */
+export const zeroPairs = (a: number, b: number) => ({ pairs: Math.min(Math.abs(a), Math.abs(b)) * (Math.sign(a) !== Math.sign(b) ? 1 : 0), result: a + b });
 
 /** Les paires de diviseurs de n (a ≤ b, a × b = n) : chaque rectangle de jetons en donne une. */
 export function rectanglePairs(n: number): [number, number][] {

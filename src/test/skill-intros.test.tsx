@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { applyBalance, balanceOps, balanceSolved, INTROS, isPrime, rectanglePairs, type Side } from '@/lib/skill-intros';
+import { applyBalance, balanceOps, balanceSolved, digitsByRank, INTROS, isPrime, rectanglePairs, zeroPairs, type Side } from '@/lib/skill-intros';
+import type { FigureKind } from '@/lib/figures';
 import { bestStars, starsFor, stepPoints, totalPoints } from '@/lib/rewards';
 import { getSkill, skillsFor } from '@/lib/skills';
 import { SkillActivity } from '@/components/pisan/skills';
@@ -21,12 +22,27 @@ function solve(left: Side, right: Side): number | null {
 }
 
 describe('Introductions (modèle de Singapour)', () => {
-  it('every prime and equation skill starts with a manipulation and a lesson card in four languages', () => {
-    for (const id of [...skillsFor('primes'), ...skillsFor('linear')].map(s => s.id)) {
+  const DONE: FigureKind[] = ['primes', 'linear', 'relatives', 'signs', 'decimals', 'arith', 'powers', 'sci', 'roots'];
+  it('every skill of the finished chapters has a lesson card in four languages (and a goal with its manipulation)', () => {
+    for (const id of DONE.flatMap(k => skillsFor(k)).map(s => s.id)) {
       const intro = INTROS[id];
       expect(intro, id).toBeTruthy();
-      for (const l of [intro!.goal, ...intro!.lesson.points, intro!.lesson.example.title, ...intro!.lesson.example.lines]) for (const lang of ['fr', 'en', 'ar', 'es'] as const) expect(l[lang].length, `${id} ${lang}`).toBeGreaterThan(0);
+      expect(Boolean(intro!.goal), `${id} : consigne et manipulation vont ensemble`).toBe(Boolean(intro!.manip));
+      for (const l of [...(intro!.goal ? [intro!.goal] : []), ...intro!.lesson.points, intro!.lesson.example.title, ...intro!.lesson.example.lines]) for (const lang of ['fr', 'en', 'ar', 'es'] as const) expect(l[lang].length, `${id} ${lang}`).toBeGreaterThan(0);
     }
+    // dans les chapitres finis, au moins la moitié des compétences commencent par manipuler
+    for (const k of DONE) expect(skillsFor(k).filter(s => INTROS[s.id]?.manip).length * 2, k).toBeGreaterThanOrEqual(skillsFor(k).length);
+  });
+  it('every manipulation can reach its goal', () => {
+    for (const [id, intro] of Object.entries(INTROS)) {
+      const m = intro.manip;
+      if (!m) continue;
+      if (m.kind === 'hops') { expect(m.target, id).toBeGreaterThanOrEqual(m.min); expect(m.target, id).toBeLessThanOrEqual(m.max); expect(Math.abs(Math.round((m.target - m.start) / m.step) * m.step - (m.target - m.start)), id).toBeLessThan(1e-9); }
+      if (m.kind === 'place-value' && m.start !== 0) { const k = Math.log10(m.target / m.start); expect(Math.abs(k - Math.round(k)), id).toBeLessThan(1e-9); }
+      if (m.kind === 'place-value' && m.start === 0) expect(digitsByRank(m.target).every(d => d <= 9), id).toBe(true);
+      if (m.kind === 'square') expect(m.area, id).toBeLessThanOrEqual(144);
+    }
+    expect(zeroPairs(4, -6)).toEqual({ pairs: 4, result: -2 });
   });
   it('the counters show the divisors, and a prime only makes one line', () => {
     expect(rectanglePairs(12)).toEqual([[1, 12], [2, 6], [3, 4]]);
@@ -36,7 +52,7 @@ describe('Introductions (modèle de Singapour)', () => {
   });
   it('every balance can be solved keeping both sides equal, and gives the right x', () => {
     for (const intro of Object.values(INTROS)) {
-      if (intro.manip.kind !== 'balance') continue;
+      if (intro.manip?.kind !== 'balance') continue;
       const { left, right } = intro.manip;
       const x = solve(left, right)!;
       expect(left.x * x + left.u).toBe(right.x * x + right.u);
@@ -89,5 +105,40 @@ describe('Un parcours commence par manipuler, la première fois seulement', () =
     expect(screen.getByText(/Il reste 1 jeton/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Une ligne de plus' }));
     expect(screen.getByText(/13 n’a que deux diviseurs/)).toBeTruthy();
+  });
+});
+
+describe('Manipulations de la famille Nombres', () => {
+  const engine = () => localEngine({ secret: 'test', hash: 'f'.repeat(64) });
+  const open = (id: string) => render(<SkillActivity lang="fr" skill={getSkill(id)!} engine={engine()} attempts={[]} onBack={vi.fn()} />);
+  it('zero pairs: 4 + (−6) leaves −2', () => {
+    open('rel-add-sub');
+    for (let i = 0; i < 4; i++) fireEvent.click(screen.getByRole('button', { name: /Associer un \+ et un −/ }));
+    expect(screen.getByRole('status').textContent).toMatch(/4 \+ \(−6\) = −2/);
+  });
+  it('the sign pattern: the learner predicts (−3) × (−1) = 3', () => {
+    open('signs-rule');
+    for (const v of ['−3', '−6', '−9']) fireEvent.click(screen.getByRole('button', { name: v }));
+    expect(screen.getByText('(−3) × (−1)', { exact: false })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '−3' }));
+    expect(screen.getByRole('alert').textContent).toMatch(/change de/);
+    for (const v of ['3', '6', '9']) fireEvent.click(screen.getByRole('button', { name: v }));
+    expect(screen.getByRole('status').textContent).toMatch(/Négatif × négatif → positif/);
+  });
+  it('packs: 23 counters in packs of 5 give 23 = 5 × 4 + 3', () => {
+    open('arith-euclid');
+    for (let i = 0; i < 4; i++) fireEvent.click(screen.getByRole('button', { name: /Faire un paquet de 5/ }));
+    expect(screen.getByRole('status').textContent).toMatch(/23 = 5 × 4 \+ 3/);
+  });
+  it('place-value table: 7,2 slides to 720 with × 10 twice', () => {
+    open('dec-times-ten');
+    fireEvent.click(screen.getByRole('button', { name: '× 10' }));
+    fireEvent.click(screen.getByRole('button', { name: '× 10' }));
+    expect(screen.getByRole('status').textContent).toMatch(/2 glissements : 7,2 × 100 = 720/);
+  });
+  it('a skill without a manipulation starts with the lesson', () => {
+    open('arith-priorities');
+    expect(screen.queryByRole('button', { name: /Je manipule/ })).toBeNull();
+    expect(screen.getByText('À retenir')).toBeTruthy();
   });
 });
