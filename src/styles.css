@@ -895,7 +895,7 @@ html[data-dys-bg="dark"] { --brand-p: #8f93ff; }
 .repeat-bar { display: flex; min-width: 2.2rem; height: 26px; align-items: center; padding: 0 8px; border-radius: 6px; background: var(--sky); color: #fff; font-weight: 800; animation: pop .3s ease-out; }
 
 .pattern-table { border-collapse: collapse; font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; }
-.pattern-table td { padding: 3px 8px; }
+.pattern-table td { padding: 3px 8px; border: 0; background: transparent; }
 .pattern-table td:first-child { text-align: end; }
 .pattern-new { color: var(--accent-deep); animation: pop .3s ease-out; }
 .pattern-ask td { color: var(--primary-deep); }
