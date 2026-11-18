@@ -193,7 +193,7 @@ function exprConventions(seed: number): Activity {
 
 function exprReduce(seed: number): Activity {
   const rng = seeded(seed);
-  const p = int(rng, 2, 9), q = int(rng, 2, 9), r = int(rng, 6, 12), s = int(rng, 1, r - 1), u = int(rng, 2, 5), w = int(rng, 2, 7);
+  const p = int(rng, 2, 9), q = int(rng, 2, 9), r = int(rng, 6, 12), s = int(rng, 2, r - 1), u = int(rng, 2, 5), w = int(rng, 2, 7);
   return {
     title: t('Réduire une expression', 'Collecting like terms', 'اختزال تعبير', 'Reducir una expresión'),
     summary: `${p}x + ${q}x = ${p + q}x · ${r}a − ${s}a = ${r - s}a · ${u}x + ${w} ne se réduit pas`,

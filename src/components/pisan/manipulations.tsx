@@ -5,7 +5,7 @@ import { Minus, Plus, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Lang } from '@/lib/i18n';
 import { say } from '@/lib/pisan';
-import { applyBalance, balanceOps, balanceSolved, clean, digitsByRank, isPrime, PLACE_RANKS, rectanglePairs, type BalanceOp, type Manip, type Side } from '@/lib/skill-intros';
+import { applyBalance, balanceOps, balanceSolved, clean, digitsByRank, isPrime, PLACE_RANKS, rectanglePairs, runMachine, tileAreas, type BalanceOp, type Manip, type Side } from '@/lib/skill-intros';
 
 type Done = (found: string) => void;
 
@@ -20,7 +20,14 @@ export function Manipulation({ manip, lang, onDone }: { manip: Manip; lang: Lang
   if (manip.kind === 'repeat') return <Repeat base={manip.base} exponent={manip.exponent} lang={lang} onDone={onDone} />;
   if (manip.kind === 'pattern') return <Pattern factors={manip.factors} divide={manip.divide ?? false} lang={lang} onDone={onDone} />;
   if (manip.kind === 'square') return <SquareTiles area={manip.area} lang={lang} onDone={onDone} />;
-  return <Bars parts={manip.parts} extra={manip.extra} total={manip.total} unit={manip.unit} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'machine') return <Machine {...manip} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'tiles') return <Tiles rows={manip.rows} cols={manip.cols} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'square-build') return <SquareBuild b={manip.b} c={manip.c} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'collect') return <Collect terms={manip.terms} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'test-values') return <TestValues {...manip} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'guess') return <Guess {...manip} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'sequence') return <Sequence {...manip} lang={lang} onDone={onDone} />;
+  return <Bars parts={manip.parts} extra={manip.extra} total={manip.total} unit={manip.unit} rectangle={manip.rectangle ?? false} lang={lang} onDone={onDone} />;
 }
 
 /** Nombre écrit à la française, avec le vrai signe moins. */
@@ -164,7 +171,7 @@ function Balance({ left: l0, right: r0, lang, onDone }: { left: Side; right: Sid
 
 // ───────────── Modèle en barres (méthode de Singapour) ─────────────
 
-function Bars({ parts, extra, total, unit, lang, onDone }: { parts: number; extra: number; total: number; unit: string; lang: Lang; onDone: Done }) {
+function Bars({ parts, extra, total, unit, rectangle, lang, onDone }: { parts: number; extra: number; total: number; unit: string; rectangle: boolean; lang: Lang; onDone: Done }) {
   const [stage, setStage] = useState<0 | 1 | 2>(0);
   const rest = total - extra, each = rest / parts;
   return <div className="manip">
@@ -178,7 +185,7 @@ function Bars({ parts, extra, total, unit, lang, onDone }: { parts: number; extr
     <p className="manip-equation">{stage === 0 ? `${Array(parts).fill('x').join(' + ')} + ${extra} = ${total}` : stage === 1 ? `${parts}x = ${rest}` : `x = ${each}`}</p>
     {stage === 0 && <Button variant="soft" className="h-auto min-h-10 whitespace-normal" onClick={() => setStage(1)}>{say(lang, `Enlever le morceau connu (${extra} ${unit})`, `Remove the known piece (${extra} ${unit})`, `أزل الجزء المعلوم (${extra} ${unit})`, `Quita la parte conocida (${extra} ${unit})`)}</Button>}
     {stage === 1 && <Button variant="soft" className="h-auto min-h-10 whitespace-normal" onClick={() => { setStage(2); onDone(String(each)); }}>{say(lang, `Partager ${rest} ${unit} en ${parts} barres égales`, `Share ${rest} ${unit} into ${parts} equal bars`, `اقسم ${rest} على ${parts} أشرطة متساوية`, `Reparte ${rest} entre ${parts} barras iguales`)}</Button>}
-    {stage === 2 && <p className="manip-discovery" role="status">{say(lang, `La largeur mesure ${each} ${unit}, la longueur ${each + extra} ${unit}. Vérification : 2 × (${each} + ${each + extra}) = ${2 * total} ✓`, `The width is ${each} ${unit}, the length ${each + extra} ${unit}. Check: 2 × (${each} + ${each + extra}) = ${2 * total} ✓`, `العرض ${each} والطول ${each + extra}.`, `El ancho mide ${each} ${unit} y el largo ${each + extra} ${unit}.`)}</p>}
+    {stage === 2 && <p className="manip-discovery" role="status">{rectangle ? say(lang, `La largeur mesure ${each} ${unit}, la longueur ${each + extra} ${unit}. Vérification : 2 × (${each} + ${each + extra}) = ${2 * total} ✓`, `The width is ${each} ${unit}, the length ${each + extra} ${unit}. Check: 2 × (${each} + ${each + extra}) = ${2 * total} ✓`, `العرض ${each} والطول ${each + extra}.`, `El ancho mide ${each} ${unit} y el largo ${each + extra} ${unit}.`) : say(lang, `Une barre vaut ${each}${unit ? ' ' + unit : ''} : x = ${each}. Vérification : ${parts} × ${each} + ${extra} = ${total} ✓`, `One bar is ${each}${unit ? ' ' + unit : ''}: x = ${each}. Check: ${parts} × ${each} + ${extra} = ${total} ✓`, `الشريط يساوي ${each}: x = ${each}.`, `Una barra vale ${each}: x = ${each}.`)}</p>}
   </div>;
 }
 
@@ -370,5 +377,178 @@ function SquareTiles({ area, lang, onDone }: { area: number; lang: Lang; onDone:
     {finished && <p className="manip-discovery" role="status">{Number.isInteger(root)
       ? say(lang, `Un carré de côté ${root} : √${area} = ${root}.`, `A square of side ${root}: √${area} = ${root}.`, `مربع ضلعه ${root}: √${area} = ${root}.`, `Un cuadrado de lado ${root}: √${area} = ${root}.`)
       : say(lang, `${lo}² = ${lo * lo} < ${area} < ${hi * hi} = ${hi}² : impossible de faire un carré exact. √${area} est entre ${lo} et ${hi}.`, `${lo}² = ${lo * lo} < ${area} < ${hi * hi} = ${hi}²: no exact square. √${area} is between ${lo} and ${hi}.`, `√${area} بين ${lo} و ${hi}.`, `√${area} está entre ${lo} y ${hi}.`)}</p>}
+  </div>;
+}
+
+// ───────────── Machine à calculer (expressions, image et antécédent) ─────────────
+
+function Machine({ ops, target, min, max, lang, onDone }: { ops: { op: '×' | '+' | '−'; k: number }[]; target: number; min: number; max: number; lang: Lang; onDone: Done }) {
+  const [x, setX] = useState(Math.round((min + max) / 2));
+  const [found, setFound] = useState<number | null>(null);
+  const out = runMachine(ops, x);
+  function go(v: number) {
+    const next = Math.max(min, Math.min(max, v));
+    setX(next);
+    if (found === null && runMachine(ops, next) === target) { setFound(next); onDone(String(next)); }
+  }
+  let acc = x;
+  return <div className="manip">
+    <div className="machine" aria-live="polite">
+      <span className="machine-in">{num(x)}</span>
+      {ops.map((o, i) => { acc = runMachine([o], acc); return <span key={i} className="machine-step"><span className="machine-op">{o.op} {o.k}</span><span className="machine-val">{num(acc)}</span></span>; })}
+    </div>
+    <div className="manip-controls">
+      <Button variant="soft" size="icon" aria-label={say(lang, 'Entrée plus petite', 'Smaller input', 'مدخل أصغر', 'Entrada menor')} onClick={() => go(x - 1)}><Minus /></Button>
+      <span className="manip-count">{say(lang, `entrée ${num(x)}`, `input ${num(x)}`, `المدخل ${num(x)}`, `entrada ${num(x)}`)}</span>
+      <Button variant="soft" size="icon" aria-label={say(lang, 'Entrée plus grande', 'Larger input', 'مدخل أكبر', 'Entrada mayor')} onClick={() => go(x + 1)}><Plus /></Button>
+    </div>
+    <p className={`manip-feedback ${out === target ? 'manip-good' : ''}`}>{say(lang, `Sortie : ${num(out)} · cible ${num(target)}`, `Output: ${num(out)} · target ${num(target)}`, `المخرج: ${num(out)} · الهدف ${num(target)}`, `Salida: ${num(out)} · meta ${num(target)}`)}</p>
+    {found !== null && <p className="manip-discovery" role="status">{say(lang, `Avec ${num(found)}, la machine donne ${num(target)}. Pour retrouver l’entrée sans tâtonner, on défait les étapes à l’envers : c’est résoudre une équation.`, `With ${num(found)} the machine gives ${num(target)}. To find the input without guessing, undo the steps backwards: that is solving an equation.`, `مع ${num(found)} تعطي الآلة ${num(target)}. للرجوع نعكس الخطوات: إنه حل معادلة.`, `Con ${num(found)} sale ${num(target)}. Deshacer los pasos es resolver una ecuación.`)}</p>}
+  </div>;
+}
+
+// ───────────── Tuiles algébriques (aire d'un rectangle) ─────────────
+
+function Tiles({ rows, cols, lang, onDone }: { rows: { x: number; u: number }; cols: { x: number; u: number }; lang: Lang; onDone: Done }) {
+  // Les morceaux : (ligne x ou unités) × (colonne x ou unités).
+  const pieces = [
+    ...(rows.x ? [{ id: 'xx', r: 'x', c: 'x', area: 'x²', show: Boolean(cols.x) }, { id: 'xu', r: 'x', c: 'u', area: `${cols.u}x`, show: cols.u > 0 }] : []),
+    ...(rows.u ? [{ id: 'ux', r: 'u', c: 'x', area: `${rows.u}x`, show: Boolean(cols.x) }, { id: 'uu', r: 'u', c: 'u', area: String(rows.u * cols.u), show: cols.u > 0 }] : []),
+  ].filter(p => p.show);
+  const [seen, setSeen] = useState<string[]>([]);
+  const all = seen.length === pieces.length;
+  const areas = tileAreas(rows, cols);
+  const side = (s: { x: number; u: number }) => [s.x ? 'x' : '', s.u ? String(s.u) : ''].filter(Boolean).join(' + ');
+  const total = [areas.x2 ? 'x²' : '', areas.x ? `${areas.x}x` : '', areas.u ? String(areas.u) : ''].filter(Boolean).join(' + ');
+  function reveal(id: string) { if (seen.includes(id)) return; const next = [...seen, id]; setSeen(next); if (next.length === pieces.length) onDone(total); }
+  const colSizes = [cols.x ? 'minmax(0, 3fr)' : '', cols.u ? `minmax(0, ${Math.max(1, cols.u * 0.55)}fr)` : ''].filter(Boolean).join(' ');
+  const rowSizes = [rows.x ? '96px' : '', rows.u ? `${Math.max(34, rows.u * 18)}px` : ''].filter(Boolean).join(' ');
+  return <div className="manip">
+    <div className="tiles-wrap">
+      <span className="tiles-top">{side(cols)}</span>
+      <span className="tiles-left">{side(rows)}</span>
+      <div className="tiles-grid" style={{ gridTemplateColumns: colSizes, gridTemplateRows: rowSizes }}>
+        {pieces.map(p => <button key={p.id} type="button" className={`tile tile-${p.r}${p.c} ${seen.includes(p.id) ? 'tile-seen' : ''}`} onClick={() => reveal(p.id)} aria-label={say(lang, `Morceau ${p.r === 'x' ? 'x' : rows.u} par ${p.c === 'x' ? 'x' : cols.u}`, `Piece ${p.r === 'x' ? 'x' : rows.u} by ${p.c === 'x' ? 'x' : cols.u}`, 'قطعة', 'Pieza')}>{seen.includes(p.id) ? p.area : '?'}</button>)}
+      </div>
+    </div>
+    <p className="manip-equation" aria-live="polite">{rows.x ? `(${side(rows)})` : side(rows)}({side(cols)}) = {pieces.map(p => (seen.includes(p.id) ? p.area : '…')).join(' + ')}</p>
+    {all && <p className="manip-discovery" role="status">{say(lang, `L’aire totale : ${total}. Chaque morceau de la largeur multiplie chaque morceau de la longueur.`, `Total area: ${total}. Each part of the width multiplies each part of the length.`, `المساحة الكلية: ${total}.`, `Área total: ${total}.`)}</p>}
+  </div>;
+}
+
+/** Ranger x² + bx + c en un carré (x + k)² : il faut 2k = b et k² = c. */
+function SquareBuild({ b, c, lang, onDone }: { b: number; c: number; lang: Lang; onDone: Done }) {
+  const [k, setK] = useState(1);
+  const [found, setFound] = useState(false);
+  const fits = 2 * k === b && k * k === c;
+  function go(v: number) { const next = Math.max(1, Math.min(9, v)); setK(next); if (!found && 2 * next === b && next * next === c) { setFound(true); onDone(String(next)); } }
+  return <div className="manip">
+    <p className="manip-feedback">{say(lang, `Morceaux : un x², ${b} bandes x, ${c} petits carrés.`, `Pieces: one x², ${b} x-strips, ${c} unit squares.`, `القطع: x² و ${b} أشرطة x و ${c} مربعات صغيرة.`, `Piezas: un x², ${b} tiras x, ${c} cuadraditos.`)}</p>
+    <div className="tiles-wrap"><div className="tiles-grid" style={{ gridTemplateColumns: `minmax(0, 3fr) minmax(0, ${Math.max(1, k * 0.55)}fr)`, gridTemplateRows: `96px ${Math.max(34, k * 18)}px` }}>
+      <span className="tile tile-xx tile-seen">x²</span><span className={`tile tile-xu tile-seen ${2 * k > b ? 'tile-bad' : ''}`}>{k}x</span>
+      <span className={`tile tile-ux tile-seen ${2 * k > b ? 'tile-bad' : ''}`}>{k}x</span><span className={`tile tile-uu tile-seen ${k * k !== c ? 'tile-bad' : ''}`}>{k * k}</span>
+    </div></div>
+    <div className="manip-controls">
+      <Button variant="soft" size="icon" aria-label="k − 1" onClick={() => go(k - 1)}><Minus /></Button>
+      <span className="manip-count">(x + {k})²</span>
+      <Button variant="soft" size="icon" aria-label="k + 1" onClick={() => go(k + 1)}><Plus /></Button>
+    </div>
+    <p className={`manip-feedback ${fits ? 'manip-good' : 'manip-bad'}`}>{say(lang, `Il faut ${2 * k} bandes x (on en a ${b}) et ${k * k} petits carrés (on en a ${c}).`, `You need ${2 * k} x-strips (you have ${b}) and ${k * k} unit squares (you have ${c}).`, `نحتاج ${2 * k} أشرطة و ${k * k} مربعات.`, `Hacen falta ${2 * k} tiras y ${k * k} cuadraditos.`)}</p>
+    {found && <p className="manip-discovery" role="status">x² + {b}x + {c} = (x + {k})² {say(lang, ': tout rentre, sans morceau en trop.', ': everything fits, nothing left over.', ': كل القطع تدخل.', ': todo encaja.')}</p>}
+  </div>;
+}
+
+// ───────────── Regrouper les termes semblables ─────────────
+
+function Collect({ terms, lang, onDone }: { terms: { c: number; x: boolean }[]; lang: Lang; onDone: Done }) {
+  const [sorted, setSorted] = useState(false);
+  const write = (list: { c: number; x: boolean }[]) => list.map((t, i) => `${i ? (t.c < 0 ? ' − ' : ' + ') : t.c < 0 ? '−' : ''}${Math.abs(t.c)}${t.x ? 'x' : ''}`).join('');
+  const xs = terms.filter(t => t.x), us = terms.filter(t => !t.x);
+  const sx = xs.reduce((a, t) => a + t.c, 0), su = us.reduce((a, t) => a + t.c, 0);
+  const shown = sorted ? [...xs, ...us] : terms;
+  return <div className="manip">
+    <div className="collect-row">{shown.map((t, i) => <span key={i} className={`collect-tile ${t.x ? 'collect-x' : 'collect-u'} ${t.c < 0 ? 'collect-neg' : ''}`}>{t.c < 0 ? '−' : '+'}{Math.abs(t.c)}{t.x ? 'x' : ''}</span>)}</div>
+    <p className="manip-equation">{write(terms)}</p>
+    {!sorted ? <Button variant="soft" onClick={() => { setSorted(true); onDone(`${sx}x + ${su}`); }}>{say(lang, 'Ranger : les x ensemble, les nombres ensemble', 'Sort: x with x, numbers with numbers', 'رتّب: x مع x والأعداد مع الأعداد', 'Ordenar: x con x, números con números')}</Button>
+      : <p className="manip-discovery" role="status">{write(xs)} = {num(sx)}x {say(lang, 'et', 'and', 'و', 'y')} {write(us)} = {num(su)} → {num(sx)}x{su < 0 ? ` − ${-su}` : ` + ${su}`}</p>}
+  </div>;
+}
+
+// ───────────── Tester des valeurs (inéquations) ─────────────
+
+function TestValues({ a, b, c, sign, min, max, lang, onDone }: { a: number; b: number; c: number; sign: '<' | '>'; min: number; max: number; lang: Lang; onDone: Done }) {
+  const [x, setX] = useState(0);
+  const [tested, setTested] = useState<number[]>([0]);
+  const [finished, setFinished] = useState(false);
+  const holds = (v: number) => (sign === '<' ? a * v + b < c : a * v + b > c);
+  const expr = `${a === 1 ? '' : a === -1 ? '−' : num(a)}x${b ? (b < 0 ? ` − ${-b}` : ` + ${b}`) : ''}`;
+  function test(v: number) {
+    const next = Math.max(min, Math.min(max, v)); setX(next);
+    const all = tested.includes(next) ? tested : [...tested, next];
+    setTested(all);
+    if (!finished && all.length >= 6 && all.some(holds) && all.some(t => !holds(t))) { setFinished(true); onDone('set'); }
+  }
+  const boundary = (c - b) / a;
+  const ticks = max - min;
+  const pos = (v: number) => `${((v - min) / ticks) * 100}%`;
+  const answer = (a > 0) === (sign === '<') ? `x < ${num(boundary)}` : `x > ${num(boundary)}`;
+  return <div className="manip">
+    <div className="hops-line" aria-hidden>
+      <div className="hops-axis" />
+      {Array.from({ length: ticks + 1 }, (_, i) => <span key={i} className="hops-tick hops-tick-big" style={{ left: pos(min + i) }}><span className="hops-label">{num(min + i)}</span></span>)}
+      {tested.map(v => <span key={v} className={`test-dot ${holds(v) ? 'test-yes' : 'test-no'}`} style={{ left: pos(v) }} />)}
+      <span className="hops-marker" style={{ left: pos(x) }}>x = {num(x)}</span>
+    </div>
+    <div className="manip-controls">
+      <Button variant="soft" size="icon" aria-label={say(lang, 'x plus petit', 'Smaller x', 'x أصغر', 'x menor')} onClick={() => test(x - 1)}><Minus /></Button>
+      <span className="manip-count">{expr} = {num(a * x + b)}</span>
+      <Button variant="soft" size="icon" aria-label={say(lang, 'x plus grand', 'Larger x', 'x أكبر', 'x mayor')} onClick={() => test(x + 1)}><Plus /></Button>
+    </div>
+    <p className={`manip-feedback ${holds(x) ? 'manip-good' : 'manip-bad'}`}>{num(a * x + b)} {sign} {num(c)} ? {holds(x) ? say(lang, 'oui, x est solution', 'yes, x is a solution', 'نعم', 'sí') : say(lang, 'non', 'no', 'لا', 'no')}</p>
+    {finished && <p className="manip-discovery" role="status">{say(lang, `Les solutions sont tous les nombres ${answer.startsWith('x <') ? 'à gauche' : 'à droite'} de ${num(boundary)} : ${answer}.${a < 0 ? ' Attention : le coefficient est négatif, le sens s’inverse !' : ''}`, `The solutions are all numbers ${answer.startsWith('x <') ? 'left' : 'right'} of ${num(boundary)}: ${answer}.${a < 0 ? ' Careful: negative coefficient, the sign flips!' : ''}`, `الحلول: ${answer}.`, `Soluciones: ${answer}.`)}</p>}
+  </div>;
+}
+
+// ───────────── Tableau d'essais (systèmes) ─────────────
+
+function Guess({ a, b, c, e, d, min, max, lang, onDone }: { a: number; b: number; c: number; e: number; d: number; min: number; max: number; lang: Lang; onDone: Done }) {
+  const [rows, setRows] = useState<number[]>([]);
+  const [x, setX] = useState(min);
+  const [found, setFound] = useState(false);
+  const yOf = (v: number) => a * v + b, second = (v: number) => c * v + e * yOf(v);
+  const lhs = `${c === 1 ? '' : num(c)}x ${e < 0 ? '−' : '+'} ${Math.abs(e) === 1 ? '' : Math.abs(e)}y`;
+  function tryX(v: number) {
+    const next = Math.max(min, Math.min(max, v)); setX(next);
+    setRows(r => (r.includes(next) ? r : [...r, next].sort((p, q) => p - q)));
+    if (!found && second(next) === d) { setFound(true); onDone(`${next};${yOf(next)}`); }
+  }
+  return <div className="manip">
+    <div className="manip-controls">
+      <Button variant="soft" size="icon" aria-label={say(lang, 'x plus petit', 'Smaller x', 'x أصغر', 'x menor')} onClick={() => tryX(x - 1)}><Minus /></Button>
+      <span className="manip-count">x = {num(x)}</span>
+      <Button variant="soft" size="icon" aria-label={say(lang, 'x plus grand', 'Larger x', 'x أكبر', 'x mayor')} onClick={() => tryX(x + 1)}><Plus /></Button>
+    </div>
+    {rows.length > 0 && <table className="guess-table"><thead><tr><th>x</th><th>y</th><th>{lhs}</th><th /></tr></thead>
+      <tbody>{rows.map(v => <tr key={v} className={second(v) === d ? 'guess-ok' : ''}><td>{num(v)}</td><td>{num(yOf(v))}</td><td>{num(second(v))}</td><td>{second(v) === d ? '✓' : `≠ ${num(d)}`}</td></tr>)}</tbody></table>}
+    {found && <p className="manip-discovery" role="status">{say(lang, `Le couple (${num(x)} ; ${num(yOf(x))}) vérifie les deux équations. Le calcul (substitution, combinaison) évite de tâtonner.`, `The pair (${num(x)}, ${num(yOf(x))}) satisfies both equations. Algebra (substitution, elimination) avoids the guessing.`, `الزوج (${num(x)} ; ${num(yOf(x))}) يحقق المعادلتين.`, `El par (${num(x)} ; ${num(yOf(x))}) cumple ambas.`)}</p>}
+  </div>;
+}
+
+// ───────────── Construire une suite ─────────────
+
+function Sequence({ u0, a, b, n, lang, onDone }: { u0: number; a: number; b: number; n: number; lang: Lang; onDone: Done }) {
+  const [terms, setTerms] = useState<number[]>([u0]);
+  const last = terms[terms.length - 1]!;
+  const top = Math.max(...Array.from({ length: n + 1 }, (_, i) => Array.from({ length: i }).reduce<number>(u => a * u + b, u0)));
+  const rule = b === 0 ? `× ${num(a)}` : a === 1 ? `+ ${num(b)}` : `× ${num(a)} + ${num(b)}`;
+  function next() { if (terms.length > n) return; const all = [...terms, clean(a * last + b)]; setTerms(all); if (all.length > n) onDone(String(all[all.length - 1])); }
+  const fixed = a !== 1 ? b / (1 - a) : null;
+  return <div className="manip">
+    <div className="seq-bars" aria-hidden>{terms.map((v, i) => <span key={i} className="seq-bar" style={{ height: `${Math.max(6, (v / top) * 100)}%` }}><span>{num(Math.round(v * 100) / 100)}</span></span>)}</div>
+    <p className="manip-equation">u{'₀₁₂₃₄₅₆₇₈₉'[terms.length - 1]} = {num(Math.round(last * 1000) / 1000)}</p>
+    {terms.length <= n ? <Button variant="soft" onClick={next}>{say(lang, `Terme suivant (${rule})`, `Next term (${rule})`, `الحد الموالي (${rule})`, `Término siguiente (${rule})`)}</Button>
+      : <p className="manip-discovery" role="status">{b === 0
+        ? say(lang, `On multiplie toujours par ${num(a)} : suite géométrique, elle grimpe de plus en plus vite.`, `Always × ${num(a)}: a geometric sequence, climbing faster and faster.`, `نضرب دائمًا في ${num(a)}: متتالية هندسية.`, `Siempre × ${num(a)}: sucesión geométrica.`)
+        : say(lang, `Les termes se rapprochent de ${num(fixed!)} : c’est le point fixe, ℓ = ${num(a)}ℓ + ${num(b)}.`, `The terms approach ${num(fixed!)}: the fixed point, ℓ = ${num(a)}ℓ + ${num(b)}.`, `تقترب الحدود من ${num(fixed!)}.`, `Los términos se acercan a ${num(fixed!)}.`)}</p>}
   </div>;
 }

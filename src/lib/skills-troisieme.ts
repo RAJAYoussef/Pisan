@@ -202,7 +202,7 @@ function ineqSquareDiff(seed: number): Activity {
 
 function sysCheck(seed: number): Activity {
   const rng = seeded(seed);
-  const x = int(rng, -3, 6), y = int(rng, -3, 6), a = int(rng, 1, 4), b = int(rng, 1, 4), c = int(rng, 1, 3);
+  const x = int(rng, -3, 6), y = int(rng, -3, 6), a = int(rng, 2, 4), b = int(rng, 2, 4), c = int(rng, 2, 3);
   const e1 = a * x + b * y, e2 = c * x - y;
   const wrongY = y + 1;
   return {
@@ -217,7 +217,7 @@ function sysCheck(seed: number): Activity {
 
 function sysSubstitution(seed: number): Activity {
   const rng = seeded(seed);
-  const x = int(rng, -3, 7), a = int(rng, 2, 4), b = int(rng, -5, 5), y = a * x + b, c = int(rng, 1, 3), d = c * x + y;
+  const x = int(rng, -3, 7), a = int(rng, 2, 4), b = int(rng, -5, 5) || 3, y = a * x + b, c = int(rng, 2, 3), d = c * x + y;
   return {
     title: t('Par substitution', 'By substitution', 'بالتعويض', 'Por sustitución'),
     summary: `y = ${a}x${plus(b)} dans ${c}x + y = ${rel(d)} : ${c + a}x${plus(b)} = ${rel(d)} ⇒ x = ${rel(x)}, y = ${rel(y)}`,

@@ -22,7 +22,10 @@ function solve(left: Side, right: Side): number | null {
 }
 
 describe('Introductions (modèle de Singapour)', () => {
-  const DONE: FigureKind[] = ['primes', 'linear', 'relatives', 'signs', 'decimals', 'arith', 'powers', 'sci', 'roots'];
+  const DONE: FigureKind[] = ['primes', 'linear', 'relatives', 'signs', 'decimals', 'arith', 'powers', 'sci', 'roots', 'expressions', 'literal', 'identities', 'equations', 'inequalities', 'systems', 'affine', 'seq', 'deriv'];
+  const LYCEE: FigureKind[] = ['seq', 'deriv'];
+  /** Une compétence « manipule » si son introduction a une manipulation ou si l'entraînement en contient une (widget, quadrillage). */
+  const manipulates = (id: string) => Boolean(INTROS[id]?.manip) || getSkill(id)!.build(1).steps.some(st => st.type === 'widget' || st.type === 'grid');
   it('every skill of the finished chapters has a lesson card in four languages (and a goal with its manipulation)', () => {
     for (const id of DONE.flatMap(k => skillsFor(k)).map(s => s.id)) {
       const intro = INTROS[id];
@@ -31,7 +34,7 @@ describe('Introductions (modèle de Singapour)', () => {
       for (const l of [...(intro!.goal ? [intro!.goal] : []), ...intro!.lesson.points, intro!.lesson.example.title, ...intro!.lesson.example.lines]) for (const lang of ['fr', 'en', 'ar', 'es'] as const) expect(l[lang].length, `${id} ${lang}`).toBeGreaterThan(0);
     }
     // dans les chapitres finis, au moins la moitié des compétences commencent par manipuler
-    for (const k of DONE) expect(skillsFor(k).filter(s => INTROS[s.id]?.manip).length * 2, k).toBeGreaterThanOrEqual(skillsFor(k).length);
+    for (const k of DONE.filter(k => !LYCEE.includes(k))) expect(skillsFor(k).filter(s => manipulates(s.id)).length * 2, k).toBeGreaterThanOrEqual(skillsFor(k).length);
   });
   it('every manipulation can reach its goal', () => {
     for (const [id, intro] of Object.entries(INTROS)) {
@@ -142,3 +145,35 @@ describe('Manipulations de la famille Nombres', () => {
     expect(screen.getByText('À retenir')).toBeTruthy();
   });
 });
+
+describe('Manipulations de la famille Calcul littéral et fonctions', () => {
+  const engine = () => localEngine({ secret: 'test', hash: '9'.repeat(64) });
+  const open = (id: string) => render(<SkillActivity lang="fr" skill={getSkill(id)!} engine={engine()} attempts={[]} onBack={vi.fn()} />);
+  it('algebra tiles: (x + 3)(x + 2) = x² + 2x + 3x + 6', () => {
+    open('lit-double');
+    for (const b of screen.getAllByRole('button', { name: /^Morceau/ })) fireEvent.click(b);
+    expect(screen.getByRole('status').textContent).toMatch(/x² \+ 5x \+ 6/);
+  });
+  it('the square of pieces: x² + 6x + 9 = (x + 3)²', () => {
+    open('id-factor');
+    fireEvent.click(screen.getByRole('button', { name: 'k + 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'k + 1' }));
+    expect(screen.getByRole('status').textContent).toMatch(/\(x \+ 3\)²/);
+  });
+  it('the machine finds the pre-image of 13 for 3x − 5', () => {
+    open('affine-image');
+    for (let i = 0; i < 4; i++) fireEvent.click(screen.getByRole('button', { name: 'Entrée plus grande' })); // 3 → 7 : passe par 6
+    expect(screen.getByRole('status').textContent).toMatch(/Avec 6, la machine donne 13/);
+  });
+  it('testing values shows the solution set, and the flip with a negative coefficient', () => {
+    open('ineq-flip');
+    for (let i = 0; i < 5; i++) fireEvent.click(screen.getByRole('button', { name: 'x plus petit' }));
+    expect(screen.getByRole('status').textContent).toMatch(/x < −2.*le sens s’inverse/);
+  });
+  it('the trial table finds the solution of the system', () => {
+    open('sys-combination');
+    for (let i = 0; i < 7; i++) fireEvent.click(screen.getByRole('button', { name: 'x plus grand' }));
+    expect(screen.getByRole('status').textContent).toMatch(/\(7 ; 3\)/);
+  });
+});
+

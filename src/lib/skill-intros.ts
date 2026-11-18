@@ -4,6 +4,7 @@
 // Données pures, couvertes par src/test/skill-intros.test.ts.
 import type { L } from './curriculum';
 import { NOMBRES_INTROS } from './skill-intros-nombres';
+import { ALGEBRE_INTROS } from './skill-intros-algebre';
 
 const t = (fr: string, en: string, ar: string, es: string): L => ({ fr, en, ar, es });
 
@@ -17,7 +18,21 @@ export type Manip =
   /** Garder la balance en équilibre : même opération des deux côtés jusqu'à isoler x. */
   | { kind: 'balance'; left: Side; right: Side }
   /** Modèle en barres : `parts` barres égales (l'inconnue) plus un morceau connu `extra`, pour un total. */
-  | { kind: 'bars'; parts: number; extra: number; total: number; unit: string }
+  | { kind: 'bars'; parts: number; extra: number; total: number; unit: string; rectangle?: boolean }
+  /** Machine à calculer : on règle le nombre d'entrée jusqu'à obtenir la sortie `target`. */
+  | { kind: 'machine'; ops: { op: '×' | '+' | '−'; k: number }[]; target: number; min: number; max: number }
+  /** Tuiles algébriques : rectangle (x? + u)(x? + u) ; on touche chaque morceau pour révéler son aire. */
+  | { kind: 'tiles'; rows: { x: number; u: number }; cols: { x: number; u: number } }
+  /** Ranger les morceaux x² + bx + c en carré (x + k)² : on cherche k. */
+  | { kind: 'square-build'; b: number; c: number }
+  /** Regrouper les termes semblables d'une somme. */
+  | { kind: 'collect'; terms: { c: number; x: boolean }[] }
+  /** Tester des valeurs de x dans a x + b (signe) c, et voir apparaître l'ensemble des solutions. */
+  | { kind: 'test-values'; a: number; b: number; c: number; sign: '<' | '>'; min: number; max: number }
+  /** Tableau d'essais pour un système { y = a x + b ; c x + e y = d }. */
+  | { kind: 'guess'; a: number; b: number; c: number; e: number; d: number; min: number; max: number }
+  /** Construire une suite terme à terme : uₙ₊₁ = a uₙ + b. */
+  | { kind: 'sequence'; u0: number; a: number; b: number; n: number }
   /** Sauts sur une droite graduée de `min` à `max`, par pas de `step`, de `start` jusqu'à `target`. */
   | { kind: 'hops'; min: number; max: number; step: number; start: number; target: number }
   /** Jetons + et − : on associe les paires nulles, il reste a + b. */
@@ -122,7 +137,7 @@ const PROTOTYPE: Record<string, Intro> = {
   },
   'lin-problem': {
     goal: t('Méthode de Singapour : un rectangle a un périmètre de 34 cm et sa longueur dépasse sa largeur de 3 cm. Le modèle en barres montre la moitié du périmètre. Trouve la largeur.', 'Singapore method: a rectangle has a perimeter of 34 cm and is 3 cm longer than it is wide. The bar model shows half the perimeter. Find the width.', 'طريقة سنغافورة: مستطيل محيطه 34 cm وطوله يزيد عن عرضه بـ 3 cm. النموذج الشريطي يبين نصف المحيط. جد العرض.', 'Método de Singapur: un rectángulo tiene 34 cm de perímetro y mide 3 cm más de largo que de ancho. El modelo de barras muestra medio perímetro. Halla el ancho.'),
-    manip: { kind: 'bars', parts: 2, extra: 3, total: 17, unit: 'cm' },
+    manip: { kind: 'bars', parts: 2, extra: 3, total: 17, unit: 'cm', rectangle: true },
     lesson: {
       points: [
         t('**Dessine avant de calculer** : une barre par quantité inconnue, de même longueur si elles sont égales.', '**Draw before you calculate**: one bar per unknown quantity, the same length when they are equal.', '**ارسم قبل أن تحسب**: شريط لكل مجهول.', '**Dibuja antes de calcular**: una barra por cada incógnita.'),
@@ -134,7 +149,7 @@ const PROTOTYPE: Record<string, Intro> = {
   },
 };
 
-export const INTROS: Record<string, Intro> = { ...PROTOTYPE, ...NOMBRES_INTROS };
+export const INTROS: Record<string, Intro> = { ...PROTOTYPE, ...NOMBRES_INTROS, ...ALGEBRE_INTROS };
 export const introFor = (skillId: string): Intro | null => INTROS[skillId] ?? null;
 
 /** Valeur arrondie au milliardième (les × 10 et ÷ 10 successifs ne doivent pas laisser 0,30000000000000004). */
@@ -178,4 +193,11 @@ export function balanceSolved(left: Side, right: Side): number | null {
   if (left.x === 1 && left.u === 0 && right.x === 0) return right.u;
   if (right.x === 1 && right.u === 0 && left.x === 0) return left.u;
   return null;
+}
+
+/** Valeur de la machine pour une entrée. */
+export const runMachine = (ops: { op: '×' | '+' | '−'; k: number }[], x: number) => ops.reduce((v, o) => (o.op === '×' ? v * o.k : o.op === '+' ? v + o.k : v - o.k), x);
+/** Aire de chaque tuile d'un rectangle (x? + u)(x? + u) : x², x et unités. */
+export function tileAreas(rows: { x: number; u: number }, cols: { x: number; u: number }) {
+  return { x2: rows.x * cols.x, x: rows.x * cols.u + rows.u * cols.x, u: rows.u * cols.u };
 }

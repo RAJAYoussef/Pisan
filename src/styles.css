@@ -904,3 +904,43 @@ html[data-dys-bg="dark"] { --brand-p: #8f93ff; }
 .square-cell { aspect-ratio: 1; border-radius: 3px; background: var(--sun); }
 .square-ok { background: var(--primary); }
 .square-over { background: var(--destructive); opacity: .7; }
+
+/* ───────────── Manipulations « Calcul littéral et fonctions » ───────────── */
+.machine { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; }
+.machine-in, .machine-val { display: inline-flex; min-width: 2.6rem; height: 2.6rem; align-items: center; justify-content: center; padding: 0 8px; border-radius: 12px; background: var(--sky-soft); font-family: var(--font-display); font-size: 1.2rem; font-weight: 800; }
+.machine-in { background: var(--sun-soft); }
+.machine-step { display: inline-flex; align-items: center; gap: 6px; }
+.machine-op { padding: 6px 10px; border-radius: 10px; background: var(--foreground); color: var(--background); font-weight: 800; }
+.machine-op::after { content: ' →'; }
+
+.tiles-wrap { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto 1fr; gap: 4px 6px; width: 100%; max-width: 360px; }
+.tiles-top { grid-column: 2; text-align: center; font-weight: 800; }
+.tiles-left { grid-row: 2; align-self: center; font-weight: 800; writing-mode: vertical-rl; transform: rotate(180deg); }
+.tiles-grid { grid-column: 2; grid-row: 2; display: grid; gap: 3px; }
+.tiles-wrap > .tiles-grid:only-child { grid-column: 1 / -1; grid-row: 1 / -1; }
+.tile { display: flex; align-items: center; justify-content: center; min-height: 30px; border-radius: 6px; font-family: var(--font-display); font-weight: 800; color: var(--foreground); cursor: pointer; transition: transform .15s; }
+.tile:hover { transform: scale(1.02); }
+.tile-xx { background: var(--sky); color: #fff; }
+.tile-xu, .tile-ux { background: var(--primary-soft); border: 2px solid var(--primary); }
+.tile-uu { background: var(--sun-soft); border: 2px solid var(--sun-deep); }
+.tile:not(.tile-seen) { background: var(--muted); border: 2px dashed var(--muted-foreground); color: var(--muted-foreground); }
+.tile-seen { animation: pop .25s ease-out; cursor: default; }
+.tile-bad { outline: 3px solid var(--destructive); outline-offset: -3px; }
+
+.collect-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.collect-tile { display: inline-flex; min-width: 3rem; height: 2.6rem; align-items: center; justify-content: center; padding: 0 10px; border-radius: 10px; font-family: var(--font-display); font-weight: 800; animation: pop .3s ease-out; }
+.collect-x { background: var(--sky-soft); border: 2px solid var(--sky); }
+.collect-u { background: var(--sun-soft); border: 2px solid var(--sun-deep); }
+.collect-neg { border-style: dashed; }
+
+.test-dot { position: absolute; top: 31px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; }
+.test-yes { background: var(--primary); }
+.test-no { background: var(--destructive); opacity: .75; }
+
+.guess-table { border-collapse: collapse; font-family: var(--font-display); }
+.guess-table th, .guess-table td { padding: 4px 12px; text-align: center; border-bottom: 1px solid var(--border); }
+.guess-ok td { background: var(--success-soft); font-weight: 800; }
+
+.seq-bars { display: flex; align-items: flex-end; gap: 6px; width: 100%; max-width: 420px; height: 150px; padding: 0 4px; border-bottom: 2px solid var(--foreground); }
+.seq-bar { position: relative; flex: 1; border-radius: 6px 6px 0 0; background: var(--sky); animation: pop .3s ease-out; }
+.seq-bar span { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: .7rem; font-weight: 800; white-space: nowrap; }
