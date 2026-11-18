@@ -13,6 +13,11 @@ import { InscribedFigure, ThalesFigure, inscribedRange } from './figures';
 import { Speaker, Tutor } from './shared';
 import { Celebration, DiscoverPanel, LessonCard, PhaseStepper, PointsBadge, type Phase } from './skill-intro';
 import { introFor } from '@/lib/skill-intros';
+
+const SEEN_KEY = 'pisan-intro-seen';
+/** Introductions déjà vues sur cet appareil (simple confort : sans stockage, on les remontre). */
+function introSeen(id: string): boolean { try { return (JSON.parse(localStorage.getItem(SEEN_KEY) ?? '[]') as string[]).includes(id); } catch { return false; } }
+function markIntroSeen(id: string) { try { const seen = JSON.parse(localStorage.getItem(SEEN_KEY) ?? '[]') as string[]; if (!seen.includes(id)) localStorage.setItem(SEEN_KEY, JSON.stringify([...seen, id])); } catch { /* stockage indisponible */ } }
 import { starsFor, stepPoints } from '@/lib/rewards';
 import { minusSign, Rich } from './math-text';
 import { FractionBars } from './fraction-bars';
@@ -57,7 +62,10 @@ export function SkillActivity({ lang, skill, engine, onBack, attempts, onFractio
   const journaledCorrections = useRef<string[]>([]);
   // Modèle de Singapour : manipuler puis retenir avant de s'entraîner (la première fois) ; ludification du parcours.
   const intro = introFor(skill.id);
-  const [phase, setPhase] = useState<Phase>(intro && attempts && !attempts.some(a => a.skill === skill.id) ? (intro.manip ? 'discover' : 'lesson') : 'practice');
+  // La première fois qu'une compétence est ouverte (jamais faite, ou jamais vue depuis l'arrivée des manipulations
+  // sur cet appareil), on commence par manipuler ; ensuite, directement l'entraînement.
+  const [phase, setPhase] = useState<Phase>(intro && attempts && (!attempts.some(a => a.skill === skill.id) || !introSeen(skill.id)) ? (intro.manip ? 'discover' : 'lesson') : 'practice');
+  useEffect(() => { if (intro && phase === 'practice') markIntroSeen(skill.id); }, [intro, phase, skill.id]);
   const [lessonOpen, setLessonOpen] = useState(false);
   const [points, setPoints] = useState(0);
   const [streak, setStreak] = useState(0);

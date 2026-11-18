@@ -101,7 +101,19 @@ describe('Un parcours commence par manipuler, la première fois seulement', () =
     expect(await screen.findByText(/pts/)).toBeTruthy();
     expect(screen.getByRole('button', { name: /Revoir le cours/ })).toBeTruthy();
   });
-  it('once done, it goes straight to practice (the lesson stays one tap away)', async () => {
+  it('a skill done before the manipulations arrived shows them once on this device', () => {
+    localStorage.removeItem('pisan-intro-seen');
+    const done: Attempt = { kind: 'workshop', notion: 'fractions', skill: 'frac-problem', correct: 2, total: 2, date: '2026-10-01T10:00:00Z', minutes: 3 };
+    const first = render(<SkillActivity lang="fr" skill={getSkill('frac-problem')!} engine={engine()} attempts={[done]} onBack={vi.fn()} />);
+    expect(screen.getByRole('button', { name: /Je manipule/ }).getAttribute('aria-current')).toBe('step');
+    fireEvent.click(screen.getByRole('button', { name: /Passer au cours/ }));
+    fireEvent.click(screen.getAllByRole('button', { name: /Je m’entraîne/ }).at(-1)!);
+    first.unmount();
+    render(<SkillActivity lang="fr" skill={getSkill('frac-problem')!} engine={engine()} attempts={[done]} onBack={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /Passer au cours/ })).toBeNull();
+  });
+  it('once done and seen, it goes straight to practice (the lesson stays one tap away)', async () => {
+    localStorage.setItem('pisan-intro-seen', JSON.stringify(['lin-two-step']));
     const done: Attempt = { kind: 'workshop', notion: 'equations', skill: 'lin-two-step', correct: 3, total: 3, date: '2026-11-01T10:00:00Z', minutes: 3 };
     render(<SkillActivity lang="fr" skill={getSkill('lin-two-step')!} engine={engine()} attempts={[done]} onBack={vi.fn()} />);
     expect(await screen.findByRole('button', { name: /Revoir le cours/ })).toBeTruthy();
