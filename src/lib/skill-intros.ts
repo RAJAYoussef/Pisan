@@ -7,6 +7,7 @@ import { NOMBRES_INTROS } from './skill-intros-nombres';
 import { ALGEBRE_INTROS } from './skill-intros-algebre';
 import { GEOMETRIE_INTROS } from './skill-intros-geometrie';
 import { DONNEES_INTROS } from './skill-intros-donnees';
+import { SECONDE_INTROS } from './skill-intros-seconde';
 
 const t = (fr: string, en: string, ar: string, es: string): L => ({ fr, en, ar, es });
 
@@ -88,7 +89,25 @@ export type Manip =
   /** Prolonger la suite a × 3, a × 2, a × 1, a × 0… pour chaque a : la règle des signes apparaît. */
   | { kind: 'pattern'; factors: number[]; divide?: boolean }
   /** Construire un carré de jetons d'aire `area` (ou l'encadrer). */
-  | { kind: 'square'; area: number };
+  | { kind: 'square'; area: number }
+  /** Promener x sur une droite graduée : appartient-il à l'intervalle (et à un second, ou à distance ≤ r d'un centre) ? */
+  | { kind: 'interval'; a: number; b: number; closedA: boolean; closedB: boolean; other?: { a: number; b: number }; center?: number }
+  /** Promener un point sur la courbe d'une fonction de référence (ou chercher les antécédents de `target`). */
+  | { kind: 'curve-explore'; fns: RefFn[]; target?: number }
+  /** Promener x et lire le signe de chaque facteur, puis du produit (ou du quotient). */
+  | { kind: 'sign-explore'; factors: { a: number; b: number }[]; quotient?: boolean }
+  /** Régler m et p pour que y = mx + p passe par la droite cible (ou lui soit parallèle). */
+  | { kind: 'line-build'; m: number; p: number; parallel?: boolean }
+  /** Ranger une série et la couper en quatre : Q1, médiane, Q3, puis la boîte. */
+  | { kind: 'quartiles'; values: number[] }
+  /** Tableau des 36 issues de deux dés : toucher celles dont la somme vaut `sum`. */
+  | { kind: 'dice-grid'; sum: number }
+  /** Diagramme de Venn : compter A, ajouter B, retirer ce qui est compté deux fois. */
+  | { kind: 'venn'; a: number; b: number; both: number; total: number; labels: [L, L] }
+  /** Tourner un point sur le cercle trigonométrique : radians, cos, sin et leurs signes. */
+  | { kind: 'unit-circle'; target: number; step: number; quadrants?: boolean };
+
+export type RefFn = 'square' | 'inverse' | 'sqrt' | 'cube' | 'parabola';
 
 export type Lesson = { points: L[]; example: { title: L; lines: L[] } };
 /** Une compétence a toujours sa carte de cours ; la manipulation est facultative (sinon on commence par le cours). */
@@ -191,7 +210,7 @@ const PROTOTYPE: Record<string, Intro> = {
   },
 };
 
-export const INTROS: Record<string, Intro> = { ...PROTOTYPE, ...NOMBRES_INTROS, ...ALGEBRE_INTROS, ...GEOMETRIE_INTROS, ...DONNEES_INTROS };
+export const INTROS: Record<string, Intro> = { ...PROTOTYPE, ...NOMBRES_INTROS, ...ALGEBRE_INTROS, ...GEOMETRIE_INTROS, ...DONNEES_INTROS, ...SECONDE_INTROS };
 export const introFor = (skillId: string): Intro | null => INTROS[skillId] ?? null;
 
 /** Valeur arrondie au milliardième (les × 10 et ÷ 10 successifs ne doivent pas laisser 0,30000000000000004). */
@@ -264,3 +283,29 @@ export function simulate(weights: number[], count: number, seed: number): number
     return weights.findIndex(w => (r -= w) < 0);
   });
 }
+
+// ───────────── 2nde ─────────────
+
+/** x appartient-il à l'intervalle de bornes a et b (fermé ou ouvert de chaque côté) ? */
+export const inInterval = (x: number, a: number, b: number, closedA: boolean, closedB: boolean) => (closedA ? x >= a : x > a) && (closedB ? x <= b : x < b);
+/** Valeur d'une fonction de référence (null hors de l'ensemble de définition). La « parabole » est (x − 1)² − 2. */
+export function refValue(fn: RefFn, x: number): number | null {
+  if (fn === 'square') return x * x;
+  if (fn === 'cube') return x * x * x;
+  if (fn === 'inverse') return x === 0 ? null : 1 / x;
+  if (fn === 'sqrt') return x < 0 ? null : Math.sqrt(x);
+  return (x - 1) ** 2 - 2;
+}
+/** Les régions délimitées par les racines des facteurs ax + b (triées) : un représentant entier ou demi-entier de chacune. */
+export function signRegions(factors: { a: number; b: number }[]): number[] {
+  const roots = [...new Set(factors.map(f => -f.b / f.a))].sort((x, y) => x - y);
+  const reps = [roots[0]! - 1, ...roots.slice(1).map((r, i) => (r + roots[i]!) / 2), roots[roots.length - 1]! + 1];
+  return reps;
+}
+/** Quartiles d'une série (définition du lycée français : rangs ⌈n/4⌉ et ⌈3n/4⌉) et médiane. */
+export function fiveNumbers(values: number[]): { min: number; q1: number; me: number; q3: number; max: number } {
+  const s = [...values].sort((a, b) => a - b), n = s.length;
+  return { min: s[0]!, q1: s[Math.ceil(n / 4) - 1]!, me: median(s), q3: s[Math.ceil((3 * n) / 4) - 1]!, max: s[n - 1]! };
+}
+/** Les couples (dé 1 ; dé 2) dont la somme vaut s. */
+export const diceWays = (s: number) => Array.from({ length: 36 }, (_, i) => [Math.floor(i / 6) + 1, (i % 6) + 1] as [number, number]).filter(([a, b]) => a + b === s);

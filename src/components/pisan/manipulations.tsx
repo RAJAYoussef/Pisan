@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import type { Lang } from '@/lib/i18n';
 import type { L } from '@/lib/curriculum';
 import { say } from '@/lib/pisan';
-import { applyBalance, balanceOps, balanceSolved, clean, digitsByRank, isPrime, PLACE_RANKS, rectanglePairs, angleKind, closes, median, runMachine, simulate, tileAreas, type BalanceOp, type Manip, type Side } from '@/lib/skill-intros';
+import { applyBalance, balanceOps, balanceSolved, clean, diceWays, digitsByRank, fiveNumbers, inInterval, isPrime, PLACE_RANKS, rectanglePairs, refValue, angleKind, closes, median, runMachine, signRegions, simulate, tileAreas, type BalanceOp, type Manip, type RefFn, type Side } from '@/lib/skill-intros';
 
 type Done = (found: string) => void;
 
@@ -48,6 +48,14 @@ export function Manipulation({ manip, lang, onDone }: { manip: Manip; lang: Lang
   if (manip.kind === 'line-up') return <LineUp values={manip.values} lang={lang} onDone={onDone} />;
   if (manip.kind === 'tally') return <Tally categories={manip.categories} answers={manip.answers} lang={lang} onDone={onDone} />;
   if (manip.kind === 'sim') return <Sim outcomes={manip.outcomes} event={manip.event} seed={manip.seed} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'interval') return <IntervalWalk {...manip} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'curve-explore') return <CurveExplore fns={manip.fns} target={manip.target} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'sign-explore') return <SignExplore factors={manip.factors} quotient={manip.quotient ?? false} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'line-build') return <LineBuild m={manip.m} p={manip.p} parallel={manip.parallel ?? false} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'quartiles') return <Quartiles values={manip.values} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'dice-grid') return <DiceGrid sum={manip.sum} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'venn') return <Venn {...manip} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'unit-circle') return <UnitCircle target={manip.target} step={manip.step} quadrants={manip.quadrants ?? false} lang={lang} onDone={onDone} />;
   return <Bars parts={manip.parts} extra={manip.extra} total={manip.total} unit={manip.unit} rectangle={manip.rectangle ?? false} lang={lang} onDone={onDone} />;
 }
 
@@ -959,5 +967,261 @@ function Sim({ outcomes, event, seed, lang, onDone }: { outcomes: { label: L; we
     <div className="manip-controls">{[1, 10, 100, 1000].map(n => <Button key={n} variant="soft" size="sm" onClick={() => roll(n)}>+{n}</Button>)}</div>
     <p className="manip-equation">{say(lang, `${results.length} essais · fréquence ${num(Math.round(freq * 1000) / 1000)} · probabilité ${num(Math.round(p * 1000) / 1000)}`, `${results.length} trials · frequency ${(Math.round(freq * 1000) / 1000)} · probability ${(Math.round(p * 1000) / 1000)}`, `${results.length} تجربة · التردد ${num(Math.round(freq * 1000) / 1000)}`, `${results.length} intentos · frecuencia ${num(Math.round(freq * 1000) / 1000)}`)}</p>
     {results.length >= 1000 && <p className="manip-discovery" role="status">{say(lang, `Avec ${results.length} essais, la fréquence (${num(Math.round(freq * 100) / 100)}) est très proche de la probabilité (${num(Math.round(p * 100) / 100)}). Avec peu d’essais, elle variait beaucoup plus.`, `With ${results.length} trials, the frequency (${(Math.round(freq * 100) / 100)}) is very close to the probability (${(Math.round(p * 100) / 100)}).`, `التردد قريب جدًا من الاحتمال.`, `La frecuencia se acerca a la probabilidad.`)}</p>}
+  </div>;
+}
+
+// ───────────── 2nde : intervalles, fonctions, signes, droites, quartiles, événements, cercle ─────────────
+
+const yes = (lang: Lang, v: boolean) => (v ? say(lang, 'oui', 'yes', 'نعم', 'sí') : say(lang, 'non', 'no', 'لا', 'no'));
+
+function IntervalWalk({ a, b, closedA, closedB, other, center, lang, onDone }: { a: number; b: number; closedA: boolean; closedB: boolean; other?: { a: number; b: number } | undefined; center?: number | undefined; lang: Lang; onDone: Done }) {
+  const lo = Math.min(a, other?.a ?? a) - 3, hi = Math.max(b, other?.b ?? b) + 3;
+  const [x, setX] = useState(lo + 1);
+  const [seen, setSeen] = useState<string[]>([]);
+  const [finished, setFinished] = useState(false);
+  const inA = inInterval(x, a, b, closedA, closedB), inB = other ? inInterval(x, other.a, other.b, true, true) : false;
+  const W = 300, px = (v: number) => 10 + ((v - lo) / (hi - lo)) * (W - 20);
+  function go(v: number) {
+    const nx = Math.max(lo, Math.min(hi, v)); setX(nx);
+    const tag = other ? (inInterval(nx, a, b, closedA, closedB) ? 'A' : '') + (inInterval(nx, other.a, other.b, true, true) ? 'B' : '') : nx === a ? 'a' : nx === b ? 'b' : inInterval(nx, a, b, true, true) ? 'in' : 'out';
+    const all = seen.includes(tag) ? seen : [...seen, tag];
+    setSeen(all);
+    const goal = other ? ['A', 'B', 'AB'] : ['a', 'b', 'in'];
+    if (!finished && goal.every(g => all.includes(g))) { setFinished(true); onDone('interval'); }
+  }
+  const bracket = (v: number, closed: boolean, left: boolean) => <text x={px(v) - 5} y={36} className="svg-label interval-bracket">{(closed ? left : !left) ? '[' : ']'}</text>;
+  return <div className="manip">
+    <svg viewBox={`0 0 ${W} 60`} className="manip-svg" aria-hidden>
+      <line x1={10} y1={30} x2={W - 10} y2={30} className="svg-tick" />
+      {Array.from({ length: hi - lo + 1 }, (_, i) => <g key={i}><line x1={px(lo + i)} x2={px(lo + i)} y1={26} y2={34} className="svg-tick" /><text x={px(lo + i) - 4} y={52} className="svg-small">{num(lo + i)}</text></g>)}
+      <line x1={px(a)} x2={px(b)} y1={30} y2={30} className="interval-a" />
+      {other && <line x1={px(other.a)} x2={px(other.b)} y1={22} y2={22} className="interval-b" />}
+      {bracket(a, closedA, true)}{bracket(b, closedB, false)}
+      <circle cx={px(x)} cy={30} r={6} className={inA ? 'interval-in' : 'interval-out'} style={{ transition: 'cx .25s' }} />
+    </svg>
+    <Stepper lang={lang} label={`x = ${num(x)}`} onMinus={() => go(x - 0.5)} onPlus={() => go(x + 0.5)} minus={say(lang, 'Reculer x', 'Move x left', 'حرّك x يسارًا', 'Mover x a la izquierda')} plus={say(lang, 'Avancer x', 'Move x right', 'حرّك x يمينًا', 'Mover x a la derecha')} />
+    <p className="manip-equation" aria-live="polite">{other
+      ? `A : ${yes(lang, inA)} · B : ${yes(lang, inB)} · A ∩ B : ${yes(lang, inA && inB)} · A ∪ B : ${yes(lang, inA || inB)}`
+      : center !== undefined ? `|${num(x)} − ${num(center)}| = ${num(Math.abs(x - center))} · ${say(lang, 'dans l’intervalle', 'in the interval', 'في المجال', 'en el intervalo')} : ${yes(lang, inA)}`
+      : `${num(x)} ∈ ${closedA ? '[' : ']'}${num(a)} ; ${num(b)}${closedB ? ']' : '['} ? ${yes(lang, inA)}`}</p>
+    {finished && <p className="manip-discovery" role="status">{other
+      ? say(lang, 'A ∩ B : les deux à la fois (là où les traits se superposent). A ∪ B : l’un ou l’autre (tout ce qui est coloré).', 'A ∩ B: both at once (where the bars overlap). A ∪ B: either one (everything coloured).', 'A ∩ B: الاثنان معًا. A ∪ B: أحدهما.', 'A ∩ B: ambos. A ∪ B: uno u otro.')
+      : center !== undefined ? say(lang, `Les nombres à distance au plus ${num((b - a) / 2)} de ${num(center)} forment l’intervalle [${num(a)} ; ${num(b)}].`, `Numbers within ${num((b - a) / 2)} of ${num(center)} make [${num(a)}, ${num(b)}].`, `المجال [${num(a)} ; ${num(b)}].`, `El intervalo [${num(a)} ; ${num(b)}].`)
+      : say(lang, `${num(a)} ${closedA ? 'est' : 'n’est pas'} dedans, ${num(b)} ${closedB ? 'est' : 'n’est pas'} dedans : le crochet tourné vers le nombre l’inclut.`, `${num(a)} is ${closedA ? '' : 'not '}in, ${num(b)} is ${closedB ? '' : 'not '}in: a bracket facing the number includes it.`, 'القوس المتجه نحو العدد يشمله.', 'El corchete hacia el número lo incluye.')}</p>}
+  </div>;
+}
+
+const FN_NAMES: Record<RefFn, string> = { square: 'x²', inverse: '1/x', sqrt: '√x', cube: 'x³', parabola: '(x − 1)² − 2' };
+/** Repère carré de −4 à 4 (et −4 à 6 en ordonnée) : coordonnées → pixels. */
+const plotX = (v: number) => 100 + v * 20, plotY = (v: number) => 130 - v * 20;
+function PlotFrame({ children }: { children: ReactNode }) {
+  return <svg viewBox="0 0 200 220" className="manip-svg plot-svg" aria-hidden>
+    {Array.from({ length: 9 }, (_, i) => <line key={`v${i}`} x1={plotX(i - 4)} x2={plotX(i - 4)} y1={10} y2={210} className="svg-grid" />)}
+    {Array.from({ length: 11 }, (_, i) => <line key={`h${i}`} x1={20} x2={180} y1={plotY(i - 4)} y2={plotY(i - 4)} className="svg-grid" />)}
+    <line x1={20} x2={180} y1={plotY(0)} y2={plotY(0)} className="svg-tick" /><line x1={plotX(0)} x2={plotX(0)} y1={10} y2={210} className="svg-tick" />
+    {children}
+  </svg>;
+}
+function curvePath(fn: RefFn): string {
+  const parts: string[] = [];
+  let pen = false;
+  for (let x = -4; x <= 4.001; x += 0.05) {
+    const y = refValue(fn, Math.round(x * 100) / 100);
+    if (y === null || y > 6.5 || y < -4.5 || (fn === 'inverse' && Math.abs(x) < 0.12)) { pen = false; continue; }
+    parts.push(`${pen ? 'L' : 'M'} ${plotX(x).toFixed(1)} ${plotY(y).toFixed(1)}`); pen = true;
+  }
+  return parts.join(' ');
+}
+
+function CurveExplore({ fns, target, lang, onDone }: { fns: RefFn[]; target?: number | undefined; lang: Lang; onDone: Done }) {
+  const [k, setK] = useState(0), [x, setX] = useState(fns[0] === 'sqrt' ? 0 : -2);
+  const [seenFns, setSeenFns] = useState<RefFn[]>([fns[0]!]);
+  const [found, setFound] = useState<number[]>([]);
+  const [walk, setWalk] = useState(0);
+  const [finished, setFinished] = useState(false);
+  const fn = fns[k]!, y = refValue(fn, x);
+  const goal = target !== undefined ? [-1, 1].map(s => s * Math.sqrt(target)) : [];
+  function finish() { if (!finished) { setFinished(true); onDone(fn); } }
+  function move(v: number) {
+    const nx = Math.max(-4, Math.min(4, Math.round(v * 2) / 2)); setX(nx);
+    const w = walk + 1; setWalk(w);
+    if (target !== undefined && refValue(fn, nx) === target && !found.includes(nx)) { const f = [...found, nx]; setFound(f); if (f.length === goal.length) finish(); }
+    if (target === undefined && fns.length === 1 && w >= 8) finish();
+  }
+  function pick(i: number) { setK(i); const f = fns[i]!; if (f === 'sqrt' && x < 0) setX(0); if (f === 'inverse' && x === 0) setX(1); const all = seenFns.includes(f) ? seenFns : [...seenFns, f]; setSeenFns(all); if (all.length === fns.length && fns.length > 1) finish(); }
+  return <div className="manip">
+    {fns.length > 1 && <div className="manip-controls">{fns.map((f, i) => <Button key={f} variant={i === k ? 'default' : 'soft'} size="sm" onClick={() => pick(i)}>f(x) = {FN_NAMES[f]}</Button>)}</div>}
+    <PlotFrame>
+      {target !== undefined && <line x1={20} x2={180} y1={plotY(target)} y2={plotY(target)} className="svg-height" />}
+      <path d={curvePath(fn)} className="svg-curve" />
+      {found.map(v => <circle key={v} cx={plotX(v)} cy={plotY(target!)} r={5} className="interval-in" />)}
+      {y !== null && <><line x1={plotX(x)} x2={plotX(x)} y1={plotY(0)} y2={plotY(y)} className="svg-ghost" /><circle cx={plotX(x)} cy={plotY(y)} r={5} className="svg-dot-move" /></>}
+    </PlotFrame>
+    <Stepper lang={lang} label={y === null ? `x = ${num(x)} : ${say(lang, 'pas d’image', 'no image', 'لا صورة', 'sin imagen')}` : `f(${num(x)}) = ${num(Math.round(y * 100) / 100)}`} onMinus={() => move(x - 0.5)} onPlus={() => move(x + 0.5)} minus={say(lang, 'Reculer x', 'Move x left', 'حرّك x يسارًا', 'Mover x a la izquierda')} plus={say(lang, 'Avancer x', 'Move x right', 'حرّك x يمينًا', 'Mover x a la derecha')} />
+    {target !== undefined && !finished && <p className="manip-feedback">{say(lang, `Trouve tous les x tels que f(x) = ${num(target)} (${found.length}/${goal.length}).`, `Find every x with f(x) = ${num(target)} (${found.length}/${goal.length}).`, `جد كل x بحيث f(x) = ${num(target)}.`, `Halla todos los x con f(x) = ${num(target)}.`)}</p>}
+    {finished && <p className="manip-discovery" role="status">{target !== undefined
+      ? say(lang, `${num(target)} a ${goal.length} antécédents : ${goal.map(num).join(' et ')}. Chaque x a une seule image, mais un nombre peut avoir plusieurs antécédents.`, `${num(target)} has ${goal.length} pre-images: ${goal.map(num).join(' and ')}. Each x has one image, but a number can have several pre-images.`, `لـ ${num(target)} سابقتان.`, `${num(target)} tiene ${goal.length} antecedentes.`)
+      : fns.length > 1 ? say(lang, 'Carré : une parabole, décroissante puis croissante. Inverse : une hyperbole, décroissante sur chaque morceau. Racine : croissante, à partir de 0. Cube : toujours croissante.', 'Square: a parabola, down then up. Reciprocal: a hyperbola, decreasing on each branch. Root: increasing, from 0. Cube: always increasing.', 'المربع: شلجم. المقلوب: هذلول. الجذر والمكعب: تزايديتان.', 'Cuadrado: parábola. Inversa: hipérbola. Raíz y cubo: crecientes.')
+      : say(lang, 'En avançant, la courbe descend puis remonte : f décroît jusqu’au point le plus bas (le minimum), puis croît. Le tableau de variations résume ce chemin.', 'Moving right, the curve goes down then up: f decreases to its lowest point (the minimum), then increases.', 'المنحنى ينزل ثم يصعد: القيمة الدنيا.', 'La curva baja y luego sube: el mínimo.')}</p>}
+  </div>;
+}
+
+const sgn = (v: number) => (v > 0 ? '+' : v < 0 ? '−' : '0');
+const affineText = (f: { a: number; b: number }) => `${f.a === 1 ? '' : f.a === -1 ? '−' : num(f.a)}x${f.b ? (f.b > 0 ? ` + ${num(f.b)}` : ` − ${num(-f.b)}`) : ''}`;
+function SignExplore({ factors, quotient, lang, onDone }: { factors: { a: number; b: number }[]; quotient: boolean; lang: Lang; onDone: Done }) {
+  const regions = signRegions(factors);
+  const lo = Math.floor(regions[0]!) - 1, hi = Math.ceil(regions[regions.length - 1]!) + 1;
+  const [x, setX] = useState(lo);
+  const [seen, setSeen] = useState<number[]>([]);
+  const [finished, setFinished] = useState(false);
+  const roots = [...new Set(factors.map(f => -f.b / f.a))].sort((p, q) => p - q);
+  const regionOf = (v: number) => roots.filter(r => v > r).length + roots.filter(r => v === r).length * 0.5;
+  function go(v: number) {
+    const nx = Math.max(lo, Math.min(hi, v)); setX(nx);
+    const r = regionOf(nx);
+    const all = seen.includes(r) ? seen : [...seen, r];
+    setSeen(all);
+    if (!finished && regions.every((_, i) => all.includes(i))) { setFinished(true); onDone('signs'); }
+  }
+  const values = factors.map(f => f.a * x + f.b);
+  const forbidden = quotient && factors.length > 1 && values[1] === 0;
+  const total = forbidden ? null : quotient && factors.length > 1 ? values[0]! / values[1]! : values.reduce((p, v) => p * v, 1);
+  const name = quotient && factors.length > 1 ? `(${affineText(factors[0]!)}) / (${affineText(factors[1]!)})` : factors.map(f => (factors.length > 1 ? `(${affineText(f)})` : affineText(f))).join('');
+  return <div className="manip">
+    <table className="guess-table sign-table"><tbody>
+      {factors.map((f, i) => <tr key={i}><th>{affineText(f)}</th><td>{sgn(values[i]!)}</td></tr>)}
+      {factors.length > 1 && <tr className="sign-total"><th>{name}</th><td>{total === null ? '‖' : sgn(total)}</td></tr>}
+    </tbody></table>
+    <Stepper lang={lang} label={`x = ${num(x)}`} onMinus={() => go(x - 0.5)} onPlus={() => go(x + 0.5)} minus={say(lang, 'Reculer x', 'Move x left', 'حرّك x يسارًا', 'Mover x a la izquierda')} plus={say(lang, 'Avancer x', 'Move x right', 'حرّك x يمينًا', 'Mover x a la derecha')} />
+    <p className="manip-feedback">{say(lang, `Zones explorées : ${seen.filter(r => Number.isInteger(r)).length}/${regions.length}`, `Zones explored: ${seen.filter(r => Number.isInteger(r)).length}/${regions.length}`, `المناطق: ${seen.filter(r => Number.isInteger(r)).length}/${regions.length}`, `Zonas: ${seen.filter(r => Number.isInteger(r)).length}/${regions.length}`)}</p>
+    {finished && <p className="manip-discovery" role="status">{factors.length === 1
+      ? say(lang, `ax + b change de signe en x = ${num(roots[0]!)} : à droite il a le signe de a (${factors[0]!.a > 0 ? '+' : '−'}), à gauche le signe contraire.`, `ax + b changes sign at x = ${num(roots[0]!)}: to the right it has the sign of a, to the left the opposite.`, `يغير إشارته في ${num(roots[0]!)}.`, `Cambia de signo en ${num(roots[0]!)}.`)
+      : say(lang, `Le signe ne change qu’en ${roots.map(num).join(' et ')}. Dans chaque zone, on multiplie les signes des facteurs (règle des signes)${quotient ? ', et le quotient n’existe pas là où le dénominateur s’annule (‖)' : ''}.`, `The sign only changes at ${roots.map(num).join(' and ')}. In each zone, multiply the signs of the factors${quotient ? '; the quotient does not exist where the denominator is 0 (‖)' : ''}.`, `الإشارة تتغير فقط عند الجذور.`, `El signo solo cambia en las raíces.`)}</p>}
+  </div>;
+}
+
+function LineBuild({ m: tm, p: tp, parallel, lang, onDone }: { m: number; p: number; parallel: boolean; lang: Lang; onDone: Done }) {
+  const [m, setM] = useState(0), [p, setP] = useState(0);
+  const [finished, setFinished] = useState(false);
+  function set(nm: number, np: number) {
+    const cm = Math.max(-3, Math.min(3, nm)), cp = Math.max(-4, Math.min(5, np)); setM(cm); setP(cp);
+    if (!finished && (parallel ? cm === tm && cp !== tp : cm === tm && cp === tp)) { setFinished(true); onDone('line'); }
+  }
+  const seg = (mm: number, pp: number) => ({ x1: plotX(-4), y1: plotY(mm * -4 + pp), x2: plotX(4), y2: plotY(mm * 4 + pp) });
+  return <div className="manip">
+    <PlotFrame>
+      <clipPath id="plot-clip"><rect x={20} y={10} width={160} height={200} /></clipPath>
+      <g clipPath="url(#plot-clip)">
+        <line {...seg(tm, tp)} className="svg-ghost" />
+        {!parallel && <><circle cx={plotX(0)} cy={plotY(tp)} r={4} className="svg-dot" /><circle cx={plotX(2)} cy={plotY(2 * tm + tp)} r={4} className="svg-dot" /></>}
+        <line {...seg(m, p)} className="svg-ray svg-ray-move" />
+        <circle cx={plotX(0)} cy={plotY(p)} r={4} className="svg-dot-move" />
+        <path d={`M ${plotX(0)} ${plotY(p)} H ${plotX(1)} V ${plotY(m + p)}`} className="svg-height" fill="none" />
+      </g>
+    </PlotFrame>
+    <p className="manip-equation">y = {num(m)}x {p < 0 ? '−' : '+'} {num(Math.abs(p))}</p>
+    <Stepper lang={lang} label={`m = ${num(m)}`} onMinus={() => set(m - 0.5, p)} onPlus={() => set(m + 0.5, p)} minus={say(lang, 'Diminuer m', 'Decrease m', 'نقّص m', 'Disminuir m')} plus={say(lang, 'Augmenter m', 'Increase m', 'زد m', 'Aumentar m')} />
+    <Stepper lang={lang} label={`p = ${num(p)}`} onMinus={() => set(m, p - 1)} onPlus={() => set(m, p + 1)} minus={say(lang, 'Diminuer p', 'Decrease p', 'نقّص p', 'Disminuir p')} plus={say(lang, 'Augmenter p', 'Increase p', 'زد p', 'Aumentar p')} />
+    {!finished && <p className="manip-feedback">{parallel ? say(lang, 'Trace une droite parallèle à la droite en pointillés (mais pas la même).', 'Draw a line parallel to the dashed one (but not the same).', 'ارسم مستقيمًا موازيًا.', 'Traza una paralela.') : say(lang, 'Superpose ta droite à la droite en pointillés.', 'Lay your line on the dashed one.', 'طابق مستقيمك مع المنقط.', 'Superpón tu recta a la punteada.')}</p>}
+    {finished && <p className="manip-discovery" role="status">{parallel
+      ? say(lang, `Même coefficient directeur m = ${num(tm)}, ordonnées à l’origine différentes : les droites sont parallèles.`, `Same gradient m = ${num(tm)}, different intercepts: the lines are parallel.`, 'نفس المعامل الموجه: متوازيان.', 'Misma pendiente: paralelas.')
+      : say(lang, `p = ${num(tp)} : la droite coupe l’axe vertical en ${num(tp)}. m = ${num(tm)} : quand x avance de 1, y ${tm >= 0 ? 'monte' : 'descend'} de ${num(Math.abs(tm))} (l’escalier orange).`, `p = ${num(tp)}: the line crosses the vertical axis at ${num(tp)}. m = ${num(tm)}: when x goes up by 1, y changes by ${num(tm)} (the orange step).`, `p نقطة التقاطع مع المحور، m الصعود لكل 1.`, `p: corte con el eje; m: subida por cada 1.`)}</p>}
+  </div>;
+}
+
+function Quartiles({ values, lang, onDone }: { values: number[]; lang: Lang; onDone: Done }) {
+  const [stage, setStage] = useState(0);
+  const sorted = [...values].sort((a, b) => a - b), f = fiveNumbers(values), n = values.length;
+  const list = stage ? sorted : values;
+  const r1 = Math.ceil(n / 4) - 1, r3 = Math.ceil((3 * n) / 4) - 1;
+  function next() { const s = stage + 1; setStage(s); if (s === 3) onDone(`${f.q1}-${f.q3}`); }
+  const lo = f.min - 1, hi = f.max + 1, X = (v: number) => 10 + ((v - lo) / (hi - lo)) * 280;
+  return <div className="manip">
+    <div className="lineup">{list.map((v, i) => <span key={i} className={`lineup-card ${stage >= 2 && (i === r1 || i === r3) ? 'lineup-mark' : ''}`}>{num(v)}</span>)}</div>
+    {stage >= 2 && <p className="manip-equation">Q1 = {num(f.q1)} · Me = {num(f.me)} · Q3 = {num(f.q3)}</p>}
+    {stage >= 3 && <svg viewBox="0 0 300 50" className="manip-svg" aria-hidden>
+      <line x1={X(f.min)} x2={X(f.q1)} y1={25} y2={25} className="svg-ray" /><line x1={X(f.q3)} x2={X(f.max)} y1={25} y2={25} className="svg-ray" />
+      <rect x={X(f.q1)} y={10} width={X(f.q3) - X(f.q1)} height={30} className="svg-shape" /><line x1={X(f.me)} x2={X(f.me)} y1={10} y2={40} className="svg-ray svg-ray-move" />
+      {[f.min, f.q1, f.me, f.q3, f.max].map((v, i) => <text key={i} x={X(v) - 5} y={50} className="svg-small">{num(v)}</text>)}
+    </svg>}
+    {stage < 3 && <Button variant="soft" onClick={next}>{[say(lang, 'Ranger la série', 'Sort the data', 'رتّب السلسلة', 'Ordenar'), say(lang, 'Couper en quatre', 'Cut into quarters', 'اقسم إلى أرباع', 'Cortar en cuartos'), say(lang, 'Dessiner la boîte', 'Draw the box', 'ارسم العلبة', 'Dibujar la caja')][stage]}</Button>}
+    {stage === 1 && <p className="manip-feedback">{say(lang, `${n} valeurs : un quart, c’est ${num(n / 4)} valeurs.`, `${n} values: a quarter is ${num(n / 4)} values.`, `${n} قيمة: الربع ${num(n / 4)}.`, `${n} valores: un cuarto son ${num(n / 4)}.`)}</p>}
+    {stage >= 3 && <p className="manip-discovery" role="status">{say(lang, `Au moins un quart des valeurs sont ≤ Q1 = ${num(f.q1)} (rang ${r1 + 1}), au moins trois quarts sont ≤ Q3 = ${num(f.q3)} (rang ${r3 + 1}). La boîte contient la moitié centrale de la série : Q3 − Q1 = ${num(f.q3 - f.q1)}.`, `At least a quarter of the values are ≤ Q1 = ${num(f.q1)} (rank ${r1 + 1}), at least three quarters ≤ Q3 = ${num(f.q3)} (rank ${r3 + 1}). The box holds the middle half: Q3 − Q1 = ${num(f.q3 - f.q1)}.`, `العلبة تحوي النصف المركزي: Q3 − Q1 = ${num(f.q3 - f.q1)}.`, `La caja contiene la mitad central: Q3 − Q1 = ${num(f.q3 - f.q1)}.`)}</p>}
+  </div>;
+}
+
+function DiceGrid({ sum, lang, onDone }: { sum: number; lang: Lang; onDone: Done }) {
+  const ways = diceWays(sum);
+  const [on, setOn] = useState<string[]>([]);
+  const [wrong, setWrong] = useState(false);
+  const done = on.length === ways.length;
+  function tap(a: number, b: number) {
+    if (done) return;
+    const key = `${a}-${b}`;
+    if (a + b !== sum) { setWrong(true); return; }
+    setWrong(false);
+    if (on.includes(key)) return;
+    const next = [...on, key]; setOn(next); if (next.length === ways.length) onDone(String(ways.length));
+  }
+  return <div className="manip">
+    <div className="dice-grid" role="grid">
+      <span />{[1, 2, 3, 4, 5, 6].map(b => <span key={b} className="dice-head">{b}</span>)}
+      {[1, 2, 3, 4, 5, 6].map(a => <div key={a} className="dice-row" role="row"><span className="dice-head">{a}</span>{[1, 2, 3, 4, 5, 6].map(b => <button key={b} type="button" className={`dice-cell ${on.includes(`${a}-${b}`) ? 'dice-on' : ''}`} onClick={() => tap(a, b)} aria-label={`${a} + ${b}`}>{on.includes(`${a}-${b}`) ? a + b : ''}</button>)}</div>)}
+    </div>
+    <p className="manip-feedback">{say(lang, `Touche les cases dont la somme vaut ${sum} (${on.length} trouvée${on.length > 1 ? 's' : ''}).`, `Tap the cells adding up to ${sum} (${on.length} found).`, `المس الخانات التي مجموعها ${sum}.`, `Toca las casillas que suman ${sum}.`)}</p>
+    {wrong && <p className="manip-feedback manip-bad" role="alert">{say(lang, `Cette case ne fait pas ${sum}.`, `That cell is not ${sum}.`, `هذه الخانة لا تساوي ${sum}.`, `Esa casilla no suma ${sum}.`)}</p>}
+    {done && <p className="manip-discovery" role="status">{say(lang, `${ways.length} cases sur 36, toutes aussi probables : P(somme = ${sum}) = ${ways.length}/36.`, `${ways.length} cells out of 36, all equally likely: P(sum = ${sum}) = ${ways.length}/36.`, `${ways.length} من 36: الاحتمال ${ways.length}/36.`, `${ways.length} de 36: P = ${ways.length}/36.`)}</p>}
+  </div>;
+}
+
+function Venn({ a, b, both, total, labels, lang, onDone }: { a: number; b: number; both: number; total: number; labels: [L, L]; lang: Lang; onDone: Done }) {
+  const [stage, setStage] = useState(0);
+  const count = stage === 0 ? 0 : stage === 1 ? a : stage === 2 ? a + b : a + b - both;
+  function next() { const s = stage + 1; setStage(s); if (s === 3) onDone(String(a + b - both)); }
+  return <div className="manip">
+    <svg viewBox="0 0 220 120" className="manip-svg" aria-hidden>
+      <rect x={4} y={4} width={212} height={112} rx={10} className="svg-ghost" />
+      <circle cx={85} cy={62} r={44} className={`venn-a ${stage >= 1 ? 'venn-on' : ''}`} />
+      <circle cx={135} cy={62} r={44} className={`venn-b ${stage >= 2 ? 'venn-on' : ''}`} />
+      <text x={56} y={66} className="svg-label">{a - both}</text><text x={104} y={66} className={`svg-label ${stage === 2 ? 'venn-twice' : ''}`}>{both}</text><text x={154} y={66} className="svg-label">{b - both}</text>
+      <text x={40} y={22} className="svg-small">{labels[0][lang]}</text><text x={140} y={22} className="svg-small">{labels[1][lang]}</text>
+      <text x={190} y={110} className="svg-small">{total}</text>
+    </svg>
+    <p className="manip-equation">{[`0`, `${a}`, `${a} + ${b} = ${a + b}`, `${a} + ${b} − ${both} = ${a + b - both}`][stage]}</p>
+    {stage < 3 && <Button variant="soft" onClick={next}>{[say(lang, `Compter A (${a})`, `Count A (${a})`, `عدّ A`, `Contar A`), say(lang, `Ajouter B (${b})`, `Add B (${b})`, `أضف B`, `Sumar B`), say(lang, `Retirer A ∩ B (${both})`, `Remove A ∩ B (${both})`, `اطرح A ∩ B`, `Restar A ∩ B`)][stage]}</Button>}
+    {stage === 2 && <p className="manip-feedback">{say(lang, `Les ${both} du milieu ont été comptés deux fois !`, `The ${both} in the middle were counted twice!`, `الوسط عُدّ مرتين!`, `¡El centro se contó dos veces!`)}</p>}
+    {stage === 3 && <p className="manip-discovery" role="status">{say(lang, `A ∪ B compte ${count} éléments sur ${total}. En probabilités : P(A ∪ B) = P(A) + P(B) − P(A ∩ B).`, `A ∪ B has ${count} of ${total}. In probability: P(A ∪ B) = P(A) + P(B) − P(A ∩ B).`, `P(A ∪ B) = P(A) + P(B) − P(A ∩ B).`, `P(A ∪ B) = P(A) + P(B) − P(A ∩ B).`)}</p>}
+  </div>;
+}
+
+const RAD: Record<number, string> = { 0: '0', 30: 'π/6', 45: 'π/4', 60: 'π/3', 90: 'π/2', 120: '2π/3', 135: '3π/4', 150: '5π/6', 180: 'π', 210: '7π/6', 225: '5π/4', 240: '4π/3', 270: '3π/2', 300: '5π/3', 315: '7π/4', 330: '11π/6', 360: '2π' };
+function UnitCircle({ target, step, quadrants, lang, onDone }: { target: number; step: number; quadrants: boolean; lang: Lang; onDone: Done }) {
+  const [deg, setDeg] = useState(0);
+  const [seen, setSeen] = useState<number[]>([]);
+  const [finished, setFinished] = useState(false);
+  const c = Math.round(Math.cos(rad(deg)) * 1000) / 1000, s = Math.round(Math.sin(rad(deg)) * 1000) / 1000;
+  function go(v: number) {
+    const d = ((v % 360) + 360) % 360; setDeg(d);
+    const q = d % 90 === 0 ? -1 : Math.floor(d / 90);
+    const all = q < 0 || seen.includes(q) ? seen : [...seen, q];
+    setSeen(all);
+    if (!finished && (quadrants ? all.length === 4 : d === target)) { setFinished(true); onDone(String(d)); }
+  }
+  const R = 70, cx = 100, cy = 90, X = cx + R * c, Y = cy - R * s;
+  return <div className="manip">
+    <svg viewBox="0 0 200 180" className="manip-svg" aria-hidden>
+      <line x1={15} x2={185} y1={cy} y2={cy} className="svg-tick" /><line x1={cx} x2={cx} y1={8} y2={172} className="svg-tick" />
+      <circle cx={cx} cy={cy} r={R} className="svg-ghost" />
+      <line x1={cx} y1={cy} x2={X} y2={Y} className="svg-ray" />
+      <line x1={X} y1={Y} x2={X} y2={cy} className="uc-sin" /><line x1={cx} y1={cy} x2={X} y2={cy} className="uc-cos" />
+      {deg > 0 && <path d={`M ${cx + 20} ${cy} A 20 20 0 ${deg > 180 ? 1 : 0} 0 ${cx + 20 * c} ${cy - 20 * s}`} className="svg-arc" />}
+      <circle cx={X} cy={Y} r={5} className="svg-dot-move" /><text x={X + 6} y={Y - 6} className="svg-label">M</text>
+    </svg>
+    <Stepper lang={lang} label={`${deg}° = ${RAD[deg] ?? `${num(Math.round(rad(deg) * 100) / 100)} rad`}`} onMinus={() => go(deg - step)} onPlus={() => go(deg + step)} minus={say(lang, 'Tourner en arrière', 'Turn back', 'أدر للخلف', 'Girar atrás')} plus={say(lang, 'Tourner (sens direct)', 'Turn anticlockwise', 'أدر في الاتجاه المباشر', 'Girar en sentido directo')} />
+    <p className="manip-equation"><span className="uc-cos-text">cos = {num(c)}</span> · <span className="uc-sin-text">sin = {num(s)}</span></p>
+    <p className="manip-feedback">cos² + sin² = {num(Math.round((c * c + s * s) * 1000) / 1000)}{!quadrants && !finished ? ` · ${say(lang, 'Cible', 'Target', 'الهدف', 'Meta')} : ${target}°` : ''}{quadrants && !finished ? ` · ${say(lang, 'Quarts visités', 'Quarters visited', 'الأرباع', 'Cuadrantes')} : ${seen.length}/4` : ''}</p>
+    {finished && <p className="manip-discovery" role="status">{quadrants
+      ? say(lang, 'cos est l’abscisse de M : positif à droite, négatif à gauche. sin est l’ordonnée : positif en haut, négatif en bas. Et toujours cos² + sin² = 1.', 'cos is the x-coordinate of M: positive on the right, negative on the left. sin is the y-coordinate: positive above, negative below. Always cos² + sin² = 1.', 'cos هو الأفصول وsin هو الأرتوب.', 'cos es la abscisa, sen la ordenada.')
+      : say(lang, `${target}° = ${RAD[target]} rad : M a pour coordonnées (cos ; sin) = (${num(c)} ; ${num(s)}). Le rayon vaut 1, donc cos² + sin² = 1 (Pythagore).`, `${target}° = ${RAD[target]} rad: M is at (cos, sin) = (${num(c)}, ${num(s)}). The radius is 1, so cos² + sin² = 1 (Pythagoras).`, `M(cos ; sin) و cos² + sin² = 1.`, `M(cos ; sen) y cos² + sen² = 1.`)}</p>}
   </div>;
 }

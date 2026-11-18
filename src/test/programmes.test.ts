@@ -99,8 +99,8 @@ describe('Diagnostic suivant le programme', () => {
     const { diagnosticPath } = await import('@/lib/diagnostic');
     expect(diagnosticPath(3).map(n => n.id)).toEqual(diagnosticPath(3, []).map(n => n.id));
   });
-  it('marks the Moroccan and Senegalese lists as reviewed (the new 5e and 4e lists await review)', () => {
-    const fresh = (p: { country: string; grade: number }) => (p.country === 'sn' && (p.grade === 1 || p.grade === 2)) || (p.country === 'ma' && p.grade === 1);
+  it('marks the Moroccan and Senegalese lists as reviewed (the new 5e, 4e and 2nde lists await review)', () => {
+    const fresh = (p: { country: string; grade: number }) => (p.country === 'sn' && [1, 2, 4].includes(p.grade)) || (p.country === 'ma' && [1, 3].includes(p.grade));
     for (const p of PROGRAMMES.filter(p => (p.country === 'ma' || p.country === 'sn') && !fresh(p))) expect(p.source.status).toBe('reviewed');
     for (const p of PROGRAMMES.filter(fresh)) expect(p.source.status).toBe('to-review');
   });

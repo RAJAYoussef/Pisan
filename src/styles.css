@@ -1038,3 +1038,29 @@ button.ws-score:focus-visible { outline: 3px solid var(--ring); outline-offset: 
 button.ws-score { flex-wrap: nowrap; gap: 6px; padding: 8px 10px; }
 button.ws-score .points-badge { padding: 4px 8px; font-size: .8rem; white-space: nowrap; }
 @media (max-width: 380px) { button.ws-score .ws-score-bar { display: none; } }
+
+/* ───────────── Manipulations « 2nde » ───────────── */
+.svg-small { font-size: 9px; font-weight: 700; fill: var(--muted-foreground); }
+.svg-curve { fill: none; stroke: var(--primary-deep); stroke-width: 2.5; stroke-linejoin: round; }
+.svg-dot-move { fill: var(--accent); stroke: #fff; stroke-width: 1.5; }
+.plot-svg { max-width: 300px; }
+.interval-a { stroke: var(--primary); stroke-width: 6; stroke-linecap: butt; opacity: .7; }
+.interval-b { stroke: var(--sky); stroke-width: 6; opacity: .7; }
+.interval-bracket { font-size: 18px; fill: var(--primary-deep); }
+.interval-in { fill: var(--primary); stroke: #fff; stroke-width: 1.5; }
+.interval-out { fill: var(--destructive); stroke: #fff; stroke-width: 1.5; }
+.sign-table td { min-width: 3rem; font-size: 1.3rem; }
+.sign-total td, .sign-total th { background: var(--sun-soft); }
+.lineup-mark { background: var(--sun-soft); border-color: var(--sun-deep); }
+.dice-grid { display: grid; grid-template-columns: repeat(7, 2.2rem); gap: 3px; }
+.dice-row { display: contents; }
+.dice-head { display: inline-flex; align-items: center; justify-content: center; font-weight: 800; color: var(--muted-foreground); }
+.dice-cell { height: 2.2rem; border-radius: 8px; border: 2px solid var(--border); background: var(--card); font-weight: 800; }
+.dice-on { background: var(--primary); border-color: var(--primary-deep); color: var(--primary-foreground); }
+.venn-a, .venn-b { fill: transparent; stroke-width: 2; transition: fill .4s; }
+.venn-a { stroke: var(--primary-deep); } .venn-b { stroke: var(--sky); }
+.venn-a.venn-on { fill: color-mix(in oklab, var(--primary) 25%, transparent); }
+.venn-b.venn-on { fill: color-mix(in oklab, var(--sky) 25%, transparent); }
+.venn-twice { fill: var(--destructive); }
+.uc-cos { stroke: var(--sky); stroke-width: 4; } .uc-sin { stroke: var(--accent); stroke-width: 4; }
+.uc-cos-text { color: var(--sky); } .uc-sin-text { color: var(--accent); }

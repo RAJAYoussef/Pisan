@@ -26,8 +26,8 @@ const typed = (step: Extract<Step, { type: 'number' }>) => {
 const chipsSolution = (step: Extract<Step, { type: 'chips' }>) => step.ordered ? step.groups[0]! : step.groups.flatMap((g, i) => [...(i ? ['='] : []), ...g.flatMap((tok, j) => j ? ['+', tok] : [tok])]);
 
 describe('Parcours de compétences : contenu', () => {
-  it('covers the thirty-six chapters with the agreed skills', () => {
-    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 11, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]);
+  it('covers the forty-three chapters with the agreed skills', () => {
+    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 11, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]);
     expect(new Set(SKILLS.map(s => s.id)).size).toBe(SKILLS.length);
     for (const s of SKILLS) { expect(s.id).toMatch(/^[a-z]+(-[a-z]+){1,2}$/); expect(filled(s.title) && filled(s.desc)).toBe(true); }
   });
@@ -584,6 +584,43 @@ describe('6e', () => {
       const sect = getSkill('solid-section')!.build(seed).steps[1]!;
       if (sect.type !== 'number') throw new Error();
       expect(Number.isInteger(sect.answer)).toBe(true);
+    }
+  });
+  it('2nde: every chapter of the five programmes has a pathway, the new chapters stay in 2nde, and the answers check out', async () => {
+    const { chapterSkillKinds, figuresFor } = await import('@/lib/figures');
+    const { programmesFor, programmeNotions } = await import('@/lib/programmes');
+    const { getLevel } = await import('@/lib/curriculum');
+    for (const [country, grade] of [['fr', 4], ['ma', 3], ['ci', 4], ['sn', 4], ['us', 4]] as const) for (const ch of programmesFor(country, grade)[0]!.chapters) expect(chapterSkillKinds(ch), `${country} ${ch.title.fr}`).not.toEqual([]);
+    const NEW = ['intervals', 'reference', 'signtable', 'lineeq', 'quartiles', 'events', 'unitcircle'];
+    for (const country of ['fr', 'ma', 'ci', 'sn', 'us']) for (const grade of [0, 1, 2, 3, 4, 5, 6]) for (const p of programmesFor(country, grade)) {
+      if (getLevel(country, grade) === 4) continue;
+      expect(figuresFor(p, programmeNotions(p).map(n => n.id), getLevel(country, grade)).filter(k => NEW.includes(k)), `${country} ${grade}`).toEqual([]);
+    }
+    expect(figuresFor(null, undefined, 4).filter(k => NEW.includes(k))).toEqual(NEW);
+    expect(chapterSkillKinds(programmesFor('ma', 3)[0]!.chapters.find(c => c.title.fr.startsWith('Trigonométrie'))!)).toContain('unitcircle');
+    for (let seed = 0; seed < 60; seed++) {
+      for (const s of SKILLS.filter(s => NEW.includes(s.chapter))) {
+        const a = s.build(seed);
+        for (const st of a.steps) {
+          if (st.type === 'choice') { expect(new Set(st.options.map(o => o.fr)).size, `${s.id} ${seed}`).toBe(st.options.length); expect(st.answer).toBeGreaterThanOrEqual(0); expect(st.answer).toBeLessThan(st.options.length); }
+          if (st.type === 'number') expect(Number.isFinite(st.answer), `${s.id} ${seed}`).toBe(true);
+        }
+      }
+      // pente et ordonnée à l'origine : B est bien sur la droite
+      const slope = getSkill('line-slope')!.build(seed).steps;
+      const [m, p] = slope.map(st => (st.type === 'number' ? st.answer : NaN));
+      const pts = [...slope[0]!.prompt.fr.matchAll(/\((−?\d+) ; (−?\d+)\)/g)].map(r => [Number(r[1]!.replace('−', '-')), Number(r[2]!.replace('−', '-'))]);
+      for (const [x, y] of pts) expect(m! * x! + p!).toBeCloseTo(y!, 9);
+      // le nombre d'entiers de [a ; b[ est b − a
+      const notation = getSkill('int-notation')!.build(seed).steps[2]!;
+      const [a, b] = [...notation.prompt.fr.matchAll(/−?\d+/g)].map(r => Number(r[0].replace('−', '-')));
+      if (notation.type !== 'number') throw new Error();
+      expect(notation.answer).toBe(b! - a!);
+      // cos² + sin² = 1
+      const id = getSkill('uc-identity')!.build(seed).steps[1]!;
+      if (id.type !== 'number') throw new Error();
+      const c = Number(id.prompt.fr.match(/cos x = ([\d,]+)/)![1]!.replace(',', '.'));
+      expect(c * c + id.answer * id.answer).toBeCloseTo(1, 9);
     }
   });
   it('decimal traps are really traps: 2,5 > 2,45 and 2,5 = 2,50', () => {

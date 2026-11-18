@@ -74,6 +74,19 @@ const c4 = {
   pythagoras: c('Théorème de Pythagore', 'Pythagoras’ theorem', 'مبرهنة فيثاغورس', 'Teorema de Pitágoras', ['pythagoras-thales']),
 };
 
+// Chapitres de 2nde (Tronc commun au Maroc) communs à plusieurs pays
+const c2 = {
+  sets: c('Ensembles de nombres et intervalles', 'Sets of numbers and intervals', 'مجموعات الأعداد والمجالات', 'Conjuntos de números e intervalos', ['inequalities']),
+  order: c('Ordre dans ℝ : intervalles et valeur absolue', 'Order in ℝ: intervals and absolute value', 'الترتيب في ℝ: المجالات والقيمة المطلقة', 'Orden en ℝ: intervalos y valor absoluto', ['inequalities']),
+  polynomials: c('Polynômes', 'Polynomials', 'الحدوديات', 'Polinomios', ['algebra', 'inequalities']),
+  equations: c('Équations, inéquations et systèmes', 'Equations, inequalities and systems', 'المعادلات والمتراجحات والنظمات', 'Ecuaciones, inecuaciones y sistemas', ['equations', 'inequalities', 'systems']),
+  generalities: c('Généralités sur les fonctions', 'Functions: general properties', 'عموميات حول الدوال', 'Generalidades sobre funciones', ['functions']),
+  lines: c('Droites du plan : équations cartésiennes', 'Lines: Cartesian equations', 'المستقيمات: المعادلات الديكارتية', 'Rectas: ecuaciones cartesianas', ['functions', 'vectors']),
+  angles: c('Angles orientés et trigonométrie', 'Directed angles and trigonometry', 'الزوايا الموجهة وحساب المثلثات', 'Ángulos orientados y trigonometría', ['trigonometry']),
+  stats: c('Statistiques descriptives', 'Descriptive statistics', 'الإحصاء الوصفي', 'Estadística descriptiva', ['statistics']),
+  proba: c('Probabilités sur un ensemble fini', 'Probability on a finite set', 'الاحتمالات على مجموعة منتهية', 'Probabilidad en un conjunto finito', ['probability']),
+};
+
 const sciencesBac = [ch.limits, ch.derivation, ch.sequences, ch.primitives, ch.log, ch.exp, ch.complex, ch.integral, ch.diffEq];
 
 export const PROGRAMMES: Programme[] = [
@@ -419,6 +432,63 @@ export const PROGRAMMES: Programme[] = [
       c('Fonctions (8.F)', 'Functions (8.F)', 'الدوال (8.F)', 'Funciones (8.F)', ['functions']),
       c('Transformations et théorème de Pythagore (8.G)', 'Transformations and Pythagoras’ theorem (8.G)', 'التحويلات ومبرهنة فيثاغورس (8.G)', 'Transformaciones y teorema de Pitágoras (8.G)', ['pythagoras-thales']),
       c('Nuages de points et tableaux croisés (8.SP)', 'Scatter plots and two-way tables (8.SP)', 'سحب النقط والجداول المزدوجة (8.SP)', 'Diagramas de dispersión y tablas de doble entrada (8.SP)', ['statistics']),
+    ],
+  },
+  // ───────────── 2nde (index 4) ; Tronc commun au Maroc (index 3) ; Grade 10 aux États-Unis ─────────────
+  {
+    country: 'fr', grade: 4,
+    source: { label: 'Programme de mathématiques de seconde générale et technologique, Bulletin officiel spécial n° 1 du 22 janvier 2019', url: 'https://eduscol.education.fr/', status: 'reference' },
+    chapters: [
+      c2.sets,
+      c('Puissances et racines carrées', 'Powers and square roots', 'القوى والجذور المربعة', 'Potencias y raíces cuadradas', ['powers', 'square-roots']),
+      c('Arithmétique : multiples, diviseurs, nombres premiers', 'Number theory: multiples, divisors, primes', 'الحسابيات: المضاعفات والقواسم والأعداد الأولية', 'Aritmética: múltiplos, divisores, primos', ['arithmetic']),
+      c('Calcul littéral : identités, équations, inéquations', 'Algebra: identities, equations, inequalities', 'الحساب الحرفي: المتطابقات والمعادلات والمتراجحات', 'Cálculo literal: identidades, ecuaciones, inecuaciones', ['algebra', 'equations', 'inequalities']),
+      c('Notion de fonction et fonctions de référence', 'Functions and reference functions', 'مفهوم الدالة والدوال المرجعية', 'Funciones y funciones de referencia', ['functions']),
+      c('Variations et extremums', 'Increasing, decreasing, extrema', 'التغيرات والقيم القصوى', 'Variaciones y extremos', ['functions']),
+      c('Fonctions affines et tableaux de signes', 'Linear functions and sign tables', 'الدوال التآلفية وجداول الإشارة', 'Funciones afines y tablas de signos', ['functions', 'inequalities']),
+      c('Vecteurs, colinéarité et coordonnées', 'Vectors, collinearity and coordinates', 'المتجهات والاستقامية والإحداثيات', 'Vectores, colinealidad y coordenadas', ['vectors']),
+      c('Droites et systèmes d’équations', 'Lines and simultaneous equations', 'المستقيمات ونظمات المعادلات', 'Rectas y sistemas de ecuaciones', ['functions', 'vectors', 'systems']),
+      c2.stats,
+      c('Probabilités sur un ensemble fini', 'Probability on a finite set', 'الاحتمالات على مجموعة منتهية', 'Probabilidad en un conjunto finito', ['probability']),
+      c('Échantillonnage et fluctuation', 'Sampling and fluctuation', 'المعاينة والتذبذب', 'Muestreo y fluctuación', ['probability', 'statistics']),
+    ],
+  },
+  {
+    country: 'ma', grade: 3,
+    source: { label: 'Orientations pédagogiques, mathématiques, Tronc commun scientifique, Ministère de l’Éducation nationale', status: 'to-review' },
+    chapters: [
+      c2.order,
+      c('Arithmétique dans ℕ', 'Number theory in ℕ', 'الحسابيات في ℕ', 'Aritmética en ℕ', ['arithmetic']),
+      c2.polynomials,
+      c2.equations,
+      c2.generalities,
+      c('Calcul vectoriel', 'Vectors', 'الحساب المتجهي', 'Cálculo vectorial', ['vectors']),
+      c('La droite dans le plan', 'Lines in the plane', 'المستقيم في المستوى', 'La recta en el plano', ['functions', 'vectors']),
+      c('Trigonométrie : cercle trigonométrique', 'Trigonometry: the unit circle', 'حساب المثلثات: الدائرة المثلثية', 'Trigonometría: círculo trigonométrico', ['trigonometry']),
+      c2.stats,
+      c('Géométrie dans l’espace', 'Geometry in space', 'الهندسة الفضائية', 'Geometría del espacio', ['solids']),
+    ],
+  },
+  {
+    country: 'ci', grade: 4,
+    source: { label: 'Programme éducatif de mathématiques, classe de seconde, MENA, DPFC', url: 'https://dpfc-ci.net/', status: 'to-review' },
+    chapters: [c2.order, c2.polynomials, c2.equations, c2.generalities, c('Vecteurs et colinéarité', 'Vectors and collinearity', 'المتجهات والاستقامية', 'Vectores y colinealidad', ['vectors']), c2.lines, c2.angles, c2.stats, c2.proba],
+  },
+  {
+    country: 'sn', grade: 4,
+    source: { label: 'Programme de mathématiques de la classe de seconde S, Ministère de l’Éducation nationale', status: 'to-review' },
+    chapters: [c2.order, c2.polynomials, c2.equations, c2.generalities, c('Calcul vectoriel', 'Vectors', 'الحساب المتجهي', 'Cálculo vectorial', ['vectors']), c2.lines, c2.angles, c2.stats],
+  },
+  {
+    country: 'us', grade: 4,
+    source: { label: 'Common Core State Standards for Mathematics, High School Geometry (and Statistics & Probability)', url: 'https://www.thecorestandards.org/Math/Content/HSG/', status: 'reference' },
+    chapters: [
+      c('Transformations et congruence (G-CO)', 'Congruence and transformations (G-CO)', 'التحويلات والتقايس (G-CO)', 'Transformaciones y congruencia (G-CO)', ['symmetry', 'geometry']),
+      c('Similitude et trigonométrie (G-SRT)', 'Similarity and right-triangle trigonometry (G-SRT)', 'التشابه وحساب المثلثات (G-SRT)', 'Semejanza y trigonometría (G-SRT)', ['pythagoras-thales', 'trigonometry']),
+      c('Cercles (G-C)', 'Circles (G-C)', 'الدوائر (G-C)', 'Círculos (G-C)', ['geometry']),
+      c('Géométrie analytique (G-GPE)', 'Coordinate geometry (G-GPE)', 'الهندسة التحليلية (G-GPE)', 'Geometría analítica (G-GPE)', ['functions', 'vectors']),
+      c('Mesures et dimensions (G-GMD)', 'Geometric measurement and dimension (G-GMD)', 'القياسات والأبعاد (G-GMD)', 'Medidas y dimensiones (G-GMD)', ['solids']),
+      c('Probabilités conditionnelles (S-CP)', 'Conditional probability (S-CP)', 'الاحتمالات الشرطية (S-CP)', 'Probabilidad condicional (S-CP)', ['probability']),
     ],
   },
 ];

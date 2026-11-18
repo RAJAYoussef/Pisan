@@ -683,6 +683,13 @@ export const CHAPTER_NAMES: Record<FigureKind, L> = {
   inequalities: { fr: 'Inéquations et équation produit', en: 'Inequalities and zero products', ar: 'المتراجحات ومعادلة الجداء', es: 'Inecuaciones y ecuación producto' },
   systems: { fr: 'Systèmes de deux équations', en: 'Simultaneous equations', ar: 'نظمة معادلتين', es: 'Sistemas de dos ecuaciones' },
   solids: { fr: 'Géométrie dans l’espace', en: 'Solids and space', ar: 'الهندسة الفضائية', es: 'Geometría del espacio' },
+  intervals: { fr: 'Intervalles et valeur absolue', en: 'Intervals and absolute value', ar: 'المجالات والقيمة المطلقة', es: 'Intervalos y valor absoluto' },
+  reference: { fr: 'Fonctions de référence', en: 'Reference functions', ar: 'الدوال المرجعية', es: 'Funciones de referencia' },
+  signtable: { fr: 'Tableaux de signes', en: 'Sign tables', ar: 'جداول الإشارة', es: 'Tablas de signos' },
+  lineeq: { fr: 'Équations de droites', en: 'Equations of lines', ar: 'معادلات المستقيمات', es: 'Ecuaciones de rectas' },
+  quartiles: { fr: 'Quartiles et écart type', en: 'Quartiles and standard deviation', ar: 'الربيعيات والانحراف المعياري', es: 'Cuartiles y desviación típica' },
+  events: { fr: 'Probabilités : événements', en: 'Probability: events', ar: 'الاحتمالات: الأحداث', es: 'Probabilidad: sucesos' },
+  unitcircle: { fr: 'Cercle trigonométrique', en: 'The unit circle', ar: 'الدائرة المثلثية', es: 'Círculo trigonométrico' },
 };
 const STATUS: Record<SkillStatus, (lang: Lang) => string> = {
   mastered: lang => say(lang, 'Acquis', 'Mastered', 'مكتسبة', 'Adquirida'),

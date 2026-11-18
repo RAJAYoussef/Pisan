@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { cleanup as cleanupAll, fireEvent, render, screen } from '@testing-library/react';
 import { applyBalance, balanceOps, balanceSolved, digitsByRank, INTROS, isPrime, rectanglePairs, zeroPairs, type Side } from '@/lib/skill-intros';
 import type { FigureKind } from '@/lib/figures';
 import { bestStars, starsFor, stepPoints, totalPoints } from '@/lib/rewards';
@@ -23,7 +23,7 @@ function solve(left: Side, right: Side): number | null {
 }
 
 describe('Introductions (modèle de Singapour)', () => {
-  const DONE: FigureKind[] = ['primes', 'linear', 'relatives', 'signs', 'decimals', 'arith', 'powers', 'sci', 'roots', 'expressions', 'literal', 'identities', 'equations', 'inequalities', 'systems', 'affine', 'seq', 'deriv', 'lines', 'polygons', 'angles', 'symmetry', 'measures', 'surfaces', 'solids', 'pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'fractions', 'proportion', 'stats', 'data', 'chance', 'proba'];
+  const DONE: FigureKind[] = ['primes', 'linear', 'relatives', 'signs', 'decimals', 'arith', 'powers', 'sci', 'roots', 'expressions', 'literal', 'identities', 'equations', 'inequalities', 'systems', 'affine', 'seq', 'deriv', 'lines', 'polygons', 'angles', 'symmetry', 'measures', 'surfaces', 'solids', 'pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'fractions', 'proportion', 'stats', 'data', 'chance', 'proba', 'intervals', 'reference', 'signtable', 'lineeq', 'quartiles', 'events', 'unitcircle'];
   const LYCEE: FigureKind[] = ['seq', 'deriv', 'proba'];
   /** Une compétence « manipule » si son introduction a une manipulation ou si l'entraînement en contient une (widget, quadrillage). */
   const manipulates = (id: string) => Boolean(INTROS[id]?.manip) || getSkill(id)!.build(1).steps.some(st => st.type === 'widget' || st.type === 'grid' || st.type === 'tap');
@@ -266,3 +266,59 @@ describe('Manipulations de la famille Données, hasard, proportionnalité', () =
   });
 });
 
+
+describe('Manipulations de 2nde', () => {
+  const engine = () => localEngine({ secret: 'test', hash: '8'.repeat(64) });
+  const open = (id: string) => render(<SkillActivity lang="fr" skill={getSkill(id)!} engine={engine()} attempts={[]} onBack={vi.fn()} />);
+  const press = (name: string | RegExp, times = 1) => { for (let i = 0; i < times; i++) fireEvent.click(screen.getByRole('button', { name })); };
+  const found = () => screen.getByRole('status').textContent!;
+  it('walking x along [−2 ; 3[ shows which end is included', () => {
+    open('int-notation');
+    press('Avancer x', 14);
+    expect(found()).toMatch(/−2 est dedans, 3 n’est pas dedans/);
+  });
+  it('intersection and union: only in A, only in B, in both', () => {
+    open('int-union');
+    press('Avancer x', 15);
+    expect(found()).toMatch(/A ∩ B : les deux à la fois/);
+  });
+  it('the square function: 4 has two pre-images, −2 and 2', () => {
+    open('fn-image');
+    press('Reculer x'); press('Avancer x', 9);
+    expect(found()).toMatch(/2 antécédents : −2 et 2/);
+  });
+  it('the sign of (x + 1)(x − 3) only changes at its roots', () => {
+    open('sign-product');
+    press('Avancer x', 16);
+    expect(found()).toMatch(/ne change qu’en −1 et 3/);
+  });
+  it('reading a line: p first, then m', () => {
+    open('line-read');
+    press('Augmenter p', 2); press('Diminuer m', 2);
+    expect(found()).toMatch(/p = 2 : la droite coupe l’axe vertical en 2/);
+  });
+  it('quartiles: sort, cut into four, draw the box', () => {
+    open('q-quartiles');
+    press(/Ranger/); press(/Couper en quatre/); press(/Dessiner la boîte/);
+    expect(found()).toMatch(/Q3 − Q1 = 5/);
+  });
+  it('two dice: five ways to make 8 out of 36', () => {
+    open('ev-universe');
+    for (const [a, b] of [[2, 6], [3, 5], [4, 4], [5, 3], [6, 2]]) press(`${a} + ${b}`);
+    expect(found()).toMatch(/P\(somme = 8\) = 5\/36/);
+  });
+  it('the Venn diagram removes what is counted twice', () => {
+    open('ev-union');
+    press(/Compter A/); press(/Ajouter B/); press(/Retirer A ∩ B/);
+    expect(found()).toMatch(/A ∪ B compte 17 éléments sur 30/);
+  });
+  it('the unit circle: 60° gives (1/2 ; √3/2), and a full turn shows the signs', () => {
+    open('uc-values');
+    press('Tourner (sens direct)', 4);
+    expect(found()).toMatch(/\(0,5 ; 0,866\)/);
+    cleanupAll();
+    open('uc-signs');
+    press('Tourner (sens direct)', 12);
+    expect(found()).toMatch(/cos est l’abscisse de M/);
+  });
+});
