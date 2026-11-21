@@ -1067,20 +1067,28 @@ button.ws-score .points-badge { padding: 4px 8px; font-size: .8rem; white-space:
 .galton-theory { position: absolute; left: 10%; right: 10%; height: 3px; border-radius: 2px; background: var(--accent); }
 .tally-col { position: relative; }
 
-/* ───────────── Écran de lancement : le π se construit bloc par bloc ───────────── */
-.splash { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: var(--background); animation: splash-out .5s ease-in 2.55s forwards; cursor: pointer; }
-.splash-logo { position: relative; width: min(52vw, 240px); aspect-ratio: 810 / 729; }
-.splash-piece, .splash-whole { position: absolute; inset: 0; width: 100%; height: 100%; user-select: none; }
-.splash-piece { opacity: 0; animation: splash-piece .5s cubic-bezier(.2, 1.4, .4, 1) forwards; }
-.splash-whole { opacity: 0; animation: splash-fade .25s ease-out 1.6s forwards; }
+/* ───────────── Écran de lancement : le π se construit bloc par bloc, en 3D ───────────── */
+.splash { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; background: var(--background); animation: splash-out .6s ease-in 4.9s forwards; cursor: pointer; overflow: hidden; }
+.splash-logo { position: relative; width: min(56vw, 250px); aspect-ratio: 810 / 729; perspective: 900px; }
+.splash-stage { position: absolute; inset: 0; transform-style: preserve-3d; animation: splash-turn 3.8s cubic-bezier(.3, .1, .25, 1) forwards; }
+.splash-piece { position: absolute; transform-style: preserve-3d; opacity: 0; animation: splash-piece 1.1s cubic-bezier(.2, .9, .3, 1.15) forwards; }
+.splash-piece img { position: absolute; inset: 0; width: 100%; height: 100%; user-select: none; transform: translateZ(var(--z)); backface-visibility: hidden; }
+.splash-side { filter: brightness(.62) saturate(1.1); }
+.splash-whole { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transform: translateZ(.5px); animation: splash-fade .35s ease-out 3.8s forwards; user-select: none; }
+.splash-shadow { position: absolute; left: 12%; right: 12%; bottom: -9%; height: 9%; border-radius: 50%; background: radial-gradient(closest-side, rgb(0 0 0 / .22), transparent); opacity: 0; animation: splash-fade 1.2s ease-out 1.6s forwards; }
 .splash-word { display: inline-flex; font-family: 'Lilita One', var(--font-display); font-size: clamp(2.4rem, 11vw, 3.4rem); line-height: 1; }
-.splash-word > span { opacity: 0; animation: splash-letter .4s cubic-bezier(.2, 1.6, .4, 1) forwards; }
-@keyframes splash-piece { from { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--r)) scale(.6); } 60% { opacity: 1; } to { opacity: 1; transform: none; } }
+.splash-word > span { opacity: 0; animation: splash-letter .45s cubic-bezier(.2, 1.6, .4, 1) forwards; }
+@keyframes splash-piece {
+  from { opacity: 0; transform: translate3d(var(--dx), var(--dy), 420px) rotateX(var(--rx)) rotateY(var(--ry)); }
+  25% { opacity: 1; }
+  to { opacity: 1; transform: none; }
+}
+@keyframes splash-turn { from { transform: rotateY(-34deg) rotateX(16deg); } 70% { transform: rotateY(14deg) rotateX(-4deg); } to { transform: none; } }
 @keyframes splash-fade { to { opacity: 1; } }
 @keyframes splash-letter { from { opacity: 0; translate: 0 .5em; scale: .5; } to { opacity: 1; translate: 0; scale: 1; } }
 @keyframes splash-out { to { opacity: 0; visibility: hidden; pointer-events: none; } }
 @media (prefers-reduced-motion: reduce) {
   .splash { animation-delay: 1.2s; }
   .splash-piece { display: none; }
-  .splash-whole, .splash-word > span { animation: none; opacity: 1; }
+  .splash-stage, .splash-whole, .splash-shadow, .splash-word > span { animation: none; opacity: 1; }
 }

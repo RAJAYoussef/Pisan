@@ -3,9 +3,11 @@ import { act, fireEvent, render } from '@testing-library/react';
 import { Splash, SPLASH_MS, SPLASH_PIECES } from '@/components/pisan/splash';
 
 describe('Écran de lancement', () => {
-  it('builds the π from its ten blocks, then shows the word PiSan', () => {
+  it('builds the π from its ten 3D blocks, then shows the word PiSan', () => {
     const { container } = render(<Splash />);
     expect(container.querySelectorAll('.splash-piece')).toHaveLength(10);
+    // chaque bloc a une épaisseur : une face avant et des couches en profondeur
+    for (const piece of container.querySelectorAll('.splash-piece')) { expect(piece.querySelectorAll('.splash-front')).toHaveLength(1); expect(piece.querySelectorAll('.splash-side').length).toBeGreaterThan(3); }
     expect(SPLASH_PIECES).toHaveLength(10);
     expect(container.querySelector('.splash-word')!.textContent).toBe('PiSan');
     // chaque bloc se pose après le précédent

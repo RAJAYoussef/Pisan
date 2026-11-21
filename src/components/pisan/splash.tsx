@@ -1,26 +1,39 @@
-// Écran de lancement : la mascotte π se construit bloc par bloc au milieu de l'écran, le mot « PiSan »
-// apparaît, puis tout s'efface pour laisser place à l'accueil. Le minutage est entièrement en CSS
-// (l'écran disparaît même si le JavaScript tarde) ; un toucher le passe. Couvert par src/test/splash.test.tsx.
-import { useEffect, useState } from 'react';
+// Écran de lancement : la mascotte π se construit bloc par bloc, en 3D, au milieu de l'écran. Chaque bloc
+// (découpé selon sa forme exacte, src/assets/splash) a une épaisseur et arrive de la profondeur en pivotant ;
+// le logo tourne doucement pendant l'assemblage pour montrer le relief, puis se met de face. Le mot « PiSan »
+// apparaît, puis tout s'efface vers l'accueil. Minutage entièrement en CSS ; un toucher passe l'écran.
+// Couvert par src/test/splash.test.tsx.
+import { useEffect, useState, type CSSProperties } from 'react';
 import mascot from '@/assets/pisan-avatar.png';
+import barL from '@/assets/splash/bar-l.png';
+import barR from '@/assets/splash/bar-r.png';
+import tealTl from '@/assets/splash/teal-tl.png';
+import tealTr from '@/assets/splash/teal-tr.png';
+import tealMl from '@/assets/splash/teal-ml.png';
+import yelM from '@/assets/splash/yel-m.png';
+import tealFoot from '@/assets/splash/teal-foot.png';
+import yelFoot from '@/assets/splash/yel-foot.png';
+import yelCurl from '@/assets/splash/yel-curl.png';
+import face from '@/assets/splash/face.png';
 
-/** Les dix blocs de la mascotte, en polygones (en % de l'image), dans l'ordre où ils se posent. */
-export const SPLASH_PIECES: string[] = [
-  '0% 0%, 69.14% 0%, 69.14% 24.14%, 23.21% 24.14%, 14.81% 29.08%, 8.64% 38.68%, 0% 38.68%',
-  '69.14% 0%, 100% 0%, 100% 24.14%, 69.14% 24.14%',
-  '20.74% 24.14%, 44.2% 24.14%, 44.2% 44.72%, 20.74% 44.72%',
-  '56.54% 23.32%, 80.25% 23.32%, 80.25% 44.99%, 56.54% 44.99%',
-  '20.74% 44.72%, 36.54% 44.72%, 36.54% 69% , 20.74% 69%',
-  '68.15% 44.99%, 80.86% 44.99%, 80.86% 68.59%, 68.15% 68.59%',
-  '9.88% 69%, 45.19% 69%, 45.19% 100%, 9.88% 100%',
-  '56.3% 68.59%, 80% 68.59%, 80% 100%, 56.3% 100%',
-  '80% 64.47%, 100% 64.47%, 100% 100%, 80% 100%',
-  '36.54% 43.35%, 68.15% 43.35%, 68.15% 68.59%, 36.54% 68.59%',
-];
-/** D'où arrive chaque bloc (décalage en % de la taille du logo, rotation en degrés). */
-const FROM: [number, number, number][] = [[-60, -90, -14], [70, -90, 12], [-80, -40, -20], [80, -40, 18], [-90, 10, -16], [90, 10, 16], [-60, 80, -12], [60, 80, 14], [90, 60, 20], [0, -120, 0]];
-/** Durée totale (ms) : l'écran est retiré du DOM ensuite. */
-export const SPLASH_MS = 3100;
+/** Les dix blocs, dans l'ordre où ils se posent : image, place (en % du logo), et d'où ils arrivent. */
+export const SPLASH_PIECES = [
+  { src: barL, x: 0.741, y: 0.96, w: 68.395, h: 36.763, from: [-70, -80, -30, 50] },
+  { src: barR, x: 69.136, y: 0.823, w: 30, h: 23.731, from: [80, -90, 40, -60] },
+  { src: tealTl, x: 19.506, y: 24.554, w: 24.568, h: 20.576, from: [-110, -20, 70, 40] },
+  { src: tealTr, x: 56.914, y: 22.908, w: 23.21, h: 22.497, from: [110, -30, -60, -50] },
+  { src: tealMl, x: 21.235, y: 44.993, w: 15.679, h: 24.143, from: [-120, 20, 50, 70] },
+  { src: yelM, x: 67.654, y: 45.267, w: 12.346, h: 23.457, from: [120, 10, -70, -40] },
+  { src: tealFoot, x: 12.593, y: 68.587, w: 31.605, h: 30.453, from: [-90, 90, -40, 60] },
+  { src: yelFoot, x: 56.79, y: 67.901, w: 23.21, h: 29.767, from: [70, 110, 60, -50] },
+  { src: yelCurl, x: 79.877, y: 63.1, w: 18.765, h: 34.294, from: [110, 80, -50, 80] },
+  { src: face, x: 35.185, y: 43.073, w: 34.321, h: 26.337, from: [0, -40, 360, 0] },
+] as const;
+/** Épaisseur des blocs : nombre de couches empilées en profondeur. */
+const LAYERS = 7;
+/** Intervalle entre deux blocs, et durée totale (ms) avant de retirer l'écran du DOM. */
+export const SPLASH_STEP_MS = 280;
+export const SPLASH_MS = 5600;
 
 export function Splash() {
   const [gone, setGone] = useState(false);
@@ -28,10 +41,17 @@ export function Splash() {
   if (gone) return null;
   return <div className="splash" role="presentation" aria-hidden onClick={() => setGone(true)} onAnimationEnd={e => { if (e.target === e.currentTarget) setGone(true); }}>
     <div className="splash-logo">
-      {SPLASH_PIECES.map((poly, i) => <img key={i} src={mascot} alt="" className="splash-piece" draggable={false}
-        style={{ clipPath: `polygon(${poly})`, animationDelay: `${i * 120}ms`, ['--dx' as string]: `${FROM[i]![0]}%`, ['--dy' as string]: `${FROM[i]![1]}%`, ['--r' as string]: `${FROM[i]![2]}deg` }} />)}
-      <img src={mascot} alt="" className="splash-whole" draggable={false} />
+      <div className="splash-stage">
+        {SPLASH_PIECES.map((p, i) => <div key={i} className="splash-piece" style={{
+          left: `${p.x}%`, top: `${p.y}%`, width: `${p.w}%`, height: `${p.h}%`, animationDelay: `${i * SPLASH_STEP_MS}ms`,
+          '--dx': `${p.from[0]}%`, '--dy': `${p.from[1]}%`, '--rx': `${p.from[2]}deg`, '--ry': `${p.from[3]}deg`,
+        } as CSSProperties}>
+          {Array.from({ length: LAYERS }, (_, k) => <img key={k} src={p.src} alt="" draggable={false} className={k === 0 ? 'splash-front' : 'splash-side'} style={{ '--z': `${-k * 1.6}px` } as CSSProperties} />)}
+        </div>)}
+        <img src={mascot} alt="" className="splash-whole" draggable={false} />
+      </div>
+      <span className="splash-shadow" />
     </div>
-    <span className="splash-word brand-letters" dir="ltr">{'PiSan'.split('').map((c, i) => <span key={i} style={{ animationDelay: `${1600 + i * 90}ms` }}>{c}</span>)}</span>
+    <span className="splash-word brand-letters" dir="ltr">{'PiSan'.split('').map((c, i) => <span key={i} style={{ animationDelay: `${3900 + i * 110}ms` }}>{c}</span>)}</span>
   </div>;
 }
