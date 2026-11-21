@@ -12,7 +12,7 @@ import type { Lang } from '@/lib/i18n';
 import { say } from '@/lib/pisan';
 import { programmeFor, programmeNotions } from '@/lib/programmes';
 import { skillsFor, skillStatus, type SkillStatus } from '@/lib/skills';
-import { CHAPTER_NAMES } from './skills';
+import { CHAPTER_NAMES } from './chapter-names';
 
 /** Les chapitres à parcours du programme de la classe. */
 export function classSkillKinds(country: string, grade: number): FigureKind[] {

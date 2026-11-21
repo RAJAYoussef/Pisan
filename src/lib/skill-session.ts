@@ -82,15 +82,19 @@ export async function signTicket(t: Ticket, secret: string): Promise<string> {
   const body = b64(enc.encode(JSON.stringify(t)));
   return `${body}.${b64(await hmac(secret, body))}`;
 }
-/** Le jeton s'il est authentique, pour cette session, et pas expiré ; sinon null. */
-export async function readTicket(token: string, secret: string, hash: string, now = Date.now()): Promise<Ticket | null> {
+/** Le jeton s'il est authentique (signé par l'un des secrets acceptés), pour cette session, et pas expiré ; sinon null. */
+export async function readTicket(token: string, secret: string | string[], hash: string, now = Date.now()): Promise<Ticket | null> {
   const [body, mac] = token.split('.');
   if (!body || !mac || token.length > 4000) return null;
-  const expected = b64(await hmac(secret, body));
-  if (expected.length !== mac.length) return null;
-  let diff = 0;
-  for (let i = 0; i < mac.length; i++) diff |= mac.charCodeAt(i) ^ expected.charCodeAt(i);
-  if (diff) return null;
+  let valid = false;
+  for (const key of Array.isArray(secret) ? secret : [secret]) {
+    const expected = b64(await hmac(key, body));
+    if (expected.length !== mac.length) continue;
+    let diff = 0;
+    for (let i = 0; i < mac.length; i++) diff |= mac.charCodeAt(i) ^ expected.charCodeAt(i);
+    if (!diff) valid = true;
+  }
+  if (!valid) return null;
   try {
     const t = JSON.parse(new TextDecoder().decode(unb64(body))) as Ticket;
     return t.v === 1 && t.h === hash.slice(0, 16) && t.exp > now ? t : null;

@@ -10,7 +10,8 @@ import { Meter } from './shared';
 import { SheetButton } from './learning-aids';
 import { StreakBadge, type StreakView } from './streak';
 import { chapterSkillKinds } from '@/lib/figures';
-import { CHAPTER_NAMES, SkillList } from './skills';
+import { CHAPTER_NAMES } from './chapter-names';
+import { SkillList } from './skills';
 
 export function Journey({ lang, level, progress, onPractice, onTracking, programme }: { lang: Lang; level: number; progress: Progress; onPractice: (notion: NotionId) => void; onTracking?: (() => void) | undefined; programme?: Programme | null | undefined }) {
   const d = DICTS[lang];

@@ -1,7 +1,7 @@
 // Logo PiSan : la mascotte π, et dessous le mot « PiSan » en vrai texte, lettres aux couleurs des blocs
 // qui sautillent, souligné d'une seule ondulation aux couleurs de la mascotte.
 import { useId } from 'react';
-import mascot from '@/assets/pisan-avatar.png';
+import mascot from '@/assets/pisan-avatar.webp';
 
 export function BrandMark({ size = 'header', className = '' }: { size?: 'header' | 'large'; className?: string }) {
   const id = useId().replace(/:/g, '');

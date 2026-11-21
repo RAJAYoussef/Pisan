@@ -6,7 +6,7 @@ import { localizeMath } from '@/lib/curriculum';
 import type { Lang } from '@/lib/i18n';
 import { say } from '@/lib/pisan';
 import type { Intro, Lesson } from '@/lib/skill-intros';
-import mascot from '@/assets/pisan-avatar.png';
+import mascot from '@/assets/pisan-avatar.webp';
 import { Speaker } from './shared';
 import { Rich } from './math-text';
 import { Manipulation } from './manipulations';

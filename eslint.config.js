@@ -37,4 +37,6 @@ export default tseslint.config(
     },
   },
   eslintPluginPrettier,
+  // La mise en forme se fait avec « bun run format » ; le lint ne signale que les vrais problèmes de code.
+  { rules: { "prettier/prettier": "off" } },
 );

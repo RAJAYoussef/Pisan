@@ -96,8 +96,8 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.27 0.04 225);
 
-  --primary: oklch(0.64 0.12 178);
-  --primary-deep: oklch(0.52 0.11 180);
+  --primary: oklch(0.54 0.12 178);
+  --primary-deep: oklch(0.47 0.11 180);
   --primary-soft: oklch(0.94 0.04 178);
   --primary-foreground: oklch(0.99 0.005 180);
 
@@ -832,7 +832,7 @@ html[data-dys-bg="dark"] { --brand-p: #8f93ff; }
 
 /* ───────────── Ludification ───────────── */
 .points-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.points-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; background: var(--sun-soft); color: var(--sun-deep); font-weight: 800; font-size: .85rem; }
+.points-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; background: var(--sun-soft); color: oklch(0.52 0.12 70); font-weight: 800; font-size: .85rem; }
 .points-stars { background: var(--primary-soft); color: var(--primary-deep); }
 .combo-badge { display: inline-flex; padding: 4px 10px; border-radius: 999px; background: var(--accent); color: var(--accent-foreground); font-weight: 800; font-size: .8rem; animation: pop .35s ease-out; }
 .ws-score { display: flex; flex-wrap: wrap; gap: 8px; margin: -6px 0 16px; }

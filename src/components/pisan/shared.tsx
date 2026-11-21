@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import type { Lang } from '@/lib/i18n';
 import { say } from '@/lib/pisan';
-import avatar from '@/assets/pisan-avatar.png';
+import avatar from '@/assets/pisan-avatar.webp';
 import { useDys } from './dys';
 
 export function Speaker({ text, lang }: { text: string; lang: Lang }) {

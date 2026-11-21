@@ -1,9 +1,12 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
+import { signingSecrets } from './signing-secrets';
 import type { Profile } from './pisan';
 import { coachSystemPrompt, trimHistory, westernDigits, resolveCoachTarget, safeReply, COACH_DAILY_LIMIT, COACH_GLOBAL_DAILY_LIMIT, COACH_MAX_CHARS, COACH_STEPS, type CoachRef } from './coach';
 
 const credential = z.string().regex(/^[a-f0-9]{64}$/);
+/** Délai maximum d'une réponse du coach (ms). */
+export const COACH_TIMEOUT_MS = 25000;
 async function hashToken(token: string) {
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
   return Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2, '0')).join('');
@@ -12,9 +15,7 @@ async function hashToken(token: string) {
 export type CoachResult = { ok: true; reply: string; sig: string; remaining: number } | { ok: false; reason: 'quota' | 'busy' | 'credits' | 'error' | 'locked' | 'resting' };
 
 // Signe les réponses de Pi : seul le serveur peut produire un message « assistant » accepté dans l'historique.
-async function sign(hash: string, ref: CoachRef, content: string) {
-  const secret = process.env['SUPABASE_SERVICE_ROLE_KEY'];
-  if (!secret) throw new Error('missing secret');
+async function sign(hash: string, ref: CoachRef, content: string, secret = signingSecrets()[0]!) {
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey('raw', enc.encode(`pisan-coach:${secret}`), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const mac = await crypto.subtle.sign('HMAC', key, enc.encode(`${hash}\n${JSON.stringify(ref)}\n${content}`));
@@ -44,7 +45,10 @@ export const askCoach = createServerFn({ method: 'POST' })
     const last = data.messages[data.messages.length - 1];
     if (last?.role !== 'user') return { ok: false, reason: 'error' };
     for (const m of data.messages) {
-      if (m.role === 'assistant' && (!m.sig || !same(m.sig, await sign(hash, ref, m.content)))) return { ok: false, reason: 'error' };
+      if (m.role !== 'assistant') continue;
+      let valid = false;
+      for (const key of signingSecrets()) if (m.sig && same(m.sig, await sign(hash, ref, m.content, key))) valid = true;
+      if (!valid) return { ok: false, reason: 'error' };
     }
     const session = await supabaseAdmin.from('learning_sessions').select('profile').eq('token_hash', hash).maybeSingle();
     if (session.error || !session.data) return { ok: false, reason: 'error' };
@@ -59,41 +63,50 @@ export const askCoach = createServerFn({ method: 'POST' })
     const key = process.env['LOVABLE_API_KEY'];
     if (!key) return { ok: false, reason: 'error' };
     const history = trimHistory(data.messages);
-    const res = await fetch('https://ai.gateway.lovable.dev/v1/responses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'X-Lovable-AIG-SDK': 'fetch' },
-      body: JSON.stringify({
-        model: 'openai/gpt-6-astra', stream: true, store: false,
-        reasoning: { effort: 'low' },
-        instructions: coachSystemPrompt(profile, { activity: data.context.activity, statement: target.statement, notion: target.notion, step: data.context.step === undefined ? undefined : COACH_STEPS[data.context.step], dys: data.context.dys }),
-        input: history.map(m => ({ role: m.role, content: m.content })),
-      }),
-    });
-    if (!res.ok || !res.body) {
-      console.error('coach gateway', res.status, await res.text().catch(() => ''));
-      return { ok: false, reason: res.status === 429 ? 'busy' : res.status === 402 ? 'credits' : 'error' };
-    }
-    // Consomme le flux côté serveur et ne renvoie que la réponse finale.
-    const reader = res.body.getReader(); const decoder = new TextDecoder();
-    let buffer = ''; let text = ''; let refused = false;
-    for (;;) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      let i;
-      while ((i = buffer.indexOf('\n')) >= 0) {
-        const line = buffer.slice(0, i).trim(); buffer = buffer.slice(i + 1);
-        if (!line.startsWith('data:')) continue;
-        const payload = line.slice(5).trim();
-        if (!payload || payload === '[DONE]') continue;
-        try {
-          const ev = JSON.parse(payload) as { type?: string; delta?: string };
-          if (ev.type === 'response.output_text.delta' && ev.delta) text += ev.delta;
-          if (ev.type === 'response.refusal.delta') refused = true;
-          if (ev.type === 'response.failed' || ev.type === 'error') return { ok: false, reason: 'error' };
-        } catch { /* fragment incomplet */ }
+    // Délai maximum : une passerelle bloquée ne doit pas laisser l'élève attendre indéfiniment.
+    const abort = new AbortController();
+    const timer = setTimeout(() => abort.abort(), COACH_TIMEOUT_MS);
+    let text = ''; let refused = false;
+    try {
+      const res = await fetch('https://ai.gateway.lovable.dev/v1/responses', {
+        method: 'POST', signal: abort.signal,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'X-Lovable-AIG-SDK': 'fetch' },
+        body: JSON.stringify({
+          model: 'openai/gpt-6-astra', stream: true, store: false,
+          reasoning: { effort: 'low' },
+          instructions: coachSystemPrompt(profile, { activity: data.context.activity, statement: target.statement, notion: target.notion, step: data.context.step === undefined ? undefined : COACH_STEPS[data.context.step], dys: data.context.dys }),
+          input: history.map(m => ({ role: m.role, content: m.content })),
+        }),
+      });
+      if (!res.ok || !res.body) {
+        console.error('coach gateway', res.status, await res.text().catch(() => ''));
+        return { ok: false, reason: res.status === 429 ? 'busy' : res.status === 402 ? 'credits' : 'error' };
       }
-    }
+      // Consomme le flux côté serveur et ne renvoie que la réponse finale.
+      const reader = res.body.getReader(); const decoder = new TextDecoder();
+      let buffer = '';
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let i;
+        while ((i = buffer.indexOf('\n')) >= 0) {
+          const line = buffer.slice(0, i).trim(); buffer = buffer.slice(i + 1);
+          if (!line.startsWith('data:')) continue;
+          const payload = line.slice(5).trim();
+          if (!payload || payload === '[DONE]') continue;
+          try {
+            const ev = JSON.parse(payload) as { type?: string; delta?: string };
+            if (ev.type === 'response.output_text.delta' && ev.delta) text += ev.delta;
+            if (ev.type === 'response.refusal.delta') refused = true;
+            if (ev.type === 'response.failed' || ev.type === 'error') return { ok: false, reason: 'error' };
+          } catch { /* fragment incomplet */ }
+        }
+      }
+    } catch {
+      // délai dépassé ou flux coupé
+      return { ok: false, reason: 'busy' };
+    } finally { clearTimeout(timer); }
     if (refused && !text.trim()) return { ok: false, reason: 'error' };
     const raw = westernDigits(text.trim());
     if (!raw) return { ok: false, reason: 'error' };

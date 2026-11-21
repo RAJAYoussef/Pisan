@@ -6,7 +6,7 @@ import type { FigureKind } from '@/lib/figures';
 import type { Lang } from '@/lib/i18n';
 import { say, type Attempt } from '@/lib/pisan';
 import { skillsFor, skillStatus, type Skill, type SkillStatus } from '@/lib/skills';
-import { CHAPTER_NAMES } from './skills';
+import { CHAPTER_NAMES } from './chapter-names';
 import { Stars } from './skill-intro';
 import { bestStars, levelOf, medalFor, starsOf, totalPoints } from '@/lib/rewards';
 import { streakNow, type StreakView } from './streak';

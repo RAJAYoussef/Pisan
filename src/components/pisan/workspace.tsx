@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import { ArrowRight, BookOpen, Brain, ChevronDown, ChevronRight, CircleUserRound, ClipboardCheck, Crown, Flame, GraduationCap, Home, LayoutDashboard, LogOut, Menu, RotateCcw, ShieldCheck, Sparkles, Star, TrendingUp, X } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,13 +17,8 @@ import { say, type Attempt, type LearningSession, type Profile } from '@/lib/pis
 import { todayKey } from '@/lib/plan';
 import { shouldShowTestBar } from '@/lib/test-mode';
 import { BrandMark } from './brand';
-import avatar from '@/assets/pisan-avatar.png';
-import { Diagnostic } from './diagnostic';
-import { Workshop } from './workshop';
-import { Exam } from './exam';
-import { Dashboard, Journey } from './progress';
+import avatar from '@/assets/pisan-avatar.webp';
 import { BottomTabs, tabLabel, type Tab } from './nav';
-import { Consolidation } from './diagnostic';
 import { nextChapter, notionToPractise, studyChapters } from '@/lib/next-step';
 import { chaptersForLevel, getNotion, type NotionId } from '@/lib/curriculum';
 import type { Programme } from '@/lib/programmes';
@@ -35,7 +30,7 @@ import { checkSkillStep, finishSkillSession, startSkillSession, submitConsolidat
 import type { Grader } from '@/lib/grading';
 import type { SkillEngine } from '@/lib/skill-session';
 import { AccountSection, ResumeProfile } from './account';
-import { SESSION_KEY } from '@/lib/recovery';
+import { readSessionKey, SESSION_KEY, writeSessionKey } from '@/lib/recovery';
 import { greeting } from '@/lib/greeting';
 import { dueReviews } from '@/lib/skills';
 import { StreakBadge, browserTimeZone } from './streak';
@@ -44,6 +39,29 @@ import { CHALLENGE_STARS } from '@/lib/challenge';
 import type { StreakResult, Progress } from '@/lib/pisan';
 
 const icons = { home: Home, diagnostic: Brain, workshop: BookOpen, exam: ClipboardCheck, journey: TrendingUp, tracking: LayoutDashboard };
+
+// Les écrans d'activité (atelier, diagnostic, contrôle, consolidation) et leurs manipulations sont chargés
+// à la demande : l'accueil s'affiche sans attendre ce code, plus lourd.
+const LazyWorkshop = lazy(() => import('./workshop').then(m => ({ default: m.Workshop })));
+const LazyExam = lazy(() => import('./exam').then(m => ({ default: m.Exam })));
+const LazyDiagnostic = lazy(() => import('./diagnostic').then(m => ({ default: m.Diagnostic })));
+const LazyConsolidation = lazy(() => import('./diagnostic').then(m => ({ default: m.Consolidation })));
+const LazyJourney = lazy(() => import('./progress').then(m => ({ default: m.Journey })));
+const LazyDashboard = lazy(() => import('./progress').then(m => ({ default: m.Dashboard })));
+const Loading = () => <p className="animate-pulse p-10 text-muted-foreground" role="status">PiSan…</p>;
+function Workshop(props: ComponentProps<typeof import('./workshop').Workshop>) { return <Suspense fallback={<Loading />}><LazyWorkshop {...props} /></Suspense>; }
+function Exam(props: ComponentProps<typeof import('./exam').Exam>) { return <Suspense fallback={<Loading />}><LazyExam {...props} /></Suspense>; }
+function Diagnostic(props: ComponentProps<typeof import('./diagnostic').Diagnostic>) { return <Suspense fallback={<Loading />}><LazyDiagnostic {...props} /></Suspense>; }
+function Journey(props: ComponentProps<typeof import('./progress').Journey>) { return <Suspense fallback={<Loading />}><LazyJourney {...props} /></Suspense>; }
+function Dashboard(props: ComponentProps<typeof import('./progress').Dashboard>) { return <Suspense fallback={<Loading />}><LazyDashboard {...props} /></Suspense>; }
+function Consolidation(props: ComponentProps<typeof import('./diagnostic').Consolidation>) { return <Suspense fallback={<Loading />}><LazyConsolidation {...props} /></Suspense>; }
+
+const STORAGE_BLOCKED: Record<Lang, string> = {
+  fr: 'Ton navigateur bloque l’enregistrement : tes progrès seront perdus en fermant l’onglet. Note ton code de reprise dans les réglages.',
+  en: 'Your browser blocks saving: your progress will be lost when you close the tab. Write down your recovery code in the settings.',
+  ar: 'متصفحك يمنع الحفظ: ستضيع نتائجك عند إغلاق الصفحة. احتفظ برمز الاسترجاع من الإعدادات.',
+  es: 'Tu navegador bloquea el guardado: perderás tu progreso al cerrar la pestaña. Anota tu código de recuperación en los ajustes.',
+};
 
 export function Workspace() {
   const open = useServerFn(openSession);
@@ -80,21 +98,26 @@ export function Workspace() {
   const [dysOpen, setDysOpen] = useState(false);
   const [streakNote, setStreakNote] = useState('');
   const d = DICTS[lang];
+  const langRef = useRef(lang);
+  langRef.current = lang;
+  const hasSession = !!session;
   /** Ferme le profil sur cet appareil : la clé est oubliée, les progrès restent sur le serveur. */
   function logout() { try { localStorage.removeItem(SESSION_KEY); } catch { /* rien à effacer */ } window.location.reload(); }
   /** Reprend un profil existant avec son code ; ne crée jamais de profil vide. */
   async function resume(code: string): Promise<boolean> {
     const found = await open({ data: { token: code } });
     if (!found) return false;
-    localStorage.setItem(SESSION_KEY, code);
+    if (!writeSessionKey(code)) { setToken(code); setSession(found); setSetup(false); return true; }
     window.location.reload();
     return true;
   }
   useEffect(() => {
     let cancelled = false;
     setShowTestBar(shouldShowTestBar(import.meta.env.DEV, window.location.hostname));
-    let credential = localStorage.getItem(SESSION_KEY);
-    if (!credential || !/^[a-f0-9]{64}$/.test(credential)) { credential = Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join(''); localStorage.setItem(SESSION_KEY, credential); }
+    let { key: credential, persisted } = readSessionKey();
+    if (!credential || !/^[a-f0-9]{64}$/.test(credential)) { credential = Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join(''); persisted = writeSessionKey(credential) && persisted; }
+    // Stockage bloqué : l'appli marche quand même, mais la clé sera perdue en fermant l'onglet.
+    if (!persisted) setError(STORAGE_BLOCKED[langRef.current]);
     setToken(credential);
     open({ data: { token: credential } }).then(result => { if (cancelled) return; if (result) { setSession(result); const tz = browserTimeZone(); if (!result.profile.timezone && tz) { void open({ data: { token: credential, profile: { ...result.profile, timezone: tz } } }).then(r => { if (!cancelled && r) setSession(r); }).catch(() => {}); } setLang(result.profile.lang); setSetup(false); } setReady(true); }).catch(() => { if (!cancelled) { setError('La sauvegarde est temporairement indisponible. Réessayez dans un instant.'); setReady(true); } });
     return () => { cancelled = true; window.speechSynthesis?.cancel(); };
@@ -111,8 +134,8 @@ export function Workspace() {
   const label = (id: Tab) => tabLabel(id, lang);
   const navigate = (next: Tab) => { window.speechSynthesis?.cancel(); setTab(next); setMobileNav(false); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   // Devoirs de la classe : rechargés quand la liste des classes change ; une erreur n'empêche pas d'utiliser l'appli.
-  useEffect(() => { if (!session || !token) return; let cancelled=false; listAssignments({data:{token}}).then(rows=>{if(!cancelled)setAssignments(rows);}).catch(()=>{if(!cancelled)setAssignments([]);}); return ()=>{cancelled=true;}; }, [token,!!session,memberships.length,listAssignments]);
-  useEffect(() => { if (!session || !token) return; let cancelled=false; listClasses({data:{token}}).then(rows=>{if(!cancelled)setMemberships(rows);}).catch(()=>{if(!cancelled)setMemberships([]);}); return ()=>{cancelled=true;}; }, [settingsOpen,token,!!session,listClasses,lang]);
+  useEffect(() => { if (!hasSession || !token) return; let cancelled=false; listAssignments({data:{token}}).then(rows=>{if(!cancelled)setAssignments(rows);}).catch(()=>{if(!cancelled)setAssignments([]);}); return ()=>{cancelled=true;}; }, [token,hasSession,memberships.length,listAssignments]);
+  useEffect(() => { if (!hasSession || !token) return; let cancelled=false; listClasses({data:{token}}).then(rows=>{if(!cancelled)setMemberships(rows);}).catch(()=>{if(!cancelled)setMemberships([]);}); return ()=>{cancelled=true;}; }, [settingsOpen,token,hasSession,listClasses,lang]);
   async function depart(memberId:string) {
     setClassBusy(true);
     try { await leave({data:{token,memberId}}); setMemberships(rows=>rows.filter(m=>m.id!==memberId)); setError(teacherText(lang).left); setLeaveId(''); } catch {setError(teacherText(lang).error);} finally {setClassBusy(false);}

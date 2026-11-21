@@ -8,8 +8,8 @@ import { say, type Attempt } from '@/lib/pisan';
 import { localDay } from '@/lib/plan';
 import { lastDays, levelOf, medalFor, starsOf, toNextMedal, totalPoints, type Medal } from '@/lib/rewards';
 import { skillsFor, skillStatus } from '@/lib/skills';
-import mascot from '@/assets/pisan-avatar.png';
-import { CHAPTER_NAMES } from './skills';
+import mascot from '@/assets/pisan-avatar.webp';
+import { CHAPTER_NAMES } from './chapter-names';
 import { ChapterGlyph, FAMILIES, FAMILY_NAMES, KIND_FAMILY, KIND_TONE } from './workshop-home';
 import { streakNow, type StreakView } from './streak';
 

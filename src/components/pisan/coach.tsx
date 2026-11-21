@@ -7,7 +7,7 @@ import type { CoachContext, CoachRef } from '@/lib/coach';
 import { isDysActive } from '@/lib/dys';
 import type { Lang } from '@/lib/i18n';
 import { say } from '@/lib/pisan';
-import avatar from '@/assets/pisan-avatar.png';
+import avatar from '@/assets/pisan-avatar.webp';
 import { useDys } from './dys';
 
 const TokenContext = createContext({ token: '', eligible: false });

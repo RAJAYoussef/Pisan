@@ -4,6 +4,7 @@ import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { isNotionId, type NotionId } from './curriculum';
 import { consolidationOk, gradeExam, profileProgramme, replayDiagnostic } from './grading';
+import { signingSecrets } from './signing-secrets';
 import { advance, newTicket, readTicket, signTicket, ticketAttempts, ticketSteps, type StepAnswer } from './skill-session';
 import { getSkill } from './skills';
 import { hashToken, recordAttempt } from './session.functions';
@@ -14,11 +15,9 @@ const notion = z.custom<NotionId>(v => typeof v === 'string' && isNotionId(v), {
 const choices = (max: number) => z.array(z.number().int().min(0).max(10)).min(1).max(max);
 const skillId = z.string().max(40).refine(id => getSkill(id) !== null, 'Unknown skill');
 
-function secret(): string {
-  const s = process.env['SUPABASE_SERVICE_ROLE_KEY'];
-  if (!s) throw new Error('Correction indisponible.');
-  return s;
-}
+/** On signe avec le premier secret, on accepte les jetons signés par n'importe lequel (src/lib/signing-secrets.ts). */
+const secrets = () => signingSecrets();
+const secret = () => secrets()[0]!;
 async function loadSession(token: string) {
   const hash = await hashToken(token);
   const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
@@ -86,7 +85,7 @@ export const checkSkillStep = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ token: credential, ticket: z.string().max(4000), answer }).strict())
   .handler(async ({ data }) => {
     const key = secret();
-    const t = await readTicket(data.ticket, key, await hashToken(data.token));
+    const t = await readTicket(data.ticket, secrets(), await hashToken(data.token));
     const steps = t && ticketSteps(t);
     const next = t && steps && advance(t, steps, data.answer);
     if (!next) throw new Error('Activité expirée : recommence-la.');
@@ -98,7 +97,7 @@ export const finishSkillSession = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ token: credential, ticket: z.string().max(4000) }).strict())
   .handler(async ({ data }) => {
     const { hash, admin, session } = await loadSession(data.token);
-    const t = await readTicket(data.ticket, secret(), hash);
+    const t = await readTicket(data.ticket, secrets(), hash);
     const steps = t && ticketSteps(t);
     const attempts = t && steps && ticketAttempts(t, steps);
     if (!attempts) throw new Error('Activité inachevée ou expirée.');
