@@ -370,6 +370,45 @@ export type Database = {
         }
         Relationships: []
       }
+      question_reports: {
+        Row: {
+          context: string
+          created_at: string
+          id: string
+          lang: string
+          message: string
+          reason: string
+          seed: number
+          skill_id: string
+          status: string
+          step: number
+        }
+        Insert: {
+          context: string
+          created_at?: string
+          id?: string
+          lang: string
+          message?: string
+          reason: string
+          seed: number
+          skill_id: string
+          status?: string
+          step: number
+        }
+        Update: {
+          context?: string
+          created_at?: string
+          id?: string
+          lang?: string
+          message?: string
+          reason?: string
+          seed?: number
+          skill_id?: string
+          status?: string
+          step?: number
+        }
+        Relationships: []
+      }
       rate_limits: {
         Row: {
           count: number
