@@ -14,7 +14,7 @@ import { ChapterPath, WorkshopHome, type Tile } from './workshop-home';
 import { RewardsScreen } from './rewards-screen';
 import type { StreakView } from './streak';
 import { dueReviews, getSkill, nextSkill, type Skill } from '@/lib/skills';
-import { assignmentNext, visibleAssignments, type Assignment } from '@/lib/assignments';
+import { assignmentTarget, visibleAssignments, type Assignment } from '@/lib/assignments';
 import type { SkillEngine } from '@/lib/skill-session';
 import { AssignmentRow } from './assignment-row';
 import { FIGURE_NOTIONS, figureChapter, figuresFor, type FigureKind } from '@/lib/figures';
@@ -69,6 +69,7 @@ export function Workshop(props: Props) {
   if (review) return <ReviewActivity lang={lang} skills={review} engine={props.engine} onBack={() => setReview(null)} />;
   if (skill) return <SkillActivity key={skill.id} lang={lang} skill={skill} engine={props.engine} attempts={attempts} onBack={() => setSkill(null)} onAdaptiveSkill={setAdaptiveSkillId} onJournalEvent={event => props.onJournalEvent?.(skill.id, event)} />;
   async function openReview() { setBusy(true); setError(''); try { if (await onStart()) setReview(due); } catch { setError(say(lang, 'Exercice indisponible. Réessaie.', 'Exercise unavailable. Try again.', 'التمرين غير متاح.', 'Ejercicio no disponible.')); } finally { setBusy(false); } }
+  async function openReviewOf(skills: Skill[]) { setBusy(true); setError(''); try { if (await onStart()) setReview(skills); } catch { setError(say(lang, 'Exercice indisponible. Réessaie.', 'Exercise unavailable. Try again.', 'التمرين غير متاح.', 'Ejercicio no disponible.')); } finally { setBusy(false); } }
   async function openSkill(next: Skill) { setBusy(true); setError(''); try { if (await onStart()) { setSkill(next); setAdaptiveSkillId(null); } } catch { setError(say(lang, 'Exercice indisponible. Réessaie.', 'Exercise unavailable. Try again.', 'التمرين غير متاح.', 'Ejercicio no disponible.')); } finally { setBusy(false); } }
   if (highActive) return <HighSchool {...props} modes={modes} onBack={() => setHighActive(false)} />;
   if (exercise) return <BarExercise key={exercise.id} {...props} exercise={exercise} onBack={() => setExercise(null)} />;
@@ -95,7 +96,7 @@ export function Workshop(props: Props) {
   ];
   const adaptiveSkill = adaptiveSkillId ? (getSkill(adaptiveSkillId)) : null;
   const next = adaptiveSkill ? { skill: adaptiveSkill, resumed: true } : nextSkill(attempts, figures);
-  return <><WorkshopHome lang={lang} assignments={visibleAssignments(props.assignments ?? [], attempts).map(a => <AssignmentRow key={a.id} lang={lang} assignment={a} attempts={attempts} onOpen={() => { const next = assignmentNext(attempts, a); if (next) void openSkill(next); }} />)} kinds={figures} attempts={attempts} chapterLabel={k => figureChapterTitle(programme, k, lang)} next={next} due={due.length} extras={extras} busy={busy} lastKind={lastChapter} streak={props.streak} onRewards={() => setRewards(true)} onChapter={k => { setLastChapter(k); setChapter(k); }} onSkill={next => void openSkill(next)} onReview={() => void openReview()} />{errorBox}</>;
+  return <><WorkshopHome lang={lang} assignments={visibleAssignments(props.assignments ?? [], attempts).map(a => <AssignmentRow key={a.id} lang={lang} assignment={a} attempts={attempts} onOpen={() => { const target = assignmentTarget(attempts, a); if (target?.kind === 'skill') void openSkill(target.skill); else if (target) void openReviewOf(target.skills); }} />)} kinds={figures} attempts={attempts} chapterLabel={k => figureChapterTitle(programme, k, lang)} next={next} due={due.length} extras={extras} busy={busy} lastKind={lastChapter} streak={props.streak} onRewards={() => setRewards(true)} onChapter={k => { setLastChapter(k); setChapter(k); }} onSkill={next => void openSkill(next)} onReview={() => void openReview()} />{errorBox}</>;
 }
 
 /** Icône des problèmes en barres. */

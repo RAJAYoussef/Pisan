@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 const { from, adminFrom } = vi.hoisted(() => ({ from: vi.fn(), adminFrom: vi.fn() }));
 vi.mock('@tanstack/react-start', () => ({ createServerFn: () => { const b = { middleware: () => b, inputValidator: () => b, handler: (fn: unknown) => fn }; return b; }, useServerFn: (fn: unknown) => fn }));
 vi.mock('@/integrations/supabase/auth-middleware', () => ({ requireSupabaseAuth: {} }));
-vi.mock('@/integrations/supabase/client.server', () => ({ supabaseAdmin: { from: adminFrom } }));
+const { adminRpc } = vi.hoisted(() => ({ adminRpc: vi.fn() }));
+vi.mock('@/integrations/supabase/client.server', () => ({ supabaseAdmin: { from: adminFrom, rpc: adminRpc } }));
 
 import { addDays, assignmentNext, assignmentProgress, daysLeft, todayIso, validDueDate, visibleAssignments } from '@/lib/assignments';
 import * as fns from '@/lib/teacher.functions';
@@ -71,9 +72,13 @@ describe('Devoirs : accès', () => {
     const calls: [string, string, unknown][] = [];
     adminFrom.mockImplementation((table: string) => {
       const chain = {
-        select: () => chain, order: () => chain, limit: async () => ({ data: [{ id: 'a1', title: 'Vecteurs', skill_ids: ['vec-sum'], due_date: '2026-11-24', class_id: 'c1' }], error: null }),
+        select: () => chain, order: () => chain, limit: async () => ({ data: [
+          { id: 'a1', title: 'Vecteurs', skill_ids: ['vec-sum'], due_date: '2026-11-24', class_id: 'c1', created_at: '2026-11-20T10:00:00Z', kind: 'skills', member_ids: null },
+          { id: 'a2', title: 'Pour un autre élève', skill_ids: ['vec-sum'], due_date: '2026-11-24', class_id: 'c1', created_at: '2026-11-20T10:00:00Z', kind: 'skills', member_ids: ['m9'] },
+          { id: 'a3', title: 'Rien que pour toi', skill_ids: ['vec-sum'], due_date: '2026-11-25', class_id: 'c1', created_at: '2026-11-20T10:00:00Z', kind: 'review', member_ids: ['m1'] },
+        ], error: null }),
         gte: () => chain, in: (k: string, v: unknown) => { calls.push([table, k, v]); return chain; },
-        eq: (k: string, v: unknown) => { calls.push([table, k, v]); return table === 'class_members' ? Promise.resolve({ data: [{ class_id: 'c1', classes: { name: '3e B' } }], error: null }) : chain; },
+        eq: (k: string, v: unknown) => { calls.push([table, k, v]); return table === 'class_members' ? Promise.resolve({ data: [{ id: 'm1', class_id: 'c1', classes: { name: '3e B' } }], error: null }) : chain; },
       };
       return chain;
     });
@@ -82,7 +87,11 @@ describe('Devoirs : accès', () => {
     expect(calls[0]).toEqual(['class_members', 'token_hash', expect.stringMatching(/^[a-f0-9]{64}$/)]);
     expect(calls[0]![2]).not.toBe('a'.repeat(64)); // jamais le jeton en clair
     expect(calls[1]).toEqual(['class_assignments', 'class_id', ['c1']]);
-    expect(rows).toEqual([{ id: 'a1', title: 'Vecteurs', skill_ids: ['vec-sum'], due_date: '2026-11-24', class_name: '3e B' }]);
+    // Le devoir d'un autre élève n'est pas montré, et la liste des élèves ciblés n'est jamais renvoyée.
+    expect(rows).toEqual([
+      { id: 'a1', title: 'Vecteurs', skill_ids: ['vec-sum'], due_date: '2026-11-24', created_at: '2026-11-20T10:00:00Z', kind: 'skills', class_name: '3e B' },
+      { id: 'a3', title: 'Rien que pour toi', skill_ids: ['vec-sum'], due_date: '2026-11-25', created_at: '2026-11-20T10:00:00Z', kind: 'review', class_name: '3e B' },
+    ]);
   });
   it('no class, no assignment query', async () => {
     adminFrom.mockImplementation(() => { const chain = { select: () => chain, eq: async () => ({ data: [], error: null }) }; return chain; });
@@ -105,13 +114,67 @@ describe('Devoirs : écran professeur', () => {
     ];
     render(<QueryClientProvider client={new QueryClient()}><ClassAssignments lang="fr" classId="c1" kinds={['vectors', 'stats']} students={students} /></QueryClientProvider>);
     fireEvent.click(await screen.findByRole('button', { name: /Nouveau devoir/ }));
-    fireEvent.change(screen.getByLabelText('Chapitre'), { target: { value: 'vectors' } });
-    for (const name of ['Coordonnées d’un vecteur', 'Somme de vecteurs', 'Milieu et distance']) fireEvent.click(screen.getByLabelText(name));
+    for (const name of ['Direction, sens, longueur', 'Translation']) fireEvent.click(screen.getByLabelText(name));
     fireEvent.click(screen.getByRole('button', { name: 'Assigner à la classe' }));
     await waitFor(() => expect(created).toHaveLength(1));
-    expect(created[0]).toEqual({ classId: 'c1', title: 'Vecteurs', skillIds: ['vec-characterise', 'vec-translation'], dueDate: addDays(todayIso(), 7) });
+    expect(created[0]).toEqual({ classId: 'c1', title: 'Vecteurs', skillIds: ['vec-characterise', 'vec-translation'], dueDate: addDays(todayIso(), 7), kind: 'skills', memberIds: null });
     fireEvent.click(await screen.findByRole('button', { name: /Vecteurs.*1\/2 terminé/ }));
     expect(screen.getByText('✓ Terminé')).toBeTruthy();
     expect(screen.getByText('0/2')).toBeTruthy();
+  });
+});
+
+describe('Devoirs : mini-contrôles et élèves choisis', () => {
+  it('a quick check is done when every skill was taken after the assignment was created, by sets of 4', async () => {
+    const { assignmentProgress, assignmentTarget, assignedTo } = await import('@/lib/assignments');
+    const a = { skill_ids: ['vec-characterise', 'vec-translation', 'vec-sum', 'stats-median', 'stats-mean'], kind: 'review' as const, created_at: '2026-11-20T10:00:00Z' };
+    const review = (skill: string, date: string, correct = 1) => ({ kind: 'workshop' as const, notion: 'vectors' as never, skill, review: true, correct, total: 1, date, minutes: 2 });
+    // Un mini-contrôle passé AVANT le devoir ne compte pas.
+    const before = [review('vec-sum', '2026-11-19T10:00:00Z')];
+    expect(assignmentProgress(before, a)).toMatchObject({ done: 0, complete: false });
+    const first = assignmentTarget(before, a);
+    expect(first?.kind === 'review' && first.skills.map(s => s.id)).toEqual(['vec-characterise', 'vec-translation', 'vec-sum', 'stats-median']);
+    // Après une première série (même ratée), il reste la dernière compétence.
+    const after = ['vec-characterise', 'vec-translation', 'vec-sum', 'stats-median'].map(id => review(id, '2026-11-21T10:00:00Z', 0));
+    const second = assignmentTarget(after, a);
+    expect(second?.kind === 'review' && second.skills.map(s => s.id)).toEqual(['stats-mean']);
+    expect(assignmentProgress([...after, review('stats-mean', '2026-11-21T11:00:00Z')], a)).toMatchObject({ done: 5, complete: true });
+    expect(assignedTo({ member_ids: null }, 'm1')).toBe(true);
+    expect(assignedTo({ member_ids: ['m2'] }, 'm1')).toBe(false);
+  });
+});
+
+describe('Devoirs ciblés et codes de reprise : accès', () => {
+  it('only pupils of the class can be targeted', async () => {
+    vi.restoreAllMocks();
+    const insert = vi.fn(() => ({ select: () => ({ single: async () => ({ data: { id: 'a1' }, error: null }) }) }));
+    from.mockImplementation((table: string) => {
+      if (table === 'classes') { const c = { select: () => c, eq: () => c, single: async () => ({ data: { id: 'c1' }, error: null }) }; return c; }
+      if (table === 'class_members') { const c = { select: () => c, eq: async () => ({ data: [{ id: 'm1' }, { id: 'm2' }], error: null }) }; return c; }
+      return { insert };
+    });
+    const create = fns.createAssignment as unknown as (i: unknown) => Promise<unknown>;
+    await create({ data: { classId: 'c1', title: 'Groupe', skillIds: ['vec-sum'], dueDate: '2026-11-24', kind: 'review', memberIds: ['m1', 'intrus'] }, context });
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ class_id: 'c1', kind: 'review', member_ids: ['m1'] }));
+    await expect(create({ data: { classId: 'c1', title: 'Groupe', skillIds: ['vec-sum'], dueDate: '2026-11-24', kind: 'skills', memberIds: ['intrus'] }, context })).rejects.toThrow();
+  });
+  it('a new recovery code needs the class to be the caller’s, and keeps the hash server-side', async () => {
+    const notOwned = { select: () => notOwned, eq: () => notOwned, single: async () => ({ data: null, error: { message: 'missing' } }) };
+    from.mockReturnValue(notOwned);
+    const reissue = fns.reissueRecoveryCode as unknown as (i: unknown) => Promise<{ token: string }>;
+    await expect(reissue({ data: { classId: 'other', memberId: 'm1' }, context })).rejects.toThrow('Forbidden');
+    expect(adminFrom).not.toHaveBeenCalled();
+    const owned = { select: () => owned, eq: () => owned, single: async () => ({ data: { id: 'c1' }, error: null }) };
+    from.mockReturnValue(owned);
+    const member = { select: () => member, eq: () => member, single: async () => ({ data: { token_hash: 'f'.repeat(64) }, error: null }) };
+    adminFrom.mockReturnValue(member);
+    adminRpc.mockResolvedValue({ data: true, error: null });
+    const r = await reissue({ data: { classId: 'c1', memberId: 'm1' }, context });
+    expect(r.token).toMatch(/^[a-f0-9]{64}$/);
+    const call = adminRpc.mock.calls[0]!;
+    expect(call[0]).toBe('rekey_pisan_session');
+    expect(call[1].p_old_hash).toBe('f'.repeat(64));
+    expect(call[1].p_new_hash).toMatch(/^[a-f0-9]{64}$/);
+    expect(call[1].p_new_hash).not.toBe(r.token); // la base ne voit jamais le code en clair
   });
 });

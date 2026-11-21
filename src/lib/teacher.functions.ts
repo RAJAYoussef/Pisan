@@ -1,6 +1,8 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/integrations/supabase/types';
 import { DYS_PRESET } from './dys';
 import type { ClassStudent } from './classroom';
 import { getSkill } from './skills';
@@ -35,16 +37,41 @@ export const saveTeacher = createServerFn({ method:'POST' }).middleware([require
  if(error) throw new Error('Unavailable');
  return {ok:true};
 });
-export const createClass = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator(z.object({name:z.string().trim().min(1).max(80),country:z.string().max(10),grade:z.number().int().min(0).max(6)})).handler(async ({data,context}) => {
+const track = z.string().regex(/^[a-z0-9-]{1,20}$/);
+export const createClass = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator(z.object({name:z.string().trim().min(1).max(80),country:z.string().max(10),grade:z.number().int().min(0).max(6),track:track.optional()})).handler(async ({data,context}) => {
  const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
  for(let i=0;i<5;i++) {
   const code=Array.from(crypto.getRandomValues(new Uint8Array(6)),b=>alphabet[b%alphabet.length]).join('');
-  const {data:row,error}=await context.supabase.from('classes').insert({...data,teacher_id:context.userId,join_code:code}).select('*').single();
+  const {data:row,error}=await context.supabase.from('classes').insert({name:data.name,country:data.country,grade:data.grade,track:data.track ?? null,teacher_id:context.userId,join_code:code}).select('*').single();
   if(!error) return row;
   if(error.code !== '23505') throw new Error('Unavailable');
  }
  throw new Error('Unavailable');
 });
+/** Renommer une classe ou changer sa filière : la RLS (classe de l'appelant) protège la ligne. */
+export const updateClass = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator(z.object({id:z.string().uuid(),name:z.string().trim().min(1).max(80),track:track.nullable()}).strict()).handler(async ({data,context}) => {
+ const updated=await context.supabase.from('classes').update({name:data.name,track:data.track}).eq('id',data.id).eq('teacher_id',context.userId).select('id').single();
+ if(updated.error || !updated.data) throw new Error('Forbidden');
+ return {ok:true};
+});
+
+/**
+ * Élève qui a perdu son code de reprise : l'enseignant lui en donne un nouveau. Les progrès sont gardés (la clé change,
+ * l'ancien code ne marche plus). Propriété de la classe vérifiée avec le client de l'appelant avant tout accès privilégié.
+ */
+export const reissueRecoveryCode = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator(z.object({classId:z.string().uuid(),memberId:z.string().uuid()}).strict()).handler(async ({data,context}) => {
+ const owned=await context.supabase.from('classes').select('id').eq('id',data.classId).eq('teacher_id',context.userId).single();
+ if(owned.error || !owned.data) throw new Error('Forbidden');
+ const {supabaseAdmin}=await import('@/integrations/supabase/client.server');
+ const member=await supabaseAdmin.from('class_members').select('token_hash').eq('class_id',data.classId).eq('id',data.memberId).single();
+ if(member.error || !member.data) throw new Error('Forbidden');
+ const {sessionHash}=await import('./classroom.server');
+ const token=Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
+ const done=await supabaseAdmin.rpc('rekey_pisan_session',{p_old_hash:member.data.token_hash,p_new_hash:await sessionHash(token)});
+ if(done.error || done.data!==true) throw new Error('Unavailable');
+ return {token};
+});
+
 export const classDashboard = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator(z.object({id:z.string().uuid()})).handler(async ({data,context}) => {
  const owned=await context.supabase.from('classes').select('*').eq('id',data.id).eq('teacher_id',context.userId).single();
  if(owned.error || !owned.data) throw new Error('Forbidden');
@@ -111,17 +138,40 @@ const skillId = z.string().max(40).refine(id => getSkill(id) !== null, 'Unknown 
 
 /** Les devoirs d'une classe : la RLS du client de l'appelant garantit que c'est sa classe. */
 export const classAssignments = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator(z.object({classId:z.string().uuid()}).strict()).handler(async ({data,context})=>{
- const rows=await context.supabase.from('class_assignments').select('id,title,skill_ids,due_date,created_at').eq('class_id',data.classId).order('due_date');
+ const rows=await context.supabase.from('class_assignments').select('id,title,skill_ids,due_date,created_at,kind,member_ids').eq('class_id',data.classId).order('due_date');
  if(rows.error) throw new Error('Unavailable');
- return rows.data;
+ return rows.data.map(r=>({...r,kind:(r.kind==='review'?'review':'skills') as 'skills'|'review'}));
 });
 
-export const createAssignment = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator(z.object({classId:z.string().uuid(),title:z.string().trim().min(1).max(80),skillIds:z.array(skillId).min(1).max(20),dueDate:z.string().refine(d=>validDueDate(d),'Invalid date')}).strict()).handler(async ({data,context})=>{
- const owned=await context.supabase.from('classes').select('id').eq('id',data.classId).eq('teacher_id',context.userId).single();
+const assignmentInput = {classId:z.string().uuid(),title:z.string().trim().min(1).max(80),skillIds:z.array(skillId).min(1).max(60),dueDate:z.string().refine(d=>validDueDate(d),'Invalid date'),kind:z.enum(['skills','review']).default('skills'),memberIds:z.array(z.string().uuid()).min(1).max(200).nullable().default(null)};
+/** Vérifie que la classe est à l'appelant et que les élèves choisis en font partie ; renvoie la ligne à écrire. */
+async function assignmentRow(supabase: SupabaseClient<Database>, userId: string, data: { classId: string; title: string; skillIds: string[]; dueDate: string; kind: 'skills' | 'review'; memberIds: string[] | null }) {
+ const owned=await supabase.from('classes').select('id').eq('id',data.classId).eq('teacher_id',userId).single();
  if(owned.error || !owned.data) throw new Error('Forbidden');
- const created=await context.supabase.from('class_assignments').insert({class_id:data.classId,title:data.title,skill_ids:[...new Set(data.skillIds)],due_date:data.dueDate}).select('id').single();
+ let members: string[] | null = null;
+ if(data.memberIds){
+  const rows=await supabase.from('class_members').select('id').eq('class_id',data.classId);
+  if(rows.error) throw new Error('Unavailable');
+  const known=new Set(rows.data.map(r=>r.id));
+  members=[...new Set(data.memberIds)].filter(id=>known.has(id));
+  if(!members.length) throw new Error('No student');
+ }
+ return {title:data.title,skill_ids:[...new Set(data.skillIds)],due_date:data.dueDate,kind:data.kind,member_ids:members};
+}
+
+export const createAssignment = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator(z.object(assignmentInput).strict()).handler(async ({data,context})=>{
+ const row=await assignmentRow(context.supabase,context.userId,data);
+ const created=await context.supabase.from('class_assignments').insert({class_id:data.classId,...row}).select('id').single();
  if(created.error) throw new Error('Unavailable');
  return created.data;
+});
+
+/** Modifier un devoir (titre, compétences, date, type, élèves) : même contrôle qu'à la création. */
+export const updateAssignment = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator(z.object({...assignmentInput,id:z.string().uuid()}).strict()).handler(async ({data,context})=>{
+ const row=await assignmentRow(context.supabase,context.userId,data);
+ const updated=await context.supabase.from('class_assignments').update(row).eq('id',data.id).eq('class_id',data.classId).select('id').single();
+ if(updated.error || !updated.data) throw new Error('Forbidden');
+ return updated.data;
 });
 
 export const deleteAssignment = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator(z.object({classId:z.string().uuid(),id:z.string().uuid()}).strict()).handler(async ({data,context})=>{
@@ -135,10 +185,12 @@ export const studentAssignments = createServerFn({method:'POST'}).inputValidator
  const {sessionHash}=await import('./classroom.server');
  const hash=await sessionHash(data.token);
  const {supabaseAdmin}=await import('@/integrations/supabase/client.server');
- const members=await supabaseAdmin.from('class_members').select('class_id,classes(name)').eq('token_hash',hash);
+ const members=await supabaseAdmin.from('class_members').select('id,class_id,classes(name)').eq('token_hash',hash);
  if(members.error) throw new Error('Unavailable');
  if(!members.data.length) return [];
- const rows=await supabaseAdmin.from('class_assignments').select('id,title,skill_ids,due_date,class_id').in('class_id',members.data.map(m=>m.class_id)).gte('due_date',addDays(todayIso(),-7)).order('due_date').limit(20);
+ const rows=await supabaseAdmin.from('class_assignments').select('id,title,skill_ids,due_date,class_id,created_at,kind,member_ids').in('class_id',members.data.map(m=>m.class_id)).gte('due_date',addDays(todayIso(),-7)).order('due_date').limit(40);
  if(rows.error) throw new Error('Unavailable');
- return rows.data.map(r=>({id:r.id,title:r.title,skill_ids:r.skill_ids,due_date:r.due_date,class_name:members.data.find(m=>m.class_id===r.class_id)?.classes.name ?? ''}));
+ // Un devoir donné à certains élèves seulement n'est montré qu'à eux (jamais la liste des autres).
+ return rows.data.filter(r=>{const me=members.data.find(m=>m.class_id===r.class_id);return me && (!r.member_ids || r.member_ids.includes(me.id));}).slice(0,20)
+  .map(r=>({id:r.id,title:r.title,skill_ids:r.skill_ids,due_date:r.due_date,created_at:r.created_at,kind:(r.kind==='review'?'review':'skills') as 'skills'|'review',class_name:members.data.find(m=>m.class_id===r.class_id)?.classes.name ?? ''}));
 });

@@ -1102,3 +1102,5 @@ button.ws-score .points-badge { padding: 4px 8px; font-size: .8rem; white-space:
 .admin-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; }
 .admin-row-off { opacity: .55; }
 .teacher-entry { display: inline-flex; gap: 6px; padding-inline: 10px; border: 2px solid var(--border); border-radius: 999px; }
+.recovery-code { padding: 14px; border-radius: 12px; background: var(--muted); font: 700 1.05rem/1.6 ui-monospace, monospace; letter-spacing: .03em; word-break: break-all; text-align: center; }
+.assign-chapter { padding: 6px 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
