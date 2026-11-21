@@ -106,6 +106,13 @@
       "when": 1795298160057,
       "tag": "0014_class_track_flexible_assignments_rekey",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1795299468301,
+      "tag": "0015_class_placement_tests",
+      "breakpoints": true
     }
   ]
 }

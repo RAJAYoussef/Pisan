@@ -91,6 +91,92 @@ export type Database = {
           },
         ]
       }
+      class_test_results: {
+        Row: {
+          correct: number
+          details: Json
+          id: string
+          member_id: string
+          started_at: string | null
+          submitted_at: string
+          test_id: string
+          total: number
+        }
+        Insert: {
+          correct: number
+          details: Json
+          id?: string
+          member_id: string
+          started_at?: string | null
+          submitted_at?: string
+          test_id: string
+          total: number
+        }
+        Update: {
+          correct?: number
+          details?: Json
+          id?: string
+          member_id?: string
+          started_at?: string | null
+          submitted_at?: string
+          test_id?: string
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_test_results_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "class_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_test_results_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "class_tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_tests: {
+        Row: {
+          class_id: string
+          closed_at: string | null
+          created_at: string
+          form: string
+          id: string
+          is_open: boolean
+          items: Json
+        }
+        Insert: {
+          class_id: string
+          closed_at?: string | null
+          created_at?: string
+          form: string
+          id?: string
+          is_open?: boolean
+          items: Json
+        }
+        Update: {
+          class_id?: string
+          closed_at?: string | null
+          created_at?: string
+          form?: string
+          id?: string
+          is_open?: boolean
+          items?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_tests_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classes: {
         Row: {
           country: string
