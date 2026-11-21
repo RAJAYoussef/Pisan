@@ -1,36 +1,21 @@
-// Écran de lancement : la mascotte π se construit bloc par bloc, en 3D, au milieu de l'écran. Chaque bloc
-// (découpé selon sa forme exacte, src/assets/splash) a une épaisseur et arrive de la profondeur en pivotant ;
-// le logo tourne doucement pendant l'assemblage pour montrer le relief, puis se met de face. Le mot « PiSan »
-// apparaît, puis tout s'efface vers l'accueil. Minutage entièrement en CSS ; un toucher passe l'écran.
-// Couvert par src/test/splash.test.tsx.
+// Écran de lancement : la mascotte π se construit bloc par bloc, en 3D, au milieu de l'écran. Les blocs sont
+// des formes vectorielles nettes (pi-blocks.ts) avec une épaisseur (des flancs empilés en profondeur) ; ils
+// arrivent de la profondeur en pivotant, le logo tourne doucement pendant l'assemblage pour montrer le
+// relief, puis se met de face. Le mot « PiSan » apparaît, puis tout s'efface vers l'accueil.
+// Minutage entièrement en CSS ; un toucher passe l'écran. Couvert par src/test/splash.test.tsx.
 import { useEffect, useState, type CSSProperties } from 'react';
-import mascot from '@/assets/pisan-avatar.png';
-import barL from '@/assets/splash/bar-l.png';
-import barR from '@/assets/splash/bar-r.png';
-import tealTl from '@/assets/splash/teal-tl.png';
-import tealTr from '@/assets/splash/teal-tr.png';
-import tealMl from '@/assets/splash/teal-ml.png';
-import yelM from '@/assets/splash/yel-m.png';
-import tealFoot from '@/assets/splash/teal-foot.png';
-import yelFoot from '@/assets/splash/yel-foot.png';
-import yelCurl from '@/assets/splash/yel-curl.png';
-import face from '@/assets/splash/face.png';
+import { PI_BLOCKS } from './pi-blocks';
+import { PiBlockSvg, PiDefs } from './pi-logo';
 
-/** Les dix blocs, dans l'ordre où ils se posent : image, place (en % du logo), et d'où ils arrivent. */
-export const SPLASH_PIECES = [
-  { src: barL, x: 0.741, y: 0.96, w: 68.395, h: 36.763, from: [-70, -80, -30, 50] },
-  { src: barR, x: 69.136, y: 0.823, w: 30, h: 23.731, from: [80, -90, 40, -60] },
-  { src: tealTl, x: 19.506, y: 24.554, w: 24.568, h: 20.576, from: [-110, -20, 70, 40] },
-  { src: tealTr, x: 56.914, y: 22.908, w: 23.21, h: 22.497, from: [110, -30, -60, -50] },
-  { src: tealMl, x: 21.235, y: 44.993, w: 15.679, h: 24.143, from: [-120, 20, 50, 70] },
-  { src: yelM, x: 67.654, y: 45.267, w: 12.346, h: 23.457, from: [120, 10, -70, -40] },
-  { src: tealFoot, x: 12.593, y: 68.587, w: 31.605, h: 30.453, from: [-90, 90, -40, 60] },
-  { src: yelFoot, x: 56.79, y: 67.901, w: 23.21, h: 29.767, from: [70, 110, 60, -50] },
-  { src: yelCurl, x: 79.877, y: 63.1, w: 18.765, h: 34.294, from: [110, 80, -50, 80] },
-  { src: face, x: 35.185, y: 43.073, w: 34.321, h: 26.337, from: [0, -40, 360, 0] },
-] as const;
-/** Épaisseur des blocs : nombre de couches empilées en profondeur. */
-const LAYERS = 7;
+/** D'où arrive chaque bloc : décalage (en % du logo) et rotations de départ (en degrés). */
+const FROM: Record<string, [number, number, number, number]> = {
+  'bar-l': [-70, -80, -30, 50], 'bar-r': [80, -90, 40, -60], 'teal-tl': [-110, -20, 70, 40], 'teal-tr': [110, -30, -60, -50],
+  'teal-ml': [-120, 20, 50, 70], 'yel-m': [120, 10, -70, -40], 'teal-foot': [-90, 90, -40, 60], 'yel-foot': [70, 110, 60, -50],
+  'yel-curl': [110, 80, -50, 80], face: [0, -40, 360, 0],
+};
+/** Épaisseur des blocs : nombre de flancs empilés derrière la face, et leur écart (px). */
+export const SPLASH_DEPTH = 12;
+const DEPTH_STEP = 2.2;
 /** Intervalle entre deux blocs, et durée totale (ms) avant de retirer l'écran du DOM. */
 export const SPLASH_STEP_MS = 280;
 export const SPLASH_MS = 5600;
@@ -40,18 +25,22 @@ export function Splash() {
   useEffect(() => { const id = window.setTimeout(() => setGone(true), SPLASH_MS); return () => window.clearTimeout(id); }, []);
   if (gone) return null;
   return <div className="splash" role="presentation" aria-hidden onClick={() => setGone(true)} onAnimationEnd={e => { if (e.target === e.currentTarget) setGone(true); }}>
+    <PiDefs />
     <div className="splash-logo">
       <div className="splash-stage">
-        {SPLASH_PIECES.map((p, i) => <div key={i} className="splash-piece" style={{
-          left: `${p.x}%`, top: `${p.y}%`, width: `${p.w}%`, height: `${p.h}%`, animationDelay: `${i * SPLASH_STEP_MS}ms`,
-          '--dx': `${p.from[0]}%`, '--dy': `${p.from[1]}%`, '--rx': `${p.from[2]}deg`, '--ry': `${p.from[3]}deg`,
-        } as CSSProperties}>
-          {Array.from({ length: LAYERS }, (_, k) => <img key={k} src={p.src} alt="" draggable={false} className={k === 0 ? 'splash-front' : 'splash-side'} style={{ '--z': `${-k * 1.6}px` } as CSSProperties} />)}
-        </div>)}
-        <img src={mascot} alt="" className="splash-whole" draggable={false} />
+        {PI_BLOCKS.map((b, i) => {
+          const [dx, dy, rx, ry] = FROM[b.id] ?? [0, -100, 0, 0];
+          return <div key={b.id} className="splash-piece" style={{
+            transformOrigin: `${(b.cx / 810) * 100}% ${(b.cy / 729) * 100}%`, animationDelay: `${i * SPLASH_STEP_MS}ms`,
+            '--dx': `${dx}%`, '--dy': `${dy}%`, '--rx': `${rx}deg`, '--ry': `${ry}deg`,
+          } as CSSProperties}>
+            {Array.from({ length: SPLASH_DEPTH }, (_, k) => <PiBlockSvg key={k} block={b} side className="splash-side" style={{ '--z': `${-(SPLASH_DEPTH - k) * DEPTH_STEP}px` } as CSSProperties} />)}
+            <PiBlockSvg block={b} className="splash-front" />
+          </div>;
+        })}
       </div>
       <span className="splash-shadow" />
     </div>
-    <span className="splash-word brand-letters" dir="ltr">{'PiSan'.split('').map((c, i) => <span key={i} style={{ animationDelay: `${3900 + i * 110}ms` }}>{c}</span>)}</span>
+    <span className="splash-word brand-letters" dir="ltr">{'PiSan'.split('').map((c, i) => <span key={i} style={{ animationDelay: `${3700 + i * 110}ms` }}>{c}</span>)}</span>
   </div>;
 }
