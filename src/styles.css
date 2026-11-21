@@ -1101,3 +1101,4 @@ button.ws-score .points-badge { padding: 4px 8px; font-size: .8rem; white-space:
 .admin-issued { margin-top: 16px; padding: 16px; border-radius: 14px; background: var(--success-soft); }
 .admin-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; }
 .admin-row-off { opacity: .55; }
+.teacher-entry { display: inline-flex; gap: 6px; padding-inline: 10px; border: 2px solid var(--border); border-radius: 999px; }
