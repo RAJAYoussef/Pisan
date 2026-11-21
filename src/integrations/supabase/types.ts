@@ -275,6 +275,48 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          count: number
+          key: string
+          window_start: string
+        }
+        Insert: {
+          count: number
+          key: string
+          window_start: string
+        }
+        Update: {
+          count?: number
+          key?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
+      skill_runs: {
+        Row: {
+          missed: number[]
+          ref: string
+          step: number
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          missed?: number[]
+          ref: string
+          step?: number
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          missed?: number[]
+          ref?: string
+          step?: number
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       teachers: {
         Row: {
           display_name: string
@@ -334,10 +376,29 @@ export type Database = {
         Args: { p_code: string; p_hash: string }
         Returns: Json
       }
+      pisan_rate_limit: {
+        Args: { p_key: string; p_limit: number; p_window_seconds: number }
+        Returns: boolean
+      }
+      pisan_skill_check: {
+        Args: {
+          p_hash: string
+          p_ok: boolean
+          p_ref: string
+          p_step: number
+          p_total: number
+        }
+        Returns: Json
+      }
+      pisan_skill_result: {
+        Args: { p_hash: string; p_ref: string }
+        Returns: Json
+      }
       record_pisan_streak: {
         Args: { p_day: string; p_hash: string }
         Returns: Json
       }
+      refund_pisan_coach: { Args: { p_hash: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
