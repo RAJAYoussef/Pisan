@@ -61,7 +61,9 @@ export const askCoach = createServerFn({ method: 'POST' })
     if (remaining === -2) return { ok: false, reason: 'resting' };
     if (remaining < 0) return { ok: false, reason: 'quota' };
     const key = process.env['LOVABLE_API_KEY'];
-    if (!key) return { ok: false, reason: 'error' };
+    // Le crédit du jour est rendu si la réponse n'arrive pas (panne, délai dépassé, réponse vide).
+    const refund = async <T,>(result: T): Promise<T> => { await supabaseAdmin.rpc('refund_pisan_coach', { p_hash: hash }); return result; };
+    if (!key) return refund({ ok: false, reason: 'error' } as const);
     const history = trimHistory(data.messages);
     // Délai maximum : une passerelle bloquée ne doit pas laisser l'élève attendre indéfiniment.
     const abort = new AbortController();
@@ -80,7 +82,7 @@ export const askCoach = createServerFn({ method: 'POST' })
       });
       if (!res.ok || !res.body) {
         console.error('coach gateway', res.status, await res.text().catch(() => ''));
-        return { ok: false, reason: res.status === 429 ? 'busy' : res.status === 402 ? 'credits' : 'error' };
+        return refund({ ok: false, reason: res.status === 429 ? 'busy' : res.status === 402 ? 'credits' : 'error' } as const);
       }
       // Consomme le flux côté serveur et ne renvoie que la réponse finale.
       const reader = res.body.getReader(); const decoder = new TextDecoder();
@@ -99,17 +101,17 @@ export const askCoach = createServerFn({ method: 'POST' })
             const ev = JSON.parse(payload) as { type?: string; delta?: string };
             if (ev.type === 'response.output_text.delta' && ev.delta) text += ev.delta;
             if (ev.type === 'response.refusal.delta') refused = true;
-            if (ev.type === 'response.failed' || ev.type === 'error') return { ok: false, reason: 'error' };
+            if (ev.type === 'response.failed' || ev.type === 'error') return refund({ ok: false, reason: 'error' } as const);
           } catch { /* fragment incomplet */ }
         }
       }
     } catch {
       // délai dépassé ou flux coupé
-      return { ok: false, reason: 'busy' };
+      return refund({ ok: false, reason: 'busy' } as const);
     } finally { clearTimeout(timer); }
-    if (refused && !text.trim()) return { ok: false, reason: 'error' };
+    if (refused && !text.trim()) return refund({ ok: false, reason: 'error' } as const);
     const raw = westernDigits(text.trim());
-    if (!raw) return { ok: false, reason: 'error' };
+    if (!raw) return refund({ ok: false, reason: 'error' } as const);
     const reply = safeReply(raw, target.answers, profile.lang);
     return { ok: true, reply, sig: await sign(hash, ref, reply), remaining };
   });

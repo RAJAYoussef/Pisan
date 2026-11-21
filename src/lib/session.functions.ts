@@ -26,11 +26,15 @@ export const openSession = createServerFn({ method: 'POST' })
     const existing = await supabaseAdmin.from('learning_sessions').select(`${FIELDS}, timezone_changed_at`).eq('token_hash', hash).maybeSingle();
     if (existing.error) throw new Error('La sauvegarde est indisponible. Réessayez plus tard.');
     if (!data.profile) { if (!existing.data) return null; const { timezone_changed_at: _t, ...rest } = existing.data as Record<string, unknown>; return rest as unknown as LearningSession; }
+    // Limites par appareil : 30 créations de profil et 10 essais de code partenaire par heure.
+    const { allowed } = await import('./rate-limit.server');
+    if (!existing.data && !(await allowed('open', 30, 3600))) throw new Error('Trop de profils créés depuis cet appareil. Réessayez dans une heure.');
     let partner = existing.data?.partner ?? false;
     const code = data.code?.trim();
     // Only letters, digits and hyphens: this also rules out every pattern wildcard
     // (% and _ in SQL, * in the database API), so ilike can only match one exact code.
     if (!partner && code && PARTNER_CODE_FORMAT.test(code)) {
+      if (!(await allowed('partner', 10, 3600))) throw new Error('Trop d’essais de code partenaire. Réessayez dans une heure.');
       const match = await supabaseAdmin.from('partner_codes').select('code').eq('active', true).ilike('code', code).maybeSingle();
       if (match.error) throw new Error('Impossible de vérifier votre accès partenaire.');
       partner = !!match.data;

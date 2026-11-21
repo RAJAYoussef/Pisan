@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Fonctions serveur « pour de vrai » : le validateur zod est appliqué, la base est simulée.
-const db = vi.hoisted(() => ({ row: null as unknown as { profile: Record<string, unknown>; progress: { attempts: Record<string, unknown>[]; unlocked: string[] } }, recorded: [] as Record<string, unknown>[] }));
+const db = vi.hoisted(() => ({ row: null as unknown as { profile: Record<string, unknown>; progress: { attempts: Record<string, unknown>[]; unlocked: string[] } }, recorded: [] as Record<string, unknown>[], runs: new Map<string, { hash: string; step: number; missed: number[] }>() }));
 vi.mock('@tanstack/react-start', () => ({
   createServerFn: () => {
     let validator: { parse: (v: unknown) => unknown } | null = null;
@@ -12,7 +12,16 @@ vi.mock('@tanstack/react-start', () => ({
 vi.mock('@/integrations/supabase/client.server', () => {
   const chain: Record<string, unknown> = {};
   Object.assign(chain, { select: () => chain, eq: () => chain, single: async () => ({ data: db.row, error: null }), maybeSingle: async () => ({ data: db.row, error: null }) });
-  return { supabaseAdmin: { from: () => chain, rpc: async (name: string, a: { p_attempt: Record<string, unknown> }) => {
+  return { supabaseAdmin: { from: () => chain, rpc: async (name: string, a: { p_attempt: Record<string, unknown>; p_hash: string; p_ref: string; p_step: number; p_ok: boolean; p_total: number }) => {
+    // Même logique que public.pisan_skill_check / pisan_skill_result (migration 0013).
+    if (name === 'pisan_skill_check') {
+      const run = db.runs.get(a.p_ref) ?? { hash: a.p_hash, step: 0, missed: [] };
+      db.runs.set(a.p_ref, run);
+      if (run.hash !== a.p_hash || run.step !== a.p_step || a.p_step >= a.p_total) return { data: { stale: true }, error: null };
+      if (a.p_ok) run.step += 1; else if (!run.missed.includes(a.p_step)) run.missed.push(a.p_step);
+      return { data: { stale: false, step: run.step, missed: [...run.missed] }, error: null };
+    }
+    if (name === 'pisan_skill_result') { const run = db.runs.get(a.p_ref); return { data: run && run.hash === a.p_hash ? { step: run.step, missed: run.missed } : null, error: null }; }
     if (name !== 'append_pisan_attempt') return { data: null, error: null };
     db.recorded.push(a.p_attempt);
     db.row.progress = { ...db.row.progress, attempts: [...db.row.progress.attempts, a.p_attempt] };
@@ -33,6 +42,7 @@ const call = <T,>(fn: unknown, data: unknown) => (fn as (i: { data: unknown }) =
 beforeEach(() => {
   process.env['SUPABASE_SERVICE_ROLE_KEY'] = 'test-service-key';
   db.recorded = [];
+  db.runs.clear();
   db.row = { profile: { nickname: 'A', country: 'ma', grade: 2, lang: 'fr' }, progress: { attempts: [], unlocked: [] } };
 });
 
@@ -185,5 +195,18 @@ describe('Fonctions serveur : plus de score déclaré par le navigateur', () => 
     expect(db.recorded).toEqual([expect.objectContaining({ kind: 'workshop', skill: 'vec-sum', correct: steps.length - 1, total: steps.length })]);
     // Un autre élève ne peut pas utiliser ce jeton.
     await expect(call(fns.checkSkillStep, { token: 'f'.repeat(64), ticket, answer: rightAnswer(steps[0]!) })).rejects.toThrow();
+  });
+  it('replaying an old ticket can neither erase a mistake nor test answers for free', async () => {
+    const start = await call<{ seeds: number[]; ticket: string }>(fns.startSkillSession, { token: TOKEN, kind: 'skill', skills: ['vec-sum'] });
+    const steps = getSkill('vec-sum')!.build(start.seeds[0]!).steps;
+    const wrong = await call<{ ok: boolean; ticket: string }>(fns.checkSkillStep, { token: TOKEN, ticket: start.ticket, answer: wrongAnswer(steps[0]!) });
+    expect(wrong.ok).toBe(false);
+    // On repart du jeton d'avant l'erreur, avec la bonne réponse : l'erreur reste comptée.
+    let ticket = (await call<{ ok: boolean; ticket: string }>(fns.checkSkillStep, { token: TOKEN, ticket: start.ticket, answer: rightAnswer(steps[0]!) })).ticket;
+    // Et ce vieux jeton ne sert plus à rien une fois l'étape passée.
+    await expect(call(fns.checkSkillStep, { token: TOKEN, ticket: start.ticket, answer: rightAnswer(steps[0]!) })).rejects.toThrow(/expirée/);
+    for (const step of steps.slice(1)) ticket = (await call<{ ok: boolean; ticket: string }>(fns.checkSkillStep, { token: TOKEN, ticket, answer: rightAnswer(step) })).ticket;
+    await call(fns.finishSkillSession, { token: TOKEN, ticket });
+    expect(db.recorded).toEqual([expect.objectContaining({ skill: 'vec-sum', correct: steps.length - 1, total: steps.length })]);
   });
 });

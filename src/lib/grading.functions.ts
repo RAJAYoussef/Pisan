@@ -80,16 +80,24 @@ const answer: z.ZodType<StepAnswer> = z.discriminatedUnion('type', [
   z.object({ type: z.literal('widget'), state: z.record(z.string().max(20), z.union([z.number(), z.boolean(), z.string().max(4), z.array(z.number()).max(20)])) }).strict(),
 ]) as z.ZodType<StepAnswer>;
 
-/** Une vérification : le serveur corrige l'étape et renvoie le jeton de la suite. Aucun accès à la base. */
+/**
+ * Une vérification : le serveur corrige l'étape et renvoie le jeton de la suite. L'état qui fait foi (étape atteinte,
+ * erreurs) est gardé en base (public.skill_runs) : un ancien jeton rejoué est refusé, une erreur ne s'efface pas.
+ */
 export const checkSkillStep = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ token: credential, ticket: z.string().max(4000), answer }).strict())
   .handler(async ({ data }) => {
-    const key = secret();
-    const t = await readTicket(data.ticket, secrets(), await hashToken(data.token));
+    const hash = await hashToken(data.token);
+    const t = await readTicket(data.ticket, secrets(), hash);
     const steps = t && ticketSteps(t);
     const next = t && steps && advance(t, steps, data.answer);
-    if (!next) throw new Error('Activité expirée : recommence-la.');
-    return { ok: next.ok, ticket: await signTicket(next.ticket, key) };
+    if (!t || !steps || !next) throw new Error('Activité expirée : recommence-la.');
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    const run = await supabaseAdmin.rpc('pisan_skill_check', { p_hash: hash, p_ref: t.ref, p_step: t.step, p_ok: next.ok, p_total: steps.length });
+    const state = run.data as { stale: boolean; step?: number; missed?: number[] } | null;
+    if (run.error || !state) throw new Error('Correction indisponible. Réessaie dans un instant.');
+    if (state.stale) throw new Error('Activité expirée : recommence-la.');
+    return { ok: next.ok, ticket: await signTicket({ ...next.ticket, step: state.step!, missed: state.missed! }, secret()) };
   });
 
 /** Fin : le résultat est calculé à partir du jeton (étapes réussies, erreurs retenues), enregistré une seule fois. */
@@ -97,7 +105,11 @@ export const finishSkillSession = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ token: credential, ticket: z.string().max(4000) }).strict())
   .handler(async ({ data }) => {
     const { hash, admin, session } = await loadSession(data.token);
-    const t = await readTicket(data.ticket, secrets(), hash);
+    const signed = await readTicket(data.ticket, secrets(), hash);
+    // Le résultat vient de l'état gardé en base, pas du jeton envoyé par le navigateur.
+    const stored = signed && await admin.rpc('pisan_skill_result', { p_hash: hash, p_ref: signed.ref });
+    const state = stored && !stored.error ? (stored.data as { step: number; missed: number[] } | null) : null;
+    const t = signed && state ? { ...signed, step: state.step, missed: state.missed } : null;
     const steps = t && ticketSteps(t);
     const attempts = t && steps && ticketAttempts(t, steps);
     if (!attempts) throw new Error('Activité inachevée ou expirée.');
