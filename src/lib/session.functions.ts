@@ -11,6 +11,9 @@ import type { Json } from '@/integrations/supabase/types';
 
 const credential = z.string().regex(/^[a-f0-9]{64}$/);
 const PARTNER_CODE_FORMAT = /^[A-Za-z0-9-]{4,40}$/;
+/** Limites par connexion (un établissement entier passe souvent par la même adresse). */
+export const OPEN_PER_HOUR = 600;
+export const PARTNER_FAILURES_PER_HOUR = 20;
 const profileSchema = z.object({ nickname: z.string().trim().min(1).max(40), country: z.string().max(10), grade: z.number().int().min(0).max(6), lang: z.enum(['fr', 'en', 'ar', 'es']), track: z.string().regex(/^[a-z0-9-]{1,20}$/).optional(), timezone: z.string().max(64).refine(isTimeZone, 'Unknown time zone').optional() });
 const FIELDS = 'profile, progress, partner, usage_count, usage_date, dys_default, dys_updated_at, streak_count, streak_last_day, freezes, challenge_day, challenge_correct';
 export async function hashToken(token: string) {
@@ -26,18 +29,20 @@ export const openSession = createServerFn({ method: 'POST' })
     const existing = await supabaseAdmin.from('learning_sessions').select(`${FIELDS}, timezone_changed_at`).eq('token_hash', hash).maybeSingle();
     if (existing.error) throw new Error('La sauvegarde est indisponible. Réessayez plus tard.');
     if (!data.profile) { if (!existing.data) return null; const { timezone_changed_at: _t, ...rest } = existing.data as Record<string, unknown>; return rest as unknown as LearningSession; }
-    // Limites par appareil : 30 créations de profil et 10 essais de code partenaire par heure.
-    const { allowed } = await import('./rate-limit.server');
-    if (!existing.data && !(await allowed('open', 30, 3600))) throw new Error('Trop de profils créés depuis cet appareil. Réessayez dans une heure.');
+    // Limites par connexion internet (tout un établissement peut partager la même) :
+    // 600 créations de profil par heure, et 20 MAUVAIS codes partenaires par heure (les bons codes ne comptent pas).
+    const { allowed, blocked, countFailure } = await import('./rate-limit.server');
+    if (!existing.data && !(await allowed('open', OPEN_PER_HOUR, 3600))) throw new Error('Trop de profils créés depuis cette connexion. Réessayez dans une heure.');
     let partner = existing.data?.partner ?? false;
     const code = data.code?.trim();
     // Only letters, digits and hyphens: this also rules out every pattern wildcard
     // (% and _ in SQL, * in the database API), so ilike can only match one exact code.
     if (!partner && code && PARTNER_CODE_FORMAT.test(code)) {
-      if (!(await allowed('partner', 10, 3600))) throw new Error('Trop d’essais de code partenaire. Réessayez dans une heure.');
+      if (await blocked('partner-fail', PARTNER_FAILURES_PER_HOUR, 3600)) throw new Error('Trop de codes partenaires erronés depuis cette connexion. Réessayez dans une heure.');
       const match = await supabaseAdmin.from('partner_codes').select('code').eq('active', true).ilike('code', code).maybeSingle();
       if (match.error) throw new Error('Impossible de vérifier votre accès partenaire.');
       partner = !!match.data;
+      if (!partner) await countFailure('partner-fail', 3600);
     }
     const prev = existing.data as unknown as (LearningSession & { timezone_changed_at: string | null }) | null;
     const zoneChange = resolveTimeZone(prev?.profile?.timezone, data.profile.timezone, prev?.timezone_changed_at ?? null, new Date());

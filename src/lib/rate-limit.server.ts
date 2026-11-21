@@ -21,3 +21,22 @@ export async function allowed(action: string, limit: number, windowSeconds: numb
   // En cas de panne de la limite, on ne bloque pas les élèves.
   return error ? true : data !== false;
 }
+
+/** Sans rien compter : la limite est-elle déjà atteinte pour cette action sur cette fenêtre ? */
+export async function blocked(action: string, limit: number, windowSeconds: number): Promise<boolean> {
+  const who = await clientFingerprint();
+  if (!who) return false;
+  const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+  const { data, error } = await supabaseAdmin.from('rate_limits').select('count, window_start').eq('key', `${action}:${who}`).maybeSingle();
+  if (error || !data) return false;
+  const fresh = Date.parse(data.window_start) > Date.now() - windowSeconds * 1000;
+  return fresh && data.count >= limit;
+}
+
+/** Compte un échec (par exemple un mauvais code) sans rien bloquer : blocked() fera le tri au prochain essai. */
+export async function countFailure(action: string, windowSeconds: number): Promise<void> {
+  const who = await clientFingerprint();
+  if (!who) return;
+  const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+  await supabaseAdmin.rpc('pisan_rate_limit', { p_key: `${action}:${who}`, p_limit: 1_000_000, p_window_seconds: windowSeconds });
+}
