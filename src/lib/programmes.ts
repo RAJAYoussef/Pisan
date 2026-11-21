@@ -87,6 +87,14 @@ const c2 = {
   proba: c('Probabilités sur un ensemble fini', 'Probability on a finite set', 'الاحتمالات على مجموعة منتهية', 'Probabilidad en un conjunto finito', ['probability']),
 };
 
+// Chapitres de 1ère (1ère Bac au Maroc) communs à plusieurs pays
+const c1 = {
+  quadratic: c('Second degré : équations, inéquations, signe', 'Quadratics: equations, inequalities, sign', 'الدرجة الثانية: المعادلات والمتراجحات والإشارة', 'Segundo grado: ecuaciones, inecuaciones, signo', ['quadratics']),
+  derivation: c('Dérivation', 'Differentiation', 'الاشتقاق', 'Derivación', ['derivatives']),
+  scalar: c('Produit scalaire et applications', 'Dot product and applications', 'الجداء السلمي وتطبيقاته', 'Producto escalar y aplicaciones', ['vectors']),
+  trigo: c('Calcul trigonométrique', 'Trigonometric calculations', 'الحساب المثلثي', 'Cálculo trigonométrico', ['trig-functions']),
+};
+
 const sciencesBac = [ch.limits, ch.derivation, ch.sequences, ch.primitives, ch.log, ch.exp, ch.complex, ch.integral, ch.diffEq];
 
 export const PROGRAMMES: Programme[] = [
@@ -489,6 +497,54 @@ export const PROGRAMMES: Programme[] = [
       c('Géométrie analytique (G-GPE)', 'Coordinate geometry (G-GPE)', 'الهندسة التحليلية (G-GPE)', 'Geometría analítica (G-GPE)', ['functions', 'vectors']),
       c('Mesures et dimensions (G-GMD)', 'Geometric measurement and dimension (G-GMD)', 'القياسات والأبعاد (G-GMD)', 'Medidas y dimensiones (G-GMD)', ['solids']),
       c('Probabilités conditionnelles (S-CP)', 'Conditional probability (S-CP)', 'الاحتمالات الشرطية (S-CP)', 'Probabilidad condicional (S-CP)', ['probability']),
+    ],
+  },
+  // ───────────── 1ère (index 5) ; 1ère Bac au Maroc (index 4) ; Grade 11 aux États-Unis ─────────────
+  {
+    country: 'fr', grade: 5,
+    source: { label: 'Programme de spécialité mathématiques de première générale, Bulletin officiel spécial n° 1 du 22 janvier 2019', url: 'https://eduscol.education.fr/', status: 'reference' },
+    chapters: [
+      ch.sequences,
+      c('Second degré', 'Quadratics', 'الدرجة الثانية', 'Segundo grado', ['quadratics']),
+      c1.derivation,
+      c('Fonction exponentielle', 'The exponential function', 'الدالة الأسية', 'Función exponencial', ['exponential']),
+      c('Trigonométrie', 'Trigonometry', 'حساب المثلثات', 'Trigonometría', ['trig-functions']),
+      c('Produit scalaire', 'Dot product', 'الجداء السلمي', 'Producto escalar', ['vectors']),
+      c('Géométrie repérée', 'Coordinate geometry', 'الهندسة في معلم', 'Geometría analítica', ['vectors']),
+      c('Probabilités conditionnelles et indépendance', 'Conditional probability and independence', 'الاحتمالات الشرطية والاستقلالية', 'Probabilidad condicional e independencia', ['probability-laws']),
+      c('Variables aléatoires réelles', 'Random variables', 'المتغيرات العشوائية', 'Variables aleatorias', ['probability-laws']),
+    ],
+  },
+  {
+    country: 'ma', grade: 4,
+    source: { label: 'Orientations pédagogiques, mathématiques, 1re année du baccalauréat (sciences), Ministère de l’Éducation nationale', status: 'to-review' },
+    chapters: [
+      ch.sequences,
+      c('Limite d’une fonction', 'Limits of functions', 'نهاية دالة', 'Límite de una función', ['limits']),
+      c1.derivation,
+      c1.trigo,
+      c1.scalar,
+    ],
+  },
+  {
+    country: 'ci', grade: 5,
+    source: { label: 'Programme éducatif de mathématiques, classes de première C et D, MENA, DPFC', url: 'https://dpfc-ci.net/', status: 'to-review' },
+    chapters: [c1.quadratic, ch.sequences, ch.limits, c1.derivation, c1.scalar, c1.trigo, ch.countingProba],
+  },
+  {
+    country: 'sn', grade: 5,
+    source: { label: 'Programme de mathématiques de la classe de première S, Ministère de l’Éducation nationale', status: 'to-review' },
+    chapters: [c1.quadratic, ch.sequences, ch.limits, c1.derivation, c1.scalar, c1.trigo, ch.countingProba],
+  },
+  {
+    country: 'us', grade: 5,
+    source: { label: 'Common Core State Standards for Mathematics, High School, Algebra II course', url: 'https://www.thecorestandards.org/Math/Content/HSF/', status: 'reference' },
+    chapters: [
+      c('Polynômes et second degré (A-APR)', 'Polynomials and quadratics (A-APR)', 'الحدوديات والدرجة الثانية (A-APR)', 'Polinomios y segundo grado (A-APR)', ['quadratics']),
+      c('Fonctions exponentielles (F-LE)', 'Exponential models (F-LE)', 'النماذج الأسية (F-LE)', 'Modelos exponenciales (F-LE)', ['exponential']),
+      c('Fonctions trigonométriques (F-TF)', 'Trigonometric functions (F-TF)', 'الدوال المثلثية (F-TF)', 'Funciones trigonométricas (F-TF)', ['trig-functions']),
+      c('Suites arithmétiques et géométriques (F-BF)', 'Arithmetic and geometric sequences (F-BF)', 'المتتاليات الحسابية والهندسية (F-BF)', 'Sucesiones aritméticas y geométricas (F-BF)', ['sequences']),
+      c('Probabilités et décisions (S-MD)', 'Using probability to make decisions (S-MD)', 'الاحتمالات واتخاذ القرار (S-MD)', 'Probabilidad y decisiones (S-MD)', ['probability-laws']),
     ],
   },
 ];

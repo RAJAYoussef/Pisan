@@ -690,6 +690,10 @@ export const CHAPTER_NAMES: Record<FigureKind, L> = {
   quartiles: { fr: 'Quartiles et écart type', en: 'Quartiles and standard deviation', ar: 'الربيعيات والانحراف المعياري', es: 'Cuartiles y desviación típica' },
   events: { fr: 'Probabilités : événements', en: 'Probability: events', ar: 'الاحتمالات: الأحداث', es: 'Probabilidad: sucesos' },
   unitcircle: { fr: 'Cercle trigonométrique', en: 'The unit circle', ar: 'الدائرة المثلثية', es: 'Círculo trigonométrico' },
+  quadratic: { fr: 'Second degré', en: 'Quadratics', ar: 'الدرجة الثانية', es: 'Segundo grado' },
+  expo: { fr: 'Fonction exponentielle', en: 'The exponential function', ar: 'الدالة الأسية', es: 'Función exponencial' },
+  scalar: { fr: 'Produit scalaire', en: 'Dot product', ar: 'الجداء السلمي', es: 'Producto escalar' },
+  trigfn: { fr: 'Trigonométrie', en: 'Trigonometry', ar: 'حساب المثلثات', es: 'Trigonometría' },
 };
 const STATUS: Record<SkillStatus, (lang: Lang) => string> = {
   mastered: lang => say(lang, 'Acquis', 'Mastered', 'مكتسبة', 'Adquirida'),

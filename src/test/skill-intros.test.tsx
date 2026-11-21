@@ -23,7 +23,7 @@ function solve(left: Side, right: Side): number | null {
 }
 
 describe('Introductions (modèle de Singapour)', () => {
-  const DONE: FigureKind[] = ['primes', 'linear', 'relatives', 'signs', 'decimals', 'arith', 'powers', 'sci', 'roots', 'expressions', 'literal', 'identities', 'equations', 'inequalities', 'systems', 'affine', 'seq', 'deriv', 'lines', 'polygons', 'angles', 'symmetry', 'measures', 'surfaces', 'solids', 'pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'fractions', 'proportion', 'stats', 'data', 'chance', 'proba', 'intervals', 'reference', 'signtable', 'lineeq', 'quartiles', 'events', 'unitcircle'];
+  const DONE: FigureKind[] = ['primes', 'linear', 'relatives', 'signs', 'decimals', 'arith', 'powers', 'sci', 'roots', 'expressions', 'literal', 'identities', 'equations', 'inequalities', 'systems', 'affine', 'seq', 'deriv', 'lines', 'polygons', 'angles', 'symmetry', 'measures', 'surfaces', 'solids', 'pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'fractions', 'proportion', 'stats', 'data', 'chance', 'proba', 'intervals', 'reference', 'signtable', 'lineeq', 'quartiles', 'events', 'unitcircle', 'quadratic', 'expo', 'scalar', 'trigfn'];
   const LYCEE: FigureKind[] = ['seq', 'deriv', 'proba'];
   /** Une compétence « manipule » si son introduction a une manipulation ou si l'entraînement en contient une (widget, quadrillage). */
   const manipulates = (id: string) => Boolean(INTROS[id]?.manip) || getSkill(id)!.build(1).steps.some(st => st.type === 'widget' || st.type === 'grid' || st.type === 'tap');
@@ -320,5 +320,33 @@ describe('Manipulations de 2nde', () => {
     open('uc-signs');
     press('Tourner (sens direct)', 12);
     expect(found()).toMatch(/cos est l’abscisse de M/);
+  });
+});
+
+describe('Manipulations de 1ère', () => {
+  const engine = () => localEngine({ secret: 'test', hash: '9'.repeat(64) });
+  const open = (id: string) => render(<SkillActivity lang="fr" skill={getSkill(id)!} engine={engine()} attempts={[]} onBack={vi.fn()} />);
+  const press = (name: string | RegExp, times = 1) => { for (let i = 0; i < times; i++) fireEvent.click(screen.getByRole('button', { name })); };
+  const found = () => screen.getByRole('status').textContent!;
+  it('moving the parabola up shows Δ > 0, Δ = 0, then Δ < 0', () => {
+    open('quad-discriminant');
+    press('Monter la parabole', 5);
+    expect(found()).toMatch(/Δ = 0 : elle le touche en un seul point/);
+  });
+  it('turning v: the dot product is positive, zero, then negative', () => {
+    open('dot-norm');
+    press('Ouvrir l’angle', 6);
+    expect(found()).toMatch(/Angle droit : u · v = 0/);
+  });
+  it('cos x = 1/2 has two solutions on the circle, ±π/3', () => {
+    open('trig-equation');
+    press('Tourner (sens direct)', 10);
+    expect(found()).toMatch(/π\/3 et 5π\/3/);
+    expect(found()).toMatch(/x = ±π\/3/);
+  });
+  it('the slope of eˣ equals its value', () => {
+    open('exp-derivative');
+    press('Avancer x', 8);
+    expect(found()).toMatch(/\(eˣ\)′ = eˣ/);
   });
 });

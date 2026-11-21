@@ -20,8 +20,8 @@ export const FAMILIES: Family[] = ['numbers', 'algebra', 'geometry', 'data'];
 export const FAMILY_THRESHOLD = 8;
 export const KIND_FAMILY: Record<FigureKind, Family> = {
   decimals: 'numbers', fractions: 'numbers', relatives: 'numbers', signs: 'numbers', arith: 'numbers', primes: 'numbers', powers: 'numbers', sci: 'numbers', roots: 'numbers', intervals: 'numbers',
-  expressions: 'algebra', literal: 'algebra', identities: 'algebra', equations: 'algebra', linear: 'algebra', inequalities: 'algebra', systems: 'algebra', affine: 'algebra', seq: 'algebra', deriv: 'algebra', reference: 'algebra', signtable: 'algebra',
-  lines: 'geometry', polygons: 'geometry', angles: 'geometry', symmetry: 'geometry', measures: 'geometry', surfaces: 'geometry', solids: 'geometry', pythagoras: 'geometry', thales: 'geometry', trigo: 'geometry', inscribed: 'geometry', vectors: 'geometry', lineeq: 'geometry', unitcircle: 'geometry',
+  expressions: 'algebra', literal: 'algebra', identities: 'algebra', equations: 'algebra', linear: 'algebra', inequalities: 'algebra', systems: 'algebra', affine: 'algebra', seq: 'algebra', deriv: 'algebra', reference: 'algebra', signtable: 'algebra', quadratic: 'algebra', expo: 'algebra',
+  lines: 'geometry', polygons: 'geometry', angles: 'geometry', symmetry: 'geometry', measures: 'geometry', surfaces: 'geometry', solids: 'geometry', pythagoras: 'geometry', thales: 'geometry', trigo: 'geometry', inscribed: 'geometry', vectors: 'geometry', lineeq: 'geometry', unitcircle: 'geometry', scalar: 'geometry', trigfn: 'geometry',
   proportion: 'data', data: 'data', stats: 'data', chance: 'data', proba: 'data', quartiles: 'data', events: 'data',
 };
 export const FAMILY_NAMES: Record<Family, (lang: Lang) => string> = {
@@ -33,7 +33,7 @@ export const FAMILY_NAMES: Record<Family, (lang: Lang) => string> = {
 export const FAMILY_TONE: Record<Family, string> = { numbers: 'module-sun', algebra: 'module-sky', geometry: 'module-teal', data: 'module-coral' };
 
 /** Couleur de chaque chapitre (mêmes variables que les modules de l'accueil). */
-export const KIND_TONE: Record<FigureKind, string> = { pythagoras: 'module-teal', thales: 'module-coral', trigo: 'module-sky', inscribed: 'module-sun', vectors: 'module-coral', affine: 'module-teal', stats: 'module-sky', seq: 'module-sun', deriv: 'module-coral', proba: 'module-teal', fractions: 'module-sun', decimals: 'module-teal', proportion: 'module-coral', lines: 'module-sky', symmetry: 'module-sun', measures: 'module-coral', relatives: 'module-sky', data: 'module-teal', arith: 'module-coral', powers: 'module-sun', expressions: 'module-sky', equations: 'module-teal', polygons: 'module-coral', primes: 'module-sun', angles: 'module-sky', surfaces: 'module-teal', chance: 'module-coral', signs: 'module-sky', sci: 'module-sun', literal: 'module-teal', linear: 'module-coral', roots: 'module-sun', identities: 'module-sky', inequalities: 'module-coral', systems: 'module-teal', solids: 'module-sun', intervals: 'module-sky', reference: 'module-coral', signtable: 'module-sun', lineeq: 'module-teal', quartiles: 'module-coral', events: 'module-sky', unitcircle: 'module-sun' };
+export const KIND_TONE: Record<FigureKind, string> = { pythagoras: 'module-teal', thales: 'module-coral', trigo: 'module-sky', inscribed: 'module-sun', vectors: 'module-coral', affine: 'module-teal', stats: 'module-sky', seq: 'module-sun', deriv: 'module-coral', proba: 'module-teal', fractions: 'module-sun', decimals: 'module-teal', proportion: 'module-coral', lines: 'module-sky', symmetry: 'module-sun', measures: 'module-coral', relatives: 'module-sky', data: 'module-teal', arith: 'module-coral', powers: 'module-sun', expressions: 'module-sky', equations: 'module-teal', polygons: 'module-coral', primes: 'module-sun', angles: 'module-sky', surfaces: 'module-teal', chance: 'module-coral', signs: 'module-sky', sci: 'module-sun', literal: 'module-teal', linear: 'module-coral', roots: 'module-sun', identities: 'module-sky', inequalities: 'module-coral', systems: 'module-teal', solids: 'module-sun', intervals: 'module-sky', reference: 'module-coral', signtable: 'module-sun', lineeq: 'module-teal', quartiles: 'module-coral', events: 'module-sky', unitcircle: 'module-sun', quadratic: 'module-teal', expo: 'module-coral', scalar: 'module-sky', trigfn: 'module-teal' };
 
 /** Petit dessin propre à chaque chapitre. */
 export function ChapterGlyph({ kind }: { kind: FigureKind }) {
@@ -63,6 +63,10 @@ export function ChapterGlyph({ kind }: { kind: FigureKind }) {
     lineeq: <><path d="M4 32 H36 M8 4 V36" className="glyph-thin" /><path d="M6 30 L34 8" /></>,
     quartiles: <><path d="M4 20 H12 M28 20 H36" /><rect x="12" y="12" width="16" height="16" rx="2" /><path d="M18 12 V28" className="glyph-thin" /></>,
     events: <><circle cx="15" cy="20" r="10" /><circle cx="25" cy="20" r="10" className="glyph-thin" /></>,
+    quadratic: <><path d="M6 6 Q20 50 34 6" /><path d="M4 26 H36" className="glyph-thin" /><circle cx="12" cy="26" r="2.5" /><circle cx="28" cy="26" r="2.5" /></>,
+    expo: <><text x="18" y="28" textAnchor="middle" className="glyph-text">e</text><text x="29" y="17" textAnchor="middle" className="glyph-text glyph-small">x</text></>,
+    scalar: <><path d="M8 30 H34 M8 30 L26 10" /><path d="M26 10 V30" className="glyph-thin" /></>,
+    trigfn: <><path d="M4 20 Q11 4 18 20 T32 20" /><path d="M4 20 H36" className="glyph-thin" /></>,
     unitcircle: <><circle cx="20" cy="20" r="14" className="glyph-thin" /><path d="M20 20 L30 10" /><path d="M4 20 H36 M20 4 V36" className="glyph-thin" /></>,
     signs: <><text x="20" y="27" textAnchor="middle" className="glyph-text">−×−</text></>,
     sci: <><text x="16" y="29" textAnchor="middle" className="glyph-text">10</text><text x="31" y="16" textAnchor="middle" className="glyph-text glyph-small">−3</text></>,

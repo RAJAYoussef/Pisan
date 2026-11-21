@@ -8,6 +8,7 @@ import { ALGEBRE_INTROS } from './skill-intros-algebre';
 import { GEOMETRIE_INTROS } from './skill-intros-geometrie';
 import { DONNEES_INTROS } from './skill-intros-donnees';
 import { SECONDE_INTROS } from './skill-intros-seconde';
+import { PREMIERE_INTROS } from './skill-intros-premiere';
 
 const t = (fr: string, en: string, ar: string, es: string): L => ({ fr, en, ar, es });
 
@@ -105,9 +106,13 @@ export type Manip =
   /** Diagramme de Venn : compter A, ajouter B, retirer ce qui est compté deux fois. */
   | { kind: 'venn'; a: number; b: number; both: number; total: number; labels: [L, L] }
   /** Tourner un point sur le cercle trigonométrique : radians, cos, sin et leurs signes. */
-  | { kind: 'unit-circle'; target: number; step: number; quadrants?: boolean };
+  | { kind: 'unit-circle'; target: number; step: number; quadrants?: boolean; cosLevel?: number }
+  /** Monter ou descendre la parabole y = x² + bx + c (on règle c) : Δ et le nombre de points sur l'axe. */
+  | { kind: 'parabola'; b: number; c: number }
+  /** Faire tourner v autour de u : le produit scalaire ‖u‖ ‖v‖ cos θ, positif, nul puis négatif. */
+  | { kind: 'dot-rotate'; u: number; v: number };
 
-export type RefFn = 'square' | 'inverse' | 'sqrt' | 'cube' | 'parabola';
+export type RefFn = 'square' | 'inverse' | 'sqrt' | 'cube' | 'parabola' | 'exp';
 
 export type Lesson = { points: L[]; example: { title: L; lines: L[] } };
 /** Une compétence a toujours sa carte de cours ; la manipulation est facultative (sinon on commence par le cours). */
@@ -210,7 +215,7 @@ const PROTOTYPE: Record<string, Intro> = {
   },
 };
 
-export const INTROS: Record<string, Intro> = { ...PROTOTYPE, ...NOMBRES_INTROS, ...ALGEBRE_INTROS, ...GEOMETRIE_INTROS, ...DONNEES_INTROS, ...SECONDE_INTROS };
+export const INTROS: Record<string, Intro> = { ...PROTOTYPE, ...NOMBRES_INTROS, ...ALGEBRE_INTROS, ...GEOMETRIE_INTROS, ...DONNEES_INTROS, ...SECONDE_INTROS, ...PREMIERE_INTROS };
 export const introFor = (skillId: string): Intro | null => INTROS[skillId] ?? null;
 
 /** Valeur arrondie au milliardième (les × 10 et ÷ 10 successifs ne doivent pas laisser 0,30000000000000004). */
@@ -294,8 +299,13 @@ export function refValue(fn: RefFn, x: number): number | null {
   if (fn === 'cube') return x * x * x;
   if (fn === 'inverse') return x === 0 ? null : 1 / x;
   if (fn === 'sqrt') return x < 0 ? null : Math.sqrt(x);
+  if (fn === 'exp') return Math.exp(x);
   return (x - 1) ** 2 - 2;
 }
+/** Nombre de racines réelles de x² + bx + c (selon le signe de Δ). */
+export const rootCount = (b: number, c: number) => { const d = b * b - 4 * c; return d > 0 ? 2 : d === 0 ? 1 : 0; };
+/** Les angles de [0 ; 360[ (multiples de `step`) dont le cosinus vaut `level` (à 10⁻⁹ près). */
+export const anglesWithCos = (level: number, step: number) => Array.from({ length: 360 / step }, (_, i) => i * step).filter(d => Math.abs(Math.cos((d * Math.PI) / 180) - level) < 1e-9);
 /** Les régions délimitées par les racines des facteurs ax + b (triées) : un représentant entier ou demi-entier de chacune. */
 export function signRegions(factors: { a: number; b: number }[]): number[] {
   const roots = [...new Set(factors.map(f => -f.b / f.a))].sort((x, y) => x - y);

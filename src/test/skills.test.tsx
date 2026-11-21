@@ -26,8 +26,8 @@ const typed = (step: Extract<Step, { type: 'number' }>) => {
 const chipsSolution = (step: Extract<Step, { type: 'chips' }>) => step.ordered ? step.groups[0]! : step.groups.flatMap((g, i) => [...(i ? ['='] : []), ...g.flatMap((tok, j) => j ? ['+', tok] : [tok])]);
 
 describe('Parcours de compétences : contenu', () => {
-  it('covers the forty-three chapters with the agreed skills', () => {
-    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 11, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]);
+  it('covers the forty-seven chapters with the agreed skills', () => {
+    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 11, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]);
     expect(new Set(SKILLS.map(s => s.id)).size).toBe(SKILLS.length);
     for (const s of SKILLS) { expect(s.id).toMatch(/^[a-z]+(-[a-z]+){1,2}$/); expect(filled(s.title) && filled(s.desc)).toBe(true); }
   });
@@ -621,6 +621,46 @@ describe('6e', () => {
       if (id.type !== 'number') throw new Error();
       const c = Number(id.prompt.fr.match(/cos x = ([\d,]+)/)![1]!.replace(',', '.'));
       expect(c * c + id.answer * id.answer).toBeCloseTo(1, 9);
+    }
+  });
+  it('1ère: every chapter has a pathway (except limits), the new chapters stay in 1ère, and the answers check out', async () => {
+    const { chapterSkillKinds, figuresFor } = await import('@/lib/figures');
+    const { programmesFor, programmeNotions } = await import('@/lib/programmes');
+    const { getLevel } = await import('@/lib/curriculum');
+    const { trinomial } = await import('@/lib/skills-premiere');
+    for (const [country, grade] of [['fr', 5], ['ma', 4], ['ci', 5], ['sn', 5], ['us', 5]] as const) for (const ch of programmesFor(country, grade)[0]!.chapters) {
+      if (ch.notions.every(n => n === 'limits')) continue;
+      expect(chapterSkillKinds(ch), `${country} ${ch.title.fr}`).not.toEqual([]);
+    }
+    const NEW = ['quadratic', 'expo', 'scalar', 'trigfn'];
+    for (const country of ['fr', 'ma', 'ci', 'sn', 'us']) for (const grade of [0, 1, 2, 3, 4, 5, 6]) for (const p of programmesFor(country, grade)) {
+      if (getLevel(country, grade) === 5) continue;
+      expect(figuresFor(p, programmeNotions(p).map(n => n.id), getLevel(country, grade)).filter(k => NEW.includes(k)), `${country} ${grade}`).toEqual([]);
+    }
+    expect(figuresFor(null, undefined, 5).filter(k => NEW.includes(k))).toEqual(NEW);
+    expect([trinomial(1, -2, -3), trinomial(-1, 0, 4), trinomial(2, 1, 0)]).toEqual(['x² − 2x − 3', '−x² + 4', '2x² + x']);
+    const value = (expr: string, x: number) => Number(Function('x', `return (${expr.replace(/−/g, '-').replace(/x²/g, 'x*x').replace(/(\d)x/g, '$1*x')})`)(x));
+    for (let seed = 0; seed < 60; seed++) {
+      for (const sk of SKILLS.filter(sk => NEW.includes(sk.chapter))) for (const st of sk.build(seed).steps) {
+        if (st.type === 'choice') { expect(new Set(st.options.map(o => o.fr)).size, `${sk.id} ${seed}`).toBe(st.options.length); expect(st.answer, `${sk.id} ${seed}`).toBeGreaterThanOrEqual(0); }
+        if (st.type === 'number') expect(Number.isFinite(st.answer), `${sk.id} ${seed}`).toBe(true);
+      }
+      // les racines annoncées annulent bien le trinôme
+      const disc = getSkill('quad-discriminant')!.build(seed).steps;
+      if (disc.length === 4) {
+        const poly = disc[0]!.prompt.fr.match(/de (.*)\.$/)![1]!;
+        for (const st of disc.slice(2)) { if (st.type !== 'number') throw new Error(); expect(value(poly, st.answer), poly).toBeCloseTo(0, 9); }
+      }
+      // forme canonique : f(α) = β
+      const can = getSkill('quad-canonical')!.build(seed).steps;
+      const poly = can[0]!.prompt.fr.match(/f\(x\) = (.*)\. On/)![1]!;
+      const [alpha, beta] = can.map(st => (st.type === 'number' ? st.answer : NaN));
+      expect(value(poly, alpha!)).toBe(beta);
+      // e^(L) = e^(R) : la solution vérifie L = R
+      const eq = getSkill('exp-equation')!.build(seed).steps[0]!;
+      if (eq.type !== 'number') throw new Error();
+      const [l, r] = [...eq.prompt.fr.matchAll(/e\^\(([^)]*)\)/g)].map(m => m[1]!);
+      expect(value(l!, eq.answer)).toBe(value(r!, eq.answer));
     }
   });
   it('decimal traps are really traps: 2,5 > 2,45 and 2,5 = 2,50', () => {

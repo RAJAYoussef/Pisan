@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import type { Lang } from '@/lib/i18n';
 import type { L } from '@/lib/curriculum';
 import { say } from '@/lib/pisan';
-import { applyBalance, balanceOps, balanceSolved, clean, diceWays, digitsByRank, fiveNumbers, inInterval, isPrime, PLACE_RANKS, rectanglePairs, refValue, angleKind, closes, median, runMachine, signRegions, simulate, tileAreas, type BalanceOp, type Manip, type RefFn, type Side } from '@/lib/skill-intros';
+import { anglesWithCos, applyBalance, balanceOps, balanceSolved, clean, diceWays, rootCount, digitsByRank, fiveNumbers, inInterval, isPrime, PLACE_RANKS, rectanglePairs, refValue, angleKind, closes, median, runMachine, signRegions, simulate, tileAreas, type BalanceOp, type Manip, type RefFn, type Side } from '@/lib/skill-intros';
 
 type Done = (found: string) => void;
 
@@ -55,7 +55,9 @@ export function Manipulation({ manip, lang, onDone }: { manip: Manip; lang: Lang
   if (manip.kind === 'quartiles') return <Quartiles values={manip.values} lang={lang} onDone={onDone} />;
   if (manip.kind === 'dice-grid') return <DiceGrid sum={manip.sum} lang={lang} onDone={onDone} />;
   if (manip.kind === 'venn') return <Venn {...manip} lang={lang} onDone={onDone} />;
-  if (manip.kind === 'unit-circle') return <UnitCircle target={manip.target} step={manip.step} quadrants={manip.quadrants ?? false} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'unit-circle') return <UnitCircle target={manip.target} step={manip.step} quadrants={manip.quadrants ?? false} cosLevel={manip.cosLevel} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'parabola') return <Parabola b={manip.b} c={manip.c} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'dot-rotate') return <DotRotate u={manip.u} v={manip.v} lang={lang} onDone={onDone} />;
   return <Bars parts={manip.parts} extra={manip.extra} total={manip.total} unit={manip.unit} rectangle={manip.rectangle ?? false} lang={lang} onDone={onDone} />;
 }
 
@@ -1011,7 +1013,7 @@ function IntervalWalk({ a, b, closedA, closedB, other, center, lang, onDone }: {
   </div>;
 }
 
-const FN_NAMES: Record<RefFn, string> = { square: 'x²', inverse: '1/x', sqrt: '√x', cube: 'x³', parabola: '(x − 1)² − 2' };
+const FN_NAMES: Record<RefFn, string> = { square: 'x²', inverse: '1/x', sqrt: '√x', cube: 'x³', parabola: '(x − 1)² − 2', exp: 'eˣ' };
 /** Repère carré de −4 à 4 (et −4 à 6 en ordonnée) : coordonnées → pixels. */
 const plotX = (v: number) => 100 + v * 20, plotY = (v: number) => 130 - v * 20;
 function PlotFrame({ children }: { children: ReactNode }) {
@@ -1055,13 +1057,15 @@ function CurveExplore({ fns, target, lang, onDone }: { fns: RefFn[]; target?: nu
       {target !== undefined && <line x1={20} x2={180} y1={plotY(target)} y2={plotY(target)} className="svg-height" />}
       <path d={curvePath(fn)} className="svg-curve" />
       {found.map(v => <circle key={v} cx={plotX(v)} cy={plotY(target!)} r={5} className="interval-in" />)}
+      {y !== null && fn === 'exp' && y < 6 && <line x1={plotX(x - 1)} x2={plotX(x + 1)} y1={plotY(y - y)} y2={plotY(y + y)} className="svg-height" />}
       {y !== null && <><line x1={plotX(x)} x2={plotX(x)} y1={plotY(0)} y2={plotY(y)} className="svg-ghost" /><circle cx={plotX(x)} cy={plotY(y)} r={5} className="svg-dot-move" /></>}
     </PlotFrame>
-    <Stepper lang={lang} label={y === null ? `x = ${num(x)} : ${say(lang, 'pas d’image', 'no image', 'لا صورة', 'sin imagen')}` : `f(${num(x)}) = ${num(Math.round(y * 100) / 100)}`} onMinus={() => move(x - 0.5)} onPlus={() => move(x + 0.5)} minus={say(lang, 'Reculer x', 'Move x left', 'حرّك x يسارًا', 'Mover x a la izquierda')} plus={say(lang, 'Avancer x', 'Move x right', 'حرّك x يمينًا', 'Mover x a la derecha')} />
+    <Stepper lang={lang} label={y === null ? `x = ${num(x)} : ${say(lang, 'pas d’image', 'no image', 'لا صورة', 'sin imagen')}` : `f(${num(x)}) = ${num(Math.round(y * 100) / 100)}${fn === 'exp' ? ` · ${say(lang, 'pente', 'slope', 'الميل', 'pendiente')} ${num(Math.round(y * 100) / 100)}` : ''}`} onMinus={() => move(x - 0.5)} onPlus={() => move(x + 0.5)} minus={say(lang, 'Reculer x', 'Move x left', 'حرّك x يسارًا', 'Mover x a la izquierda')} plus={say(lang, 'Avancer x', 'Move x right', 'حرّك x يمينًا', 'Mover x a la derecha')} />
     {target !== undefined && !finished && <p className="manip-feedback">{say(lang, `Trouve tous les x tels que f(x) = ${num(target)} (${found.length}/${goal.length}).`, `Find every x with f(x) = ${num(target)} (${found.length}/${goal.length}).`, `جد كل x بحيث f(x) = ${num(target)}.`, `Halla todos los x con f(x) = ${num(target)}.`)}</p>}
     {finished && <p className="manip-discovery" role="status">{target !== undefined
       ? say(lang, `${num(target)} a ${goal.length} antécédents : ${goal.map(num).join(' et ')}. Chaque x a une seule image, mais un nombre peut avoir plusieurs antécédents.`, `${num(target)} has ${goal.length} pre-images: ${goal.map(num).join(' and ')}. Each x has one image, but a number can have several pre-images.`, `لـ ${num(target)} سابقتان.`, `${num(target)} tiene ${goal.length} antecedentes.`)
       : fns.length > 1 ? say(lang, 'Carré : une parabole, décroissante puis croissante. Inverse : une hyperbole, décroissante sur chaque morceau. Racine : croissante, à partir de 0. Cube : toujours croissante.', 'Square: a parabola, down then up. Reciprocal: a hyperbola, decreasing on each branch. Root: increasing, from 0. Cube: always increasing.', 'المربع: شلجم. المقلوب: هذلول. الجذر والمكعب: تزايديتان.', 'Cuadrado: parábola. Inversa: hipérbola. Raíz y cubo: crecientes.')
+      : fn === 'exp' ? say(lang, 'eˣ est toujours positive et croissante, e⁰ = 1, et en chaque point la pente de la tangente vaut f(x) : (eˣ)′ = eˣ.', 'eˣ is always positive and increasing, e⁰ = 1, and at every point the slope of the tangent equals f(x): (eˣ)′ = eˣ.', 'eˣ موجبة وتزايدية و(eˣ)′ = eˣ.', 'eˣ es positiva y creciente, y (eˣ)′ = eˣ.')
       : say(lang, 'En avançant, la courbe descend puis remonte : f décroît jusqu’au point le plus bas (le minimum), puis croît. Le tableau de variations résume ce chemin.', 'Moving right, the curve goes down then up: f decreases to its lowest point (the minimum), then increases.', 'المنحنى ينزل ثم يصعد: القيمة الدنيا.', 'La curva baja y luego sube: el mínimo.')}</p>}
   </div>;
 }
@@ -1195,8 +1199,10 @@ function Venn({ a, b, both, total, labels, lang, onDone }: { a: number; b: numbe
 }
 
 const RAD: Record<number, string> = { 0: '0', 30: 'π/6', 45: 'π/4', 60: 'π/3', 90: 'π/2', 120: '2π/3', 135: '3π/4', 150: '5π/6', 180: 'π', 210: '7π/6', 225: '5π/4', 240: '4π/3', 270: '3π/2', 300: '5π/3', 315: '7π/4', 330: '11π/6', 360: '2π' };
-function UnitCircle({ target, step, quadrants, lang, onDone }: { target: number; step: number; quadrants: boolean; lang: Lang; onDone: Done }) {
+function UnitCircle({ target, step, quadrants, cosLevel, lang, onDone }: { target: number; step: number; quadrants: boolean; cosLevel?: number | undefined; lang: Lang; onDone: Done }) {
   const [deg, setDeg] = useState(0);
+  const goal = cosLevel === undefined ? [] : anglesWithCos(cosLevel, step);
+  const [hits, setHits] = useState<number[]>([]);
   const [seen, setSeen] = useState<number[]>([]);
   const [finished, setFinished] = useState(false);
   const c = Math.round(Math.cos(rad(deg)) * 1000) / 1000, s = Math.round(Math.sin(rad(deg)) * 1000) / 1000;
@@ -1205,6 +1211,11 @@ function UnitCircle({ target, step, quadrants, lang, onDone }: { target: number;
     const q = d % 90 === 0 ? -1 : Math.floor(d / 90);
     const all = q < 0 || seen.includes(q) ? seen : [...seen, q];
     setSeen(all);
+    if (cosLevel !== undefined) {
+      const h = goal.includes(d) && !hits.includes(d) ? [...hits, d] : hits; setHits(h);
+      if (!finished && h.length === goal.length) { setFinished(true); onDone(String(d)); }
+      return;
+    }
     if (!finished && (quadrants ? all.length === 4 : d === target)) { setFinished(true); onDone(String(d)); }
   }
   const R = 70, cx = 100, cy = 90, X = cx + R * c, Y = cy - R * s;
@@ -1212,6 +1223,8 @@ function UnitCircle({ target, step, quadrants, lang, onDone }: { target: number;
     <svg viewBox="0 0 200 180" className="manip-svg" aria-hidden>
       <line x1={15} x2={185} y1={cy} y2={cy} className="svg-tick" /><line x1={cx} x2={cx} y1={8} y2={172} className="svg-tick" />
       <circle cx={cx} cy={cy} r={R} className="svg-ghost" />
+      {cosLevel !== undefined && <line x1={cx + R * cosLevel} x2={cx + R * cosLevel} y1={10} y2={170} className="svg-height" />}
+      {hits.map(h => <circle key={h} cx={cx + R * Math.cos(rad(h))} cy={cy - R * Math.sin(rad(h))} r={5} className="interval-in" />)}
       <line x1={cx} y1={cy} x2={X} y2={Y} className="svg-ray" />
       <line x1={X} y1={Y} x2={X} y2={cy} className="uc-sin" /><line x1={cx} y1={cy} x2={X} y2={cy} className="uc-cos" />
       {deg > 0 && <path d={`M ${cx + 20} ${cy} A 20 20 0 ${deg > 180 ? 1 : 0} 0 ${cx + 20 * c} ${cy - 20 * s}`} className="svg-arc" />}
@@ -1219,9 +1232,65 @@ function UnitCircle({ target, step, quadrants, lang, onDone }: { target: number;
     </svg>
     <Stepper lang={lang} label={`${deg}° = ${RAD[deg] ?? `${num(Math.round(rad(deg) * 100) / 100)} rad`}`} onMinus={() => go(deg - step)} onPlus={() => go(deg + step)} minus={say(lang, 'Tourner en arrière', 'Turn back', 'أدر للخلف', 'Girar atrás')} plus={say(lang, 'Tourner (sens direct)', 'Turn anticlockwise', 'أدر في الاتجاه المباشر', 'Girar en sentido directo')} />
     <p className="manip-equation"><span className="uc-cos-text">cos = {num(c)}</span> · <span className="uc-sin-text">sin = {num(s)}</span></p>
-    <p className="manip-feedback">cos² + sin² = {num(Math.round((c * c + s * s) * 1000) / 1000)}{!quadrants && !finished ? ` · ${say(lang, 'Cible', 'Target', 'الهدف', 'Meta')} : ${target}°` : ''}{quadrants && !finished ? ` · ${say(lang, 'Quarts visités', 'Quarters visited', 'الأرباع', 'Cuadrantes')} : ${seen.length}/4` : ''}</p>
-    {finished && <p className="manip-discovery" role="status">{quadrants
+    <p className="manip-feedback">cos² + sin² = {num(Math.round((c * c + s * s) * 1000) / 1000)}{cosLevel !== undefined && !finished ? ` · ${say(lang, `Trouve les angles où cos = ${num(cosLevel)}`, `Find the angles where cos = ${num(cosLevel)}`, `جد الزوايا حيث cos = ${num(cosLevel)}`, `Halla los ángulos con cos = ${num(cosLevel)}`)} (${hits.length}/${goal.length})` : ''}{cosLevel === undefined && !quadrants && !finished ? ` · ${say(lang, 'Cible', 'Target', 'الهدف', 'Meta')} : ${target}°` : ''}{quadrants && !finished ? ` · ${say(lang, 'Quarts visités', 'Quarters visited', 'الأرباع', 'Cuadrantes')} : ${seen.length}/4` : ''}</p>
+    {finished && <p className="manip-discovery" role="status">{cosLevel !== undefined
+      ? say(lang, `La droite x = ${num(cosLevel)} coupe le cercle en deux points : ${goal.map(g => RAD[g] ?? `${g}°`).join(' et ')}, symétriques par rapport à l’axe horizontal. Sur ]−π ; π], cela s’écrit x = ±${RAD[goal[0]!] ?? `${goal[0]}°`}.`, `The line x = ${num(cosLevel)} cuts the circle twice: ${goal.map(g => RAD[g] ?? `${g}°`).join(' and ')}, mirror images in the horizontal axis. On (−π, π], x = ±${RAD[goal[0]!] ?? `${goal[0]}°`}.`, `نقطتان متماثلتان: x = ±${RAD[goal[0]!] ?? goal[0]}.`, `Dos puntos simétricos: x = ±${RAD[goal[0]!] ?? goal[0]}.`)
+      : quadrants
       ? say(lang, 'cos est l’abscisse de M : positif à droite, négatif à gauche. sin est l’ordonnée : positif en haut, négatif en bas. Et toujours cos² + sin² = 1.', 'cos is the x-coordinate of M: positive on the right, negative on the left. sin is the y-coordinate: positive above, negative below. Always cos² + sin² = 1.', 'cos هو الأفصول وsin هو الأرتوب.', 'cos es la abscisa, sen la ordenada.')
       : say(lang, `${target}° = ${RAD[target]} rad : M a pour coordonnées (cos ; sin) = (${num(c)} ; ${num(s)}). Le rayon vaut 1, donc cos² + sin² = 1 (Pythagore).`, `${target}° = ${RAD[target]} rad: M is at (cos, sin) = (${num(c)}, ${num(s)}). The radius is 1, so cos² + sin² = 1 (Pythagoras).`, `M(cos ; sin) و cos² + sin² = 1.`, `M(cos ; sen) y cos² + sen² = 1.`)}</p>}
+  </div>;
+}
+
+// ───────────── 1ère : parabole et discriminant, produit scalaire ─────────────
+
+function Parabola({ b, c: c0, lang, onDone }: { b: number; c: number; lang: Lang; onDone: Done }) {
+  const [c, setC] = useState(c0);
+  const [seen, setSeen] = useState<number[]>([]);
+  const [finished, setFinished] = useState(false);
+  const d = b * b - 4 * c, n = rootCount(b, c);
+  function go(v: number) {
+    const nc = Math.max(-6, Math.min(8, v)); setC(nc);
+    const k = rootCount(b, nc), all = seen.includes(k) ? seen : [...seen, k];
+    setSeen(all);
+    if (!finished && all.length === 3) { setFinished(true); onDone('delta'); }
+  }
+  const path = Array.from({ length: 81 }, (_, i) => { const x = -4 + i * 0.1, y = x * x + b * x + c; return y > 6.5 || y < -4.5 ? null : `${plotX(x).toFixed(1)} ${plotY(y).toFixed(1)}`; })
+    .reduce<string>((acc, p, i, arr) => (p === null ? acc : `${acc} ${i === 0 || arr[i - 1] === null ? 'M' : 'L'} ${p}`), '');
+  const roots = d < 0 ? [] : [...new Set([(-b - Math.sqrt(d)) / 2, (-b + Math.sqrt(d)) / 2])];
+  return <div className="manip">
+    <PlotFrame>
+      <path d={path} className="svg-curve" />
+      {roots.map(r => <circle key={r} cx={plotX(r)} cy={plotY(0)} r={5} className="interval-in" />)}
+    </PlotFrame>
+    <p className="manip-equation">y = {`x² ${b < 0 ? '−' : '+'} ${Math.abs(b)}x ${c < 0 ? '−' : '+'} ${Math.abs(c)}`.replace(' + 1x', ' + x').replace(' − 1x', ' − x')}</p>
+    <Stepper lang={lang} label={`c = ${num(c)}`} onMinus={() => go(c - 1)} onPlus={() => go(c + 1)} minus={say(lang, 'Descendre la parabole', 'Move the parabola down', 'أنزل الشلجم', 'Bajar la parábola')} plus={say(lang, 'Monter la parabole', 'Move the parabola up', 'ارفع الشلجم', 'Subir la parábola')} />
+    <p className="manip-feedback" aria-live="polite">Δ = {num(b * b)} − 4 × {num(c)} = {num(d)} · {say(lang, `${n} point${n > 1 ? 's' : ''} sur l’axe`, `${n} point${n === 1 ? '' : 's'} on the axis`, `${n} نقط على المحور`, `${n} puntos en el eje`)}</p>
+    {finished && <p className="manip-discovery" role="status">{say(lang, 'Δ > 0 : la parabole coupe l’axe en deux points (deux solutions). Δ = 0 : elle le touche en un seul point. Δ < 0 : elle reste au-dessus, aucune solution.', 'Δ > 0: the parabola cuts the axis twice (two solutions). Δ = 0: it touches it once. Δ < 0: it stays above, no solution.', 'Δ > 0: حلان. Δ = 0: حل واحد. Δ < 0: لا حل.', 'Δ > 0: dos soluciones. Δ = 0: una. Δ < 0: ninguna.')}</p>}
+  </div>;
+}
+
+function DotRotate({ u, v, lang, onDone }: { u: number; v: number; lang: Lang; onDone: Done }) {
+  const [deg, setDeg] = useState(30);
+  const [seen, setSeen] = useState<string[]>([]);
+  const [finished, setFinished] = useState(false);
+  const cos = Math.round(Math.cos(rad(deg)) * 1000) / 1000, dot = Math.round(u * v * cos * 100) / 100;
+  function go(nd: number) {
+    const d = Math.max(0, Math.min(180, nd)); setDeg(d);
+    const k = d < 90 ? 'acute' : d === 90 ? 'right' : 'obtuse', all = seen.includes(k) ? seen : [...seen, k];
+    setSeen(all);
+    if (!finished && all.length === 3) { setFinished(true); onDone('dot'); }
+  }
+  const S = 18, O = { x: 100, y: 110 }, V = { x: O.x + v * S * Math.cos(rad(deg)), y: O.y - v * S * Math.sin(rad(deg)) };
+  return <div className="manip">
+    <svg viewBox="0 0 200 130" className="manip-svg" aria-hidden>
+      <line x1={O.x} y1={O.y} x2={O.x + u * S} y2={O.y} className="svg-ray" /><text x={O.x + u * S - 6} y={O.y + 14} className="svg-label">u</text>
+      <line x1={V.x} y1={V.y} x2={V.x} y2={O.y} className="svg-ghost" />
+      <line x1={O.x} y1={O.y} x2={O.x + v * S * cos} y2={O.y} className="uc-cos" />
+      <line x1={O.x} y1={O.y} x2={V.x} y2={V.y} className="svg-ray svg-ray-move" /><text x={V.x + 4} y={V.y - 4} className="svg-label">v</text>
+      <path d={`M ${O.x + 18} ${O.y} A 18 18 0 0 0 ${O.x + 18 * Math.cos(rad(deg))} ${O.y - 18 * Math.sin(rad(deg))}`} className="svg-arc" />
+    </svg>
+    <Stepper lang={lang} label={`θ = ${deg}°`} onMinus={() => go(deg - 15)} onPlus={() => go(deg + 15)} minus={say(lang, 'Fermer l’angle', 'Close the angle', 'أغلق الزاوية', 'Cerrar el ángulo')} plus={say(lang, 'Ouvrir l’angle', 'Open the angle', 'افتح الزاوية', 'Abrir el ángulo')} />
+    <p className="manip-equation">u · v = {u} × {v} × cos {deg}° = {num(dot)}</p>
+    {finished && <p className="manip-discovery" role="status">{say(lang, 'Angle aigu : u · v > 0. Angle droit : u · v = 0 (orthogonaux). Angle obtus : u · v < 0. Le trait bleu est la projection de v sur u : u · v = ‖u‖ × (projection signée).', 'Acute: u · v > 0. Right angle: u · v = 0 (orthogonal). Obtuse: u · v < 0. The blue segment is v projected onto u.', 'حادة: موجب. قائمة: منعدم. منفرجة: سالب.', 'Agudo: positivo. Recto: nulo. Obtuso: negativo.')}</p>}
   </div>;
 }
