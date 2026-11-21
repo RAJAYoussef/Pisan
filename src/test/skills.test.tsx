@@ -26,8 +26,8 @@ const typed = (step: Extract<Step, { type: 'number' }>) => {
 const chipsSolution = (step: Extract<Step, { type: 'chips' }>) => step.ordered ? step.groups[0]! : step.groups.flatMap((g, i) => [...(i ? ['='] : []), ...g.flatMap((tok, j) => j ? ['+', tok] : [tok])]);
 
 describe('Parcours de compétences : contenu', () => {
-  it('covers the forty-seven chapters with the agreed skills', () => {
-    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 11, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]);
+  it('covers the forty-eight chapters with the agreed skills', () => {
+    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 11, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]);
     expect(new Set(SKILLS.map(s => s.id)).size).toBe(SKILLS.length);
     for (const s of SKILLS) { expect(s.id).toMatch(/^[a-z]+(-[a-z]+){1,2}$/); expect(filled(s.title) && filled(s.desc)).toBe(true); }
   });
@@ -623,13 +623,12 @@ describe('6e', () => {
       expect(c * c + id.answer * id.answer).toBeCloseTo(1, 9);
     }
   });
-  it('1ère: every chapter has a pathway (except limits), the new chapters stay in 1ère, and the answers check out', async () => {
+  it('1ère: every chapter has a pathway, the new chapters stay in 1ère, and the answers check out', async () => {
     const { chapterSkillKinds, figuresFor } = await import('@/lib/figures');
     const { programmesFor, programmeNotions } = await import('@/lib/programmes');
     const { getLevel } = await import('@/lib/curriculum');
     const { trinomial } = await import('@/lib/skills-premiere');
     for (const [country, grade] of [['fr', 5], ['ma', 4], ['ci', 5], ['sn', 5], ['us', 5]] as const) for (const ch of programmesFor(country, grade)[0]!.chapters) {
-      if (ch.notions.every(n => n === 'limits')) continue;
       expect(chapterSkillKinds(ch), `${country} ${ch.title.fr}`).not.toEqual([]);
     }
     const NEW = ['quadratic', 'expo', 'scalar', 'trigfn'];

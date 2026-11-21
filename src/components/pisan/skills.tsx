@@ -694,6 +694,7 @@ export const CHAPTER_NAMES: Record<FigureKind, L> = {
   expo: { fr: 'Fonction exponentielle', en: 'The exponential function', ar: 'الدالة الأسية', es: 'Función exponencial' },
   scalar: { fr: 'Produit scalaire', en: 'Dot product', ar: 'الجداء السلمي', es: 'Producto escalar' },
   trigfn: { fr: 'Trigonométrie', en: 'Trigonometry', ar: 'حساب المثلثات', es: 'Trigonometría' },
+  limits: { fr: 'Limites et continuité', en: 'Limits and continuity', ar: 'النهايات والاتصال', es: 'Límites y continuidad' },
 };
 const STATUS: Record<SkillStatus, (lang: Lang) => string> = {
   mastered: lang => say(lang, 'Acquis', 'Mastered', 'مكتسبة', 'Adquirida'),

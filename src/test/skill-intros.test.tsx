@@ -23,7 +23,7 @@ function solve(left: Side, right: Side): number | null {
 }
 
 describe('Introductions (modèle de Singapour)', () => {
-  const DONE: FigureKind[] = ['primes', 'linear', 'relatives', 'signs', 'decimals', 'arith', 'powers', 'sci', 'roots', 'expressions', 'literal', 'identities', 'equations', 'inequalities', 'systems', 'affine', 'seq', 'deriv', 'lines', 'polygons', 'angles', 'symmetry', 'measures', 'surfaces', 'solids', 'pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'fractions', 'proportion', 'stats', 'data', 'chance', 'proba', 'intervals', 'reference', 'signtable', 'lineeq', 'quartiles', 'events', 'unitcircle', 'quadratic', 'expo', 'scalar', 'trigfn'];
+  const DONE: FigureKind[] = ['primes', 'linear', 'relatives', 'signs', 'decimals', 'arith', 'powers', 'sci', 'roots', 'expressions', 'literal', 'identities', 'equations', 'inequalities', 'systems', 'affine', 'seq', 'deriv', 'lines', 'polygons', 'angles', 'symmetry', 'measures', 'surfaces', 'solids', 'pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'fractions', 'proportion', 'stats', 'data', 'chance', 'proba', 'intervals', 'reference', 'signtable', 'lineeq', 'quartiles', 'events', 'unitcircle', 'quadratic', 'expo', 'scalar', 'trigfn', 'limits'];
   const LYCEE: FigureKind[] = [];
   /** Une compétence « manipule » si son introduction a une manipulation ou si l'entraînement en contient une (widget, quadrillage). */
   const manipulates = (id: string) => Boolean(INTROS[id]?.manip) || getSkill(id)!.build(1).steps.some(st => st.type === 'widget' || st.type === 'grid' || st.type === 'tap');
@@ -372,5 +372,21 @@ describe('Manipulations du lycée : dérivation et probabilités', () => {
     expect(found()).toMatch(/B\(4 ; 0,5\)/);
     const mean = Number(screen.getByText(/300 billes · moyenne/).textContent!.match(/moyenne ([\d,]+)/)![1]!.replace(',', '.'));
     expect(Math.abs(mean - 2)).toBeLessThan(0.25);
+  });
+});
+
+describe('Manipulations des limites', () => {
+  const engine = () => localEngine({ secret: 'test', hash: 'b'.repeat(64) });
+  const open = (id: string) => render(<SkillActivity lang="fr" skill={getSkill(id)!} engine={engine()} attempts={[]} onBack={vi.fn()} />);
+  const found = () => screen.getByRole('status').textContent!;
+  it('x × 10: f(x) approaches 2, a horizontal asymptote', () => {
+    open('lim-infinity');
+    for (let i = 0; i < 4; i++) fireEvent.click(screen.getByRole('button', { name: 'x × 10' }));
+    expect(found()).toMatch(/lim f = 2 en \+∞/);
+  });
+  it('bisection traps the root of x³ + x − 1 in [0,6563 ; 0,6875]', () => {
+    open('lim-ivt');
+    for (let i = 0; i < 5; i++) fireEvent.click(screen.getByRole('button', { name: 'Couper en deux' }));
+    expect(found()).toMatch(/\[0,65625 ; 0,6875\]/);
   });
 });

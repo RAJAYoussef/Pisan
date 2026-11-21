@@ -9,6 +9,7 @@ import { GEOMETRIE_INTROS } from './skill-intros-geometrie';
 import { DONNEES_INTROS } from './skill-intros-donnees';
 import { SECONDE_INTROS } from './skill-intros-seconde';
 import { PREMIERE_INTROS } from './skill-intros-premiere';
+import { LIMIT_INTROS } from './skill-intros-limites';
 
 const t = (fr: string, en: string, ar: string, es: string): L => ({ fr, en, ar, es });
 
@@ -116,7 +117,11 @@ export type Manip =
   /** Arbre pondéré à deux niveaux : toucher chaque feuille pour multiplier le long du chemin. */
   | { kind: 'tree'; pa: number; pba: number; pbna: number }
   /** Planche de Galton : chaque bille fait n rebonds (à droite avec la probabilité p) ; l'histogramme approche B(n ; p). */
-  | { kind: 'galton'; n: number; p: number };
+  | { kind: 'galton'; n: number; p: number }
+  /** f(x) = (ax + b)/(x − c) : faire grandir x (× 10) ou l'approcher de c par la droite, et lire f(x). */
+  | { kind: 'limit-table'; a: number; b: number; c: number; toward: 'infinity' | 'right' }
+  /** Dichotomie sur x³ + x − 1 entre 0 et 1 : couper en deux en gardant le changement de signe. */
+  | { kind: 'bisection'; steps: number };
 
 export type RefFn = 'square' | 'inverse' | 'sqrt' | 'cube' | 'parabola' | 'exp' | 'cubic';
 
@@ -221,7 +226,7 @@ const PROTOTYPE: Record<string, Intro> = {
   },
 };
 
-export const INTROS: Record<string, Intro> = { ...PROTOTYPE, ...NOMBRES_INTROS, ...ALGEBRE_INTROS, ...GEOMETRIE_INTROS, ...DONNEES_INTROS, ...SECONDE_INTROS, ...PREMIERE_INTROS };
+export const INTROS: Record<string, Intro> = { ...PROTOTYPE, ...NOMBRES_INTROS, ...ALGEBRE_INTROS, ...GEOMETRIE_INTROS, ...DONNEES_INTROS, ...SECONDE_INTROS, ...PREMIERE_INTROS, ...LIMIT_INTROS };
 export const introFor = (skillId: string): Intro | null => INTROS[skillId] ?? null;
 
 /** Valeur arrondie au milliardième (les × 10 et ÷ 10 successifs ne doivent pas laisser 0,30000000000000004). */
@@ -334,3 +339,9 @@ export const secantSlope = (a: number, h: number) => (secantFn(a + h) - secantFn
 /** Coefficient binomial et loi B(n ; p). */
 export const choose = (n: number, k: number): number => (k < 0 || k > n ? 0 : k === 0 || k === n ? 1 : choose(n - 1, k - 1) + choose(n - 1, k));
 export const binomialP = (n: number, p: number, k: number) => choose(n, k) * p ** k * (1 - p) ** (n - k);
+/** f(x) = (ax + b)/(x − c), et les x successifs d'un tableau vers +∞ ou vers c par la droite. */
+export const limitF = (a: number, b: number, c: number, x: number) => (a * x + b) / (x - c);
+export const limitXs = (c: number, toward: 'infinity' | 'right') => (toward === 'infinity' ? [10, 100, 1000, 10000, 100000] : [1, 0.1, 0.01, 0.001, 0.0001].map(h => c + h));
+/** Une étape de dichotomie pour g(x) = x³ + x − 1 : la moitié de [lo ; hi] où g change de signe. */
+export const bisectG = (x: number) => x * x * x + x - 1;
+export function bisectStep(lo: number, hi: number): [number, number] { const m = (lo + hi) / 2; return bisectG(lo) * bisectG(m) <= 0 ? [lo, m] : [m, hi]; }

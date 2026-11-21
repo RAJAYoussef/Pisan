@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import type { Lang } from '@/lib/i18n';
 import type { L } from '@/lib/curriculum';
 import { say } from '@/lib/pisan';
-import { binomialP, refSlope, secantFn, secantSlope, anglesWithCos, applyBalance, balanceOps, balanceSolved, clean, diceWays, rootCount, digitsByRank, fiveNumbers, inInterval, isPrime, PLACE_RANKS, rectanglePairs, refValue, angleKind, closes, median, runMachine, signRegions, simulate, tileAreas, type BalanceOp, type Manip, type RefFn, type Side } from '@/lib/skill-intros';
+import { bisectG, bisectStep, limitF, limitXs, binomialP, refSlope, secantFn, secantSlope, anglesWithCos, applyBalance, balanceOps, balanceSolved, clean, diceWays, rootCount, digitsByRank, fiveNumbers, inInterval, isPrime, PLACE_RANKS, rectanglePairs, refValue, angleKind, closes, median, runMachine, signRegions, simulate, tileAreas, type BalanceOp, type Manip, type RefFn, type Side } from '@/lib/skill-intros';
 
 type Done = (found: string) => void;
 
@@ -57,6 +57,8 @@ export function Manipulation({ manip, lang, onDone }: { manip: Manip; lang: Lang
   if (manip.kind === 'venn') return <Venn {...manip} lang={lang} onDone={onDone} />;
   if (manip.kind === 'unit-circle') return <UnitCircle target={manip.target} step={manip.step} quadrants={manip.quadrants ?? false} cosLevel={manip.cosLevel} lang={lang} onDone={onDone} />;
   if (manip.kind === 'parabola') return <Parabola b={manip.b} c={manip.c} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'limit-table') return <LimitTable a={manip.a} b={manip.b} c={manip.c} toward={manip.toward} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'bisection') return <Bisection steps={manip.steps} lang={lang} onDone={onDone} />;
   if (manip.kind === 'secant') return <Secant a={manip.a} lang={lang} onDone={onDone} />;
   if (manip.kind === 'tree') return <Tree pa={manip.pa} pba={manip.pba} pbna={manip.pbna} lang={lang} onDone={onDone} />;
   if (manip.kind === 'galton') return <Galton n={manip.n} p={manip.p} lang={lang} onDone={onDone} />;
@@ -1369,5 +1371,46 @@ function Galton({ n, p, lang, onDone }: { n: number; p: number; lang: Lang; onDo
     <div className="manip-controls">{[1, 10, 100].map(k => <Button key={k} variant="soft" size="sm" onClick={() => drop(k)}>{say(lang, `+${k} bille${k > 1 ? 's' : ''}`, `+${k} ball${k > 1 ? 's' : ''}`, `+${k}`, `+${k}`)}</Button>)}</div>
     <p className="manip-equation">{say(lang, `${total} billes · moyenne ${num(Math.round(mean * 100) / 100)}`, `${total} balls · mean ${Math.round(mean * 100) / 100}`, `${total} كرة · المتوسط ${num(Math.round(mean * 100) / 100)}`, `${total} bolas · media ${num(Math.round(mean * 100) / 100)}`)}</p>
     {finished && <p className="manip-discovery" role="status">{say(lang, `Chaque bille fait ${n} rebonds indépendants, à droite avec la probabilité ${num(p)} : X (le nombre de rebonds à droite) suit la loi B(${n} ; ${num(p)}). L’histogramme épouse les traits (les probabilités théoriques) et la moyenne se rapproche de E(X) = n × p = ${num(n * p)}.`, `Each ball makes ${n} independent bounces, right with probability ${p}: X follows B(${n}, ${p}). The histogram matches the marks (theoretical probabilities) and the mean approaches E(X) = np = ${n * p}.`, `X ~ B(${n} ; ${num(p)}) و E(X) = ${num(n * p)}.`, `X ~ B(${n} ; ${num(p)}), E(X) = ${num(n * p)}.`)}</p>}
+  </div>;
+}
+
+// ───────────── Limites : tableau de valeurs, dichotomie ─────────────
+
+function LimitTable({ a, b, c, toward, lang, onDone }: { a: number; b: number; c: number; toward: 'infinity' | 'right'; lang: Lang; onDone: Done }) {
+  const xs = limitXs(c, toward);
+  const [n, setN] = useState(1);
+  const fmt = (v: number) => (Math.abs(v) >= 1e4 ? num(Math.round(v)) : num(Math.round(v * 10000) / 10000));
+  function more() { if (n >= xs.length) return; const k = n + 1; setN(k); if (k === xs.length) onDone(toward); }
+  const f = `(${a === 1 ? '' : a === -1 ? '−' : num(a)}x ${b < 0 ? '−' : '+'} ${num(Math.abs(b))}) / (x ${c < 0 ? '+' : '−'} ${num(Math.abs(c))})`;
+  return <div className="manip">
+    <p className="manip-equation">f(x) = {f}</p>
+    <table className="guess-table"><thead><tr><th>x</th><th>f(x)</th></tr></thead><tbody>
+      {xs.slice(0, n).map(x => <tr key={x}><td>{fmt(x)}</td><td>{fmt(limitF(a, b, c, x))}</td></tr>)}
+    </tbody></table>
+    {n < xs.length && <Button variant="soft" onClick={more}>{toward === 'infinity' ? say(lang, 'x × 10', 'x × 10', 'x × 10', 'x × 10') : say(lang, `Rapprocher x de ${num(c)}`, `Move x closer to ${num(c)}`, `قرّب x من ${num(c)}`, `Acercar x a ${num(c)}`)}</Button>}
+    {n === xs.length && <p className="manip-discovery" role="status">{toward === 'infinity'
+      ? say(lang, `Plus x est grand, plus f(x) se rapproche de ${num(a)} : lim f = ${num(a)} en +∞. La droite y = ${num(a)} est une asymptote horizontale.`, `The bigger x, the closer f(x) gets to ${num(a)}: lim f = ${num(a)} at +∞. y = ${num(a)} is a horizontal asymptote.`, `lim f = ${num(a)}: مقارب أفقي y = ${num(a)}.`, `lim f = ${num(a)}: asíntota y = ${num(a)}.`)
+      : say(lang, `Le dénominateur devient minuscule (et positif) : f(x) explose. lim f = ${a * c + b > 0 ? '+∞' : '−∞'} quand x → ${num(c)}⁺ ; la droite x = ${num(c)} est une asymptote verticale.`, `The denominator becomes tiny (and positive): f(x) blows up. lim f = ${a * c + b > 0 ? '+∞' : '−∞'} as x → ${num(c)}⁺; x = ${num(c)} is a vertical asymptote.`, `مقارب عمودي x = ${num(c)}.`, `Asíntota vertical x = ${num(c)}.`)}</p>}
+  </div>;
+}
+
+function Bisection({ steps, lang, onDone }: { steps: number; lang: Lang; onDone: Done }) {
+  const [range, setRange] = useState<[number, number]>([0, 1]);
+  const [k, setK] = useState(0);
+  const [lo, hi] = range, m = (lo + hi) / 2;
+  function cut() { if (k >= steps) return; setRange(bisectStep(lo, hi)); const n = k + 1; setK(n); if (n === steps) onDone(String(m)); }
+  const W = 280, X = (v: number) => 10 + v * W;
+  const sg = (v: number) => (v > 0 ? '+' : v < 0 ? '−' : '0');
+  return <div className="manip">
+    <p className="manip-equation">g(x) = x³ + x − 1</p>
+    <svg viewBox="0 0 300 50" className="manip-svg" aria-hidden>
+      <line x1={X(0)} x2={X(1)} y1={25} y2={25} className="svg-tick" />
+      <line x1={X(lo)} x2={X(hi)} y1={25} y2={25} className="interval-a" />
+      <text x={X(0) - 4} y={45} className="svg-small">0</text><text x={X(1) - 4} y={45} className="svg-small">1</text>
+      <circle cx={X(m)} cy={25} r={4} className="svg-dot-move" />
+    </svg>
+    <p className="manip-feedback">[{num(lo)} ; {num(hi)}] · g({num(lo)}) {sg(bisectG(lo))} · g({num(m)}) {sg(bisectG(m))} · g({num(hi)}) {sg(bisectG(hi))}</p>
+    {k < steps && <Button variant="soft" onClick={cut}>{say(lang, 'Couper en deux', 'Cut in half', 'اقسم إلى نصفين', 'Cortar por la mitad')}</Button>}
+    {k === steps && <p className="manip-discovery" role="status">{say(lang, `On garde toujours la moitié où g change de signe : après ${steps} coupes, la solution est dans [${num(lo)} ; ${num(hi)}], un intervalle de longueur ${num(hi - lo)}. g étant continue et strictement croissante, la solution est unique.`, `Always keep the half where g changes sign: after ${steps} cuts the solution is in [${num(lo)}, ${num(hi)}], of length ${num(hi - lo)}. g is continuous and strictly increasing, so the solution is unique.`, `الحل في [${num(lo)} ; ${num(hi)}].`, `La solución está en [${num(lo)} ; ${num(hi)}].`)}</p>}
   </div>;
 }
