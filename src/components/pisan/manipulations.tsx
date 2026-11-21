@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import type { Lang } from '@/lib/i18n';
 import type { L } from '@/lib/curriculum';
 import { say } from '@/lib/pisan';
-import { bisectG, bisectStep, limitF, limitXs, binomialP, refSlope, secantFn, secantSlope, anglesWithCos, applyBalance, balanceOps, balanceSolved, clean, diceWays, rootCount, digitsByRank, fiveNumbers, inInterval, isPrime, PLACE_RANKS, rectanglePairs, refValue, angleKind, closes, median, runMachine, signRegions, simulate, tileAreas, type BalanceOp, type Manip, type RefFn, type Side } from '@/lib/skill-intros';
+import { arrangements, CUBE, eulerStep, riemannExact, riemannF, riemannSum, bisectG, bisectStep, limitF, limitXs, binomialP, refSlope, secantFn, secantSlope, anglesWithCos, applyBalance, balanceOps, balanceSolved, clean, diceWays, rootCount, digitsByRank, fiveNumbers, inInterval, isPrime, PLACE_RANKS, rectanglePairs, refValue, angleKind, closes, median, runMachine, signRegions, simulate, tileAreas, type BalanceOp, type Manip, type RefFn, type Side } from '@/lib/skill-intros';
 
 type Done = (found: string) => void;
 
@@ -57,6 +57,13 @@ export function Manipulation({ manip, lang, onDone }: { manip: Manip; lang: Lang
   if (manip.kind === 'venn') return <Venn {...manip} lang={lang} onDone={onDone} />;
   if (manip.kind === 'unit-circle') return <UnitCircle target={manip.target} step={manip.step} quadrants={manip.quadrants ?? false} cosLevel={manip.cosLevel} lang={lang} onDone={onDone} />;
   if (manip.kind === 'parabola') return <Parabola b={manip.b} c={manip.c} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'log-ruler') return <LogRuler base={manip.base} steps={manip.steps} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'riemann') return <Riemann fn={manip.fn} b={manip.b} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'cube-coords') return <CubeCoords targets={manip.targets} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'arrange') return <Arrange letters={manip.letters} length={manip.length} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'handshake') return <Handshake n={manip.n} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'complex-plane') return <ComplexPlane mode={manip.mode} a={manip.a} b={manip.b} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'euler') return <Euler a={manip.a} y0={manip.y0} h={manip.h} steps={manip.steps} lang={lang} onDone={onDone} />;
   if (manip.kind === 'limit-table') return <LimitTable a={manip.a} b={manip.b} c={manip.c} toward={manip.toward} lang={lang} onDone={onDone} />;
   if (manip.kind === 'bisection') return <Bisection steps={manip.steps} lang={lang} onDone={onDone} />;
   if (manip.kind === 'secant') return <Secant a={manip.a} lang={lang} onDone={onDone} />;
@@ -1018,7 +1025,7 @@ function IntervalWalk({ a, b, closedA, closedB, other, center, lang, onDone }: {
   </div>;
 }
 
-const FN_NAMES: Record<RefFn, string> = { square: 'x²', inverse: '1/x', sqrt: '√x', cube: 'x³', parabola: '(x − 1)² − 2', exp: 'eˣ', cubic: 'x³/3 − x' };
+const FN_NAMES: Record<RefFn, string> = { square: 'x²', inverse: '1/x', sqrt: '√x', cube: 'x³', parabola: '(x − 1)² − 2', exp: 'eˣ', cubic: 'x³/3 − x', ln: 'ln x' };
 /** Repère carré de −4 à 4 (et −4 à 6 en ordonnée) : coordonnées → pixels. */
 const plotX = (v: number) => 100 + v * 20, plotY = (v: number) => 130 - v * 20;
 function PlotFrame({ children }: { children: ReactNode }) {
@@ -1041,7 +1048,7 @@ function curvePath(fn: RefFn): string {
 }
 
 function CurveExplore({ fns, target, lang, onDone }: { fns: RefFn[]; target?: number | undefined; lang: Lang; onDone: Done }) {
-  const [k, setK] = useState(0), [x, setX] = useState(fns[0] === 'sqrt' ? 0 : -2);
+  const [k, setK] = useState(0), [x, setX] = useState(fns[0] === 'sqrt' ? 0 : fns[0] === 'ln' ? 0.5 : -2);
   const [seenFns, setSeenFns] = useState<RefFn[]>([fns[0]!]);
   const [found, setFound] = useState<number[]>([]);
   const [walk, setWalk] = useState(0);
@@ -1070,6 +1077,7 @@ function CurveExplore({ fns, target, lang, onDone }: { fns: RefFn[]; target?: nu
     {finished && <p className="manip-discovery" role="status">{target !== undefined
       ? say(lang, `${num(target)} a ${goal.length} antécédents : ${goal.map(num).join(' et ')}. Chaque x a une seule image, mais un nombre peut avoir plusieurs antécédents.`, `${num(target)} has ${goal.length} pre-images: ${goal.map(num).join(' and ')}. Each x has one image, but a number can have several pre-images.`, `لـ ${num(target)} سابقتان.`, `${num(target)} tiene ${goal.length} antecedentes.`)
       : fns.length > 1 ? say(lang, 'Carré : une parabole, décroissante puis croissante. Inverse : une hyperbole, décroissante sur chaque morceau. Racine : croissante, à partir de 0. Cube : toujours croissante.', 'Square: a parabola, down then up. Reciprocal: a hyperbola, decreasing on each branch. Root: increasing, from 0. Cube: always increasing.', 'المربع: شلجم. المقلوب: هذلول. الجذر والمكعب: تزايديتان.', 'Cuadrado: parábola. Inversa: hipérbola. Raíz y cubo: crecientes.')
+      : fn === 'ln' ? say(lang, 'ln n’existe que pour x > 0, vaut 0 en x = 1 et croît de plus en plus lentement : en chaque point, la pente de la tangente vaut 1/x. (ln x)′ = 1/x.', 'ln only exists for x > 0, is 0 at x = 1 and grows more and more slowly: at each point the tangent slope is 1/x. (ln x)′ = 1/x.', '(ln x)′ = 1/x.', '(ln x)′ = 1/x.')
       : fn === 'cubic' ? say(lang, 'Quand la pente (f′) est positive, la courbe monte ; négative, elle descend. En x = −1 et x = 1, la tangente est horizontale (f′ = 0) : un maximum local puis un minimum local.', 'When the slope (f′) is positive the curve rises; negative, it falls. At x = −1 and x = 1 the tangent is horizontal (f′ = 0): a local max then a local min.', 'f′ > 0: تصعد؛ f′ < 0: تنزل؛ f′ = 0 عند −1 و 1.', 'f′ > 0: sube; f′ < 0: baja; f′ = 0 en −1 y 1.')
       : fn === 'exp' ? say(lang, 'eˣ est toujours positive et croissante, e⁰ = 1, et en chaque point la pente de la tangente vaut f(x) : (eˣ)′ = eˣ.', 'eˣ is always positive and increasing, e⁰ = 1, and at every point the slope of the tangent equals f(x): (eˣ)′ = eˣ.', 'eˣ موجبة وتزايدية و(eˣ)′ = eˣ.', 'eˣ es positiva y creciente, y (eˣ)′ = eˣ.')
       : say(lang, 'En avançant, la courbe descend puis remonte : f décroît jusqu’au point le plus bas (le minimum), puis croît. Le tableau de variations résume ce chemin.', 'Moving right, the curve goes down then up: f decreases to its lowest point (the minimum), then increases.', 'المنحنى ينزل ثم يصعد: القيمة الدنيا.', 'La curva baja y luego sube: el mínimo.')}</p>}
@@ -1412,5 +1420,164 @@ function Bisection({ steps, lang, onDone }: { steps: number; lang: Lang; onDone:
     <p className="manip-feedback">[{num(lo)} ; {num(hi)}] · g({num(lo)}) {sg(bisectG(lo))} · g({num(m)}) {sg(bisectG(m))} · g({num(hi)}) {sg(bisectG(hi))}</p>
     {k < steps && <Button variant="soft" onClick={cut}>{say(lang, 'Couper en deux', 'Cut in half', 'اقسم إلى نصفين', 'Cortar por la mitad')}</Button>}
     {k === steps && <p className="manip-discovery" role="status">{say(lang, `On garde toujours la moitié où g change de signe : après ${steps} coupes, la solution est dans [${num(lo)} ; ${num(hi)}], un intervalle de longueur ${num(hi - lo)}. g étant continue et strictement croissante, la solution est unique.`, `Always keep the half where g changes sign: after ${steps} cuts the solution is in [${num(lo)}, ${num(hi)}], of length ${num(hi - lo)}. g is continuous and strictly increasing, so the solution is unique.`, `الحل في [${num(lo)} ; ${num(hi)}].`, `La solución está en [${num(lo)} ; ${num(hi)}].`)}</p>}
+  </div>;
+}
+
+// ───────────── Terminale ─────────────
+
+function LogRuler({ base, steps, lang, onDone }: { base: number; steps: number; lang: Lang; onDone: Done }) {
+  const [k, setK] = useState(0);
+  const x = base ** k, l = Math.log(x), lb = Math.round(Math.log(base) * 1000) / 1000;
+  function next() { if (k >= steps) return; const n = k + 1; setK(n); if (n === steps) onDone(String(lb)); }
+  return <div className="manip">
+    <table className="guess-table"><thead><tr><th>x</th><th>ln x</th></tr></thead><tbody>
+      {Array.from({ length: k + 1 }, (_, i) => <tr key={i}><td>{num(base ** i)}</td><td>{num(Math.round(Math.log(base ** i) * 1000) / 1000)}{i ? ` (+${num(lb)})` : ''}</td></tr>)}
+    </tbody></table>
+    <p className="manip-equation">ln {num(x)} = {num(Math.round(l * 1000) / 1000)}</p>
+    {k < steps && <Button variant="soft" onClick={next}>{say(lang, `Multiplier x par ${base}`, `Multiply x by ${base}`, `اضرب x في ${base}`, `Multiplicar x por ${base}`)}</Button>}
+    {k === steps && <p className="manip-discovery" role="status">{say(lang, `À chaque × ${base}, ln augmente de la même quantité, ln ${base} ≈ ${num(lb)} : le logarithme transforme les produits en sommes. ln(ab) = ln a + ln b, et ln(${base}${'⁰¹²³⁴⁵⁶'[steps]}) = ${steps} ln ${base}.`, `Each × ${base} adds the same amount, ln ${base} ≈ ${lb}: logarithms turn products into sums. ln(ab) = ln a + ln b.`, `ln(ab) = ln a + ln b.`, `ln(ab) = ln a + ln b.`)}</p>}
+  </div>;
+}
+
+const RIEMANN_N = [2, 4, 8, 16, 32];
+function Riemann({ fn, b, lang, onDone }: { fn: 'square' | 'line'; b: number; lang: Lang; onDone: Done }) {
+  const [i, setI] = useState(0);
+  const n = RIEMANN_N[i]!, sum = riemannSum(fn, b, n), exact = riemannExact(fn, b);
+  const top = riemannF(fn, b), W = 260, H = 140, X = (x: number) => 20 + (x / b) * W, Y = (y: number) => 150 - (y / top) * H;
+  const done = i === RIEMANN_N.length - 1;
+  function more() { if (done) return; const k = i + 1; setI(k); if (k === RIEMANN_N.length - 1) onDone(String(exact)); }
+  const curve = Array.from({ length: 41 }, (_, k) => `${k ? 'L' : 'M'} ${X((k * b) / 40).toFixed(1)} ${Y(riemannF(fn, (k * b) / 40)).toFixed(1)}`).join(' ');
+  return <div className="manip">
+    <svg viewBox="0 0 300 160" className="manip-svg" aria-hidden>
+      {Array.from({ length: n }, (_, k) => { const x0 = (k * b) / n, h = riemannF(fn, x0); return <rect key={k} x={X(x0)} y={Y(h)} width={W / n} height={150 - Y(h)} className="svg-shape" />; })}
+      <path d={curve} className="svg-curve" /><line x1={20} x2={285} y1={150} y2={150} className="svg-tick" />
+      <text x={X(b) - 4} y={159} className="svg-small">{b}</text><text x={14} y={159} className="svg-small">0</text>
+    </svg>
+    <p className="manip-equation">{n} {say(lang, 'rectangles', 'rectangles', 'مستطيلات', 'rectángulos')} : {num(Math.round(sum * 1000) / 1000)}</p>
+    {!done && <Button variant="soft" onClick={more}>{say(lang, 'Doubler le nombre de rectangles', 'Double the number of rectangles', 'ضاعف عدد المستطيلات', 'Duplicar los rectángulos')}</Button>}
+    {done && <p className="manip-discovery" role="status">{say(lang, `Plus les rectangles sont fins, plus leur somme se rapproche de l’aire sous la courbe : ∫ de 0 à ${b} de ${fn === 'square' ? 'x²' : 'x'} dx = ${num(Math.round(exact * 1000) / 1000)}${fn === 'square' ? ` (= ${b}³ ÷ 3)` : ` (= ${b}² ÷ 2)`}. La primitive donne la valeur exacte : F(${b}) − F(0).`, `The thinner the rectangles, the closer their sum to the area under the curve: ∫ from 0 to ${b} = ${Math.round(exact * 1000) / 1000}. The antiderivative gives it exactly: F(${b}) − F(0).`, `التكامل = ${num(Math.round(exact * 1000) / 1000)}.`, `La integral = ${num(Math.round(exact * 1000) / 1000)}.`)}</p>}
+  </div>;
+}
+
+/** Perspective cavalière : x vers la droite, y en fuite (oblique), z vers le haut. */
+const proj = ([x, y, z]: [number, number, number]) => ({ px: 60 + x * 90 + y * 45, py: 150 - z * 90 - y * 35 });
+const EDGES = ['AB', 'BC', 'CD', 'DA', 'EF', 'FG', 'GH', 'HE', 'AE', 'BF', 'CG', 'DH'];
+function CubeCoords({ targets, lang, onDone }: { targets: [number, number, number][]; lang: Lang; onDone: Done }) {
+  const [i, setI] = useState(0);
+  const [wrong, setWrong] = useState<string | null>(null);
+  const target = targets[Math.min(i, targets.length - 1)]!;
+  function tap(name: string) {
+    if (i >= targets.length) return;
+    const c = CUBE[name]!;
+    if (c.every((v, k) => v === target[k])) { setWrong(null); const n = i + 1; setI(n); if (n === targets.length) onDone('cube'); }
+    else setWrong(name);
+  }
+  return <div className="manip">
+    <svg viewBox="0 0 230 170" className="manip-svg" aria-hidden>
+      {EDGES.map(e => { const a = proj(CUBE[e[0]!]!), b = proj(CUBE[e[1]!]!); return <line key={e} x1={a.px} y1={a.py} x2={b.px} y2={b.py} className={['DA', 'CD', 'DH'].includes(e) ? 'svg-ghost' : 'svg-tick'} />; })}
+      {Object.entries(CUBE).map(([n, c]) => { const p = proj(c); return <text key={n} x={p.px + 4} y={p.py - 4} className="svg-label">{n}</text>; })}
+    </svg>
+    <div className="manip-controls">{Object.keys(CUBE).map(n => <Button key={n} variant={wrong === n ? 'destructive' : 'soft'} size="sm" onClick={() => tap(n)} aria-label={`${say(lang, 'Sommet', 'Vertex', 'الرأس', 'Vértice')} ${n}`}>{n}</Button>)}</div>
+    {i < targets.length && <p className="manip-feedback">{say(lang, `Repère (A ; AB, AD, AE). Touche le sommet de coordonnées (${target.join(' ; ')}).`, `Frame (A; AB, AD, AE). Tap the vertex at (${target.join(', ')}).`, `المس الرأس (${target.join(' ; ')}).`, `Toca el vértice (${target.join(' ; ')}).`)} ({i}/{targets.length})</p>}
+    {wrong && <p className="manip-feedback manip-bad" role="alert">{say(lang, `${wrong} a pour coordonnées (${CUBE[wrong]!.join(' ; ')}).`, `${wrong} is at (${CUBE[wrong]!.join(', ')}).`, `${wrong} = (${CUBE[wrong]!.join(' ; ')}).`, `${wrong} = (${CUBE[wrong]!.join(' ; ')}).`)}</p>}
+    {i === targets.length && <p className="manip-discovery" role="status">{say(lang, 'Pour lire (x ; y ; z), on avance de x selon AB, de y selon AD, puis on monte de z selon AE. Par exemple G(1 ; 1 ; 1) et le vecteur AG(1 ; 1 ; 1).', 'To read (x, y, z): go x along AB, y along AD, then up z along AE. For example G(1, 1, 1) and vector AG(1, 1, 1).', 'نتقدم x ثم y ثم نصعد z.', 'Avanza x, luego y, sube z.')}</p>}
+  </div>;
+}
+
+function Arrange({ letters, length, lang, onDone }: { letters: string[]; length: number; lang: Lang; onDone: Done }) {
+  const total = arrangements(letters.length, length);
+  const [word, setWord] = useState('');
+  const [found, setFound] = useState<string[]>([]);
+  const [dup, setDup] = useState(false);
+  function tap(l: string) {
+    if (found.length === total || word.includes(l)) return;
+    const w = word + l;
+    if (w.length < length) { setWord(w); return; }
+    setWord('');
+    if (found.includes(w)) { setDup(true); return; }
+    setDup(false); const all = [...found, w]; setFound(all); if (all.length === total) onDone(String(total));
+  }
+  return <div className="manip">
+    <p className="manip-equation">{word.padEnd(length, '_').split('').join(' ')}</p>
+    <div className="manip-controls">{letters.map(l => <Button key={l} variant="soft" onClick={() => tap(l)} disabled={word.includes(l)}>{l}</Button>)}</div>
+    <div className="lineup">{found.map(w => <span key={w} className="lineup-card">{w}</span>)}</div>
+    {dup && <p className="manip-feedback manip-bad" role="alert">{say(lang, 'Déjà trouvé !', 'Already found!', 'وُجد سابقًا!', '¡Ya encontrado!')}</p>}
+    <p className="manip-feedback">{found.length}/{total}</p>
+    {found.length === total && <p className="manip-discovery" role="status">{length === letters.length
+      ? say(lang, `${total} mots : ${letters.length} choix pour la 1re lettre, puis ${letters.length - 1}, puis… : ${letters.length}! = ${total}.`, `${total} words: ${letters.length} choices for the 1st letter, then ${letters.length - 1}…: ${letters.length}! = ${total}.`, `${letters.length}! = ${total}.`, `${letters.length}! = ${total}.`)
+      : say(lang, `${total} mots de ${length} lettres : ${Array.from({ length }, (_, i) => letters.length - i).join(' × ')} = ${total}. L’ordre compte (AB ≠ BA) : ce sont des arrangements.`, `${total} words of ${length} letters: ${Array.from({ length }, (_, i) => letters.length - i).join(' × ')} = ${total}. Order matters (AB ≠ BA).`, `الترتيب مهم: ${total}.`, `El orden importa: ${total}.`)}</p>}
+  </div>;
+}
+
+function Handshake({ n, lang, onDone }: { n: number; lang: Lang; onDone: Done }) {
+  const total = (n * (n - 1)) / 2;
+  const [sel, setSel] = useState<number | null>(null);
+  const [pairs, setPairs] = useState<string[]>([]);
+  const P = Array.from({ length: n }, (_, k) => ({ x: 110 + 75 * Math.cos((2 * Math.PI * k) / n - Math.PI / 2), y: 90 + 75 * Math.sin((2 * Math.PI * k) / n - Math.PI / 2) }));
+  function tap(k: number) {
+    if (pairs.length === total) return;
+    if (sel === null || sel === k) { setSel(sel === k ? null : k); return; }
+    const key = [sel, k].sort((a, b) => a - b).join('-'); setSel(null);
+    if (pairs.includes(key)) return;
+    const all = [...pairs, key]; setPairs(all); if (all.length === total) onDone(String(total));
+  }
+  return <div className="manip">
+    <svg viewBox="0 0 220 180" className="manip-svg">
+      {pairs.map(pk => { const [a, b] = pk.split('-').map(Number); return <line key={pk} x1={P[a!]!.x} y1={P[a!]!.y} x2={P[b!]!.x} y2={P[b!]!.y} className="svg-ray svg-ray-move" />; })}
+      {P.map((p, k) => <g key={k} role="button" aria-label={`${say(lang, 'Personne', 'Person', 'شخص', 'Persona')} ${k + 1}`} onClick={() => tap(k)} style={{ cursor: 'pointer' }}>
+        <circle cx={p.x} cy={p.y} r={14} className={sel === k ? 'interval-in' : 'svg-shape'} /><text x={p.x - 4} y={p.y + 4} className="svg-label">{k + 1}</text></g>)}
+    </svg>
+    <p className="manip-feedback">{say(lang, `Touche deux personnes pour qu’elles se serrent la main : ${pairs.length}/${total}`, `Tap two people to make them shake hands: ${pairs.length}/${total}`, `المس شخصين: ${pairs.length}/${total}`, `Toca dos personas: ${pairs.length}/${total}`)}</p>
+    {pairs.length === total && <p className="manip-discovery" role="status">{say(lang, `${total} poignées de main : chacun serre ${n - 1} mains, soit ${n} × ${n - 1}, mais chaque poignée est comptée deux fois → ${n} × ${n - 1} ÷ 2 = ${total} = (${n} parmi 2). L’ordre ne compte pas : c’est une combinaison.`, `${total} handshakes: each person shakes ${n - 1} hands, ${n} × ${n - 1}, but each is counted twice → ÷ 2 = ${total} = C(${n}, 2).`, `${n} × ${n - 1} ÷ 2 = ${total}.`, `${n} × ${n - 1} ÷ 2 = ${total}.`)}</p>}
+  </div>;
+}
+
+function ComplexPlane({ mode, a: a0, b: b0, lang, onDone }: { mode: 'rotate' | 'place'; a: number; b: number; lang: Lang; onDone: Done }) {
+  const [z, setZ] = useState<[number, number]>(mode === 'rotate' ? [a0, b0] : [0, 0]);
+  const [turns, setTurns] = useState(0);
+  const [finished, setFinished] = useState(false);
+  const U = 16, O = 100, X = (v: number) => O + v * U, Y = (v: number) => O - v * U;
+  const text = (re: number, im: number) => `${re || im === 0 ? num(re) : ''}${im ? `${re ? (im < 0 ? ' − ' : ' + ') : im < 0 ? '−' : ''}${Math.abs(im) === 1 ? '' : num(Math.abs(im))}i` : ''}`;
+  function times() { const [re, im] = z; setZ([-im, re]); const k = turns + 1; setTurns(k); if (!finished && k === 4) { setFinished(true); onDone('i'); } }
+  function place(re: number, im: number) { const nz: [number, number] = [Math.max(-5, Math.min(5, re)), Math.max(-5, Math.min(5, im))]; setZ(nz); if (!finished && nz[0] === a0 && nz[1] === b0) { setFinished(true); onDone(String(Math.hypot(a0, b0))); } }
+  const mod = Math.round(Math.hypot(z[0], z[1]) * 100) / 100;
+  return <div className="manip">
+    <svg viewBox="0 0 200 200" className="manip-svg plot-svg" aria-hidden>
+      {Array.from({ length: 11 }, (_, k) => <g key={k}><line x1={X(k - 5)} x2={X(k - 5)} y1={X(-5)} y2={X(5)} className="svg-grid" /><line y1={X(k - 5)} y2={X(k - 5)} x1={X(-5)} x2={X(5)} className="svg-grid" /></g>)}
+      <line x1={X(-5)} x2={X(5)} y1={O} y2={O} className="svg-tick" /><line y1={X(-5)} y2={X(5)} x1={O} x2={O} className="svg-tick" />
+      <text x={X(5) - 8} y={O - 4} className="svg-small">Re</text><text x={O + 4} y={X(-5) + 8} className="svg-small">Im</text>
+      {mode === 'place' && <circle cx={X(a0)} cy={Y(b0)} r={6} className="svg-ghost" />}
+      <line x1={O} y1={O} x2={X(z[0])} y2={Y(z[1])} className="svg-ray svg-ray-move" />
+      <circle cx={X(z[0])} cy={Y(z[1])} r={5} className="svg-dot-move" style={{ transition: 'all .4s' }} />
+    </svg>
+    <p className="manip-equation">z = {text(z[0], z[1])} · |z| = {num(mod)}</p>
+    {mode === 'rotate'
+      ? !finished && <Button variant="soft" onClick={times}>{say(lang, 'Multiplier par i', 'Multiply by i', 'اضرب في i', 'Multiplicar por i')}</Button>
+      : <><Stepper lang={lang} label={`Re = ${num(z[0])}`} onMinus={() => place(z[0] - 1, z[1])} onPlus={() => place(z[0] + 1, z[1])} minus={say(lang, 'Diminuer la partie réelle', 'Decrease the real part', 'نقّص الجزء الحقيقي', 'Disminuir la parte real')} plus={say(lang, 'Augmenter la partie réelle', 'Increase the real part', 'زد الجزء الحقيقي', 'Aumentar la parte real')} />
+        <Stepper lang={lang} label={`Im = ${num(z[1])}`} onMinus={() => place(z[0], z[1] - 1)} onPlus={() => place(z[0], z[1] + 1)} minus={say(lang, 'Diminuer la partie imaginaire', 'Decrease the imaginary part', 'نقّص الجزء التخيلي', 'Disminuir la parte imaginaria')} plus={say(lang, 'Augmenter la partie imaginaire', 'Increase the imaginary part', 'زد الجزء التخيلي', 'Aumentar la parte imaginaria')} /></>}
+    {mode === 'place' && !finished && <p className="manip-feedback">{say(lang, `Place le point d’affixe ${text(a0, b0)}.`, `Place the point ${text(a0, b0)}.`, `ضع النقطة ${text(a0, b0)}.`, `Coloca el punto ${text(a0, b0)}.`)}</p>}
+    {finished && <p className="manip-discovery" role="status">{mode === 'rotate'
+      ? say(lang, 'Multiplier par i fait tourner le point d’un quart de tour (90°) autour de O, sans changer son module. Quatre quarts de tour ramènent au départ : i⁴ = 1, et i² = −1 est le demi-tour.', 'Multiplying by i turns the point a quarter turn (90°) about O, keeping its modulus. Four quarter turns bring it back: i⁴ = 1, and i² = −1 is the half turn.', 'الضرب في i ربع دورة: i⁴ = 1 و i² = −1.', 'Multiplicar por i gira 90°: i⁴ = 1, i² = −1.')
+      : say(lang, `a + ib est le point (a ; b). Son module est la distance à O : |${text(a0, b0)}| = √(${a0 * a0} + ${b0 * b0}) = ${num(Math.round(Math.hypot(a0, b0) * 100) / 100)} (Pythagore).`, `a + ib is the point (a, b). Its modulus is the distance to O: √(${a0 * a0} + ${b0 * b0}) = ${Math.round(Math.hypot(a0, b0) * 100) / 100}.`, `المعيار هو المسافة إلى O.`, `El módulo es la distancia a O.`)}</p>}
+  </div>;
+}
+
+function Euler({ a, y0, h, steps, lang, onDone }: { a: number; y0: number; h: number; steps: number; lang: Lang; onDone: Done }) {
+  const [pts, setPts] = useState<number[]>([y0]);
+  const k = pts.length - 1, last = pts[k]!;
+  const xMax = h * steps, ys = Array.from({ length: 41 }, (_, i) => y0 * Math.exp((a * i * xMax) / 40));
+  const top = Math.max(...ys, ...pts) * 1.1, X = (x: number) => 20 + (x / xMax) * 260, Y = (y: number) => 150 - (y / top) * 140;
+  function step() { if (k >= steps) return; const all = [...pts, eulerStep(a, last, h)]; setPts(all); if (all.length - 1 === steps) onDone('euler'); }
+  const exact = y0 * Math.exp(a * xMax);
+  return <div className="manip">
+    <svg viewBox="0 0 300 160" className="manip-svg" aria-hidden>
+      <line x1={20} x2={285} y1={150} y2={150} className="svg-tick" />
+      <path d={ys.map((y, i) => `${i ? 'L' : 'M'} ${X((i * xMax) / 40).toFixed(1)} ${Y(y).toFixed(1)}`).join(' ')} className="svg-ghost" />
+      <path d={pts.map((y, i) => `${i ? 'L' : 'M'} ${X(i * h).toFixed(1)} ${Y(y).toFixed(1)}`).join(' ')} className="svg-curve" />
+      {pts.map((y, i) => <circle key={i} cx={X(i * h)} cy={Y(y)} r={3.5} className="svg-dot-move" />)}
+    </svg>
+    <p className="manip-equation">x = {num(Math.round(k * h * 100) / 100)} · y ≈ {num(Math.round(last * 1000) / 1000)} · {say(lang, 'pente', 'slope', 'الميل', 'pendiente')} = {num(a)} × y = {num(Math.round(a * last * 1000) / 1000)}</p>
+    {k < steps && <Button variant="soft" onClick={step}>{say(lang, `Avancer de ${num(h)} sur la tangente`, `Step ${h} along the tangent`, `تقدم ${num(h)} على المماس`, `Avanzar ${num(h)} por la tangente`)}</Button>}
+    {k === steps && <p className="manip-discovery" role="status">{say(lang, `À chaque pas, la pente est ${num(a)} × y : la courbe obtenue suit de près la vraie solution y = ${num(y0)}e^(${num(a)}x) (en pointillés), qui vaut ${num(Math.round(exact * 1000) / 1000)} en x = ${num(xMax)}. Avec des pas plus petits, on s’en rapproche encore.`, `At each step the slope is ${a} × y: the path follows the true solution y = ${y0}e^(${a}x) (dashed), which is ${Math.round(exact * 1000) / 1000} at x = ${xMax}. Smaller steps get even closer.`, `الحل الحقيقي y = ${num(y0)}e^(${num(a)}x).`, `La solución real y = ${num(y0)}e^(${num(a)}x).`)}</p>}
   </div>;
 }

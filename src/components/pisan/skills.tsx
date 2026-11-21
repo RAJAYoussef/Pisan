@@ -695,6 +695,12 @@ export const CHAPTER_NAMES: Record<FigureKind, L> = {
   scalar: { fr: 'Produit scalaire', en: 'Dot product', ar: 'الجداء السلمي', es: 'Producto escalar' },
   trigfn: { fr: 'Trigonométrie', en: 'Trigonometry', ar: 'حساب المثلثات', es: 'Trigonometría' },
   limits: { fr: 'Limites et continuité', en: 'Limits and continuity', ar: 'النهايات والاتصال', es: 'Límites y continuidad' },
+  ln: { fr: 'Fonction logarithme', en: 'The logarithm', ar: 'الدالة اللوغاريتمية', es: 'Función logaritmo' },
+  integral: { fr: 'Primitives et intégrales', en: 'Antiderivatives and integrals', ar: 'الدوال الأصلية والتكامل', es: 'Primitivas e integrales' },
+  space: { fr: 'Vecteurs et plans de l’espace', en: 'Vectors and planes in space', ar: 'المتجهات والمستويات في الفضاء', es: 'Vectores y planos del espacio' },
+  counting: { fr: 'Dénombrement', en: 'Counting', ar: 'التعداد', es: 'Combinatoria' },
+  complex: { fr: 'Nombres complexes', en: 'Complex numbers', ar: 'الأعداد العقدية', es: 'Números complejos' },
+  diffeq: { fr: 'Équations différentielles', en: 'Differential equations', ar: 'المعادلات التفاضلية', es: 'Ecuaciones diferenciales' },
 };
 const STATUS: Record<SkillStatus, (lang: Lang) => string> = {
   mastered: lang => say(lang, 'Acquis', 'Mastered', 'مكتسبة', 'Adquirida'),

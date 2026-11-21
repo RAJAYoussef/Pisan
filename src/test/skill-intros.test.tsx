@@ -23,7 +23,7 @@ function solve(left: Side, right: Side): number | null {
 }
 
 describe('Introductions (modèle de Singapour)', () => {
-  const DONE: FigureKind[] = ['primes', 'linear', 'relatives', 'signs', 'decimals', 'arith', 'powers', 'sci', 'roots', 'expressions', 'literal', 'identities', 'equations', 'inequalities', 'systems', 'affine', 'seq', 'deriv', 'lines', 'polygons', 'angles', 'symmetry', 'measures', 'surfaces', 'solids', 'pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'fractions', 'proportion', 'stats', 'data', 'chance', 'proba', 'intervals', 'reference', 'signtable', 'lineeq', 'quartiles', 'events', 'unitcircle', 'quadratic', 'expo', 'scalar', 'trigfn', 'limits'];
+  const DONE: FigureKind[] = ['primes', 'linear', 'relatives', 'signs', 'decimals', 'arith', 'powers', 'sci', 'roots', 'expressions', 'literal', 'identities', 'equations', 'inequalities', 'systems', 'affine', 'seq', 'deriv', 'lines', 'polygons', 'angles', 'symmetry', 'measures', 'surfaces', 'solids', 'pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'fractions', 'proportion', 'stats', 'data', 'chance', 'proba', 'intervals', 'reference', 'signtable', 'lineeq', 'quartiles', 'events', 'unitcircle', 'quadratic', 'expo', 'scalar', 'trigfn', 'limits', 'ln', 'integral', 'space', 'counting', 'complex', 'diffeq'];
   const LYCEE: FigureKind[] = [];
   /** Une compétence « manipule » si son introduction a une manipulation ou si l'entraînement en contient une (widget, quadrillage). */
   const manipulates = (id: string) => Boolean(INTROS[id]?.manip) || getSkill(id)!.build(1).steps.some(st => st.type === 'widget' || st.type === 'grid' || st.type === 'tap');
@@ -389,4 +389,30 @@ describe('Manipulations des limites', () => {
     for (let i = 0; i < 5; i++) fireEvent.click(screen.getByRole('button', { name: 'Couper en deux' }));
     expect(found()).toMatch(/\[0,65625 ; 0,6875\]/);
   });
+});
+
+describe('Manipulations de Terminale', () => {
+  const engine = () => localEngine({ secret: 'test', hash: 'c'.repeat(64) });
+  const open = (id: string) => render(<SkillActivity lang="fr" skill={getSkill(id)!} engine={engine()} attempts={[]} onBack={vi.fn()} />);
+  const press = (name: string | RegExp, times = 1) => { for (let i = 0; i < times; i++) fireEvent.click(screen.getByRole('button', { name })); };
+  const found = () => screen.getByRole('status').textContent!;
+  it('× 2 always adds ln 2', () => { open('ln-rules'); press('Multiplier x par 2', 5); expect(found()).toMatch(/ln 2 ≈ 0,693/); });
+  it('thinner rectangles approach ∫ x² = 8/3', () => { open('int-compute'); press('Doubler le nombre de rectangles', 4); expect(found()).toMatch(/= 2,667/); });
+  it('the cube: tap the vertices from their coordinates', () => {
+    open('sp-coords');
+    for (const v of ['B', 'G', 'H']) press(`Sommet ${v}`);
+    expect(found()).toMatch(/G\(1 ; 1 ; 1\)/);
+  });
+  it('ABC makes 3! = 6 words', () => {
+    open('cnt-permutations');
+    for (const w of ['ABC', 'ACB', 'BAC', 'BCA', 'CAB', 'CBA']) for (const l of w) press(l);
+    expect(found()).toMatch(/3! = 6/);
+  });
+  it('5 people make 10 handshakes', () => {
+    open('cnt-combinations');
+    for (let a = 1; a <= 5; a++) for (let b = a + 1; b <= 5; b++) { press(`Personne ${a}`); press(`Personne ${b}`); }
+    expect(found()).toMatch(/5 × 4 ÷ 2 = 10/);
+  });
+  it('× i four times is a full turn', () => { open('cx-powers'); press('Multiplier par i', 4); expect(found()).toMatch(/i⁴ = 1/); });
+  it('Euler follows y = eˣ', () => { open('de-exp'); press('Avancer de 0,25 sur la tangente', 4); expect(found()).toMatch(/vaut 2,718/); });
 });

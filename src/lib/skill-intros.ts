@@ -10,6 +10,7 @@ import { DONNEES_INTROS } from './skill-intros-donnees';
 import { SECONDE_INTROS } from './skill-intros-seconde';
 import { PREMIERE_INTROS } from './skill-intros-premiere';
 import { LIMIT_INTROS } from './skill-intros-limites';
+import { TERMINALE_INTROS } from './skill-intros-terminale';
 
 const t = (fr: string, en: string, ar: string, es: string): L => ({ fr, en, ar, es });
 
@@ -121,9 +122,23 @@ export type Manip =
   /** f(x) = (ax + b)/(x − c) : faire grandir x (× 10) ou l'approcher de c par la droite, et lire f(x). */
   | { kind: 'limit-table'; a: number; b: number; c: number; toward: 'infinity' | 'right' }
   /** Dichotomie sur x³ + x − 1 entre 0 et 1 : couper en deux en gardant le changement de signe. */
-  | { kind: 'bisection'; steps: number };
+  | { kind: 'bisection'; steps: number }
+  /** Multiplier x par `base` à chaque pas : ln x augmente toujours de ln(base). */
+  | { kind: 'log-ruler'; base: number; steps: number }
+  /** Rectangles sous la courbe (x² ou x) sur [0 ; b] : on double leur nombre, la somme approche l'intégrale. */
+  | { kind: 'riemann'; fn: 'square' | 'line'; b: number }
+  /** Cube unité ABCDEFGH dans un repère : toucher le sommet qui a les coordonnées demandées. */
+  | { kind: 'cube-coords'; targets: [number, number, number][] }
+  /** Former tous les mots de `length` lettres distinctes avec `letters`. */
+  | { kind: 'arrange'; letters: string[]; length: number }
+  /** n personnes : relier chaque paire une fois (poignées de main). */
+  | { kind: 'handshake'; n: number }
+  /** Plan complexe : multiplier par i (quart de tour) ou placer a + ib et lire son module. */
+  | { kind: 'complex-plane'; mode: 'rotate' | 'place'; a: number; b: number }
+  /** Méthode d'Euler pour y′ = ay : avancer de h en suivant la tangente, comparer à la vraie courbe. */
+  | { kind: 'euler'; a: number; y0: number; h: number; steps: number };
 
-export type RefFn = 'square' | 'inverse' | 'sqrt' | 'cube' | 'parabola' | 'exp' | 'cubic';
+export type RefFn = 'square' | 'inverse' | 'sqrt' | 'cube' | 'parabola' | 'exp' | 'cubic' | 'ln';
 
 export type Lesson = { points: L[]; example: { title: L; lines: L[] } };
 /** Une compétence a toujours sa carte de cours ; la manipulation est facultative (sinon on commence par le cours). */
@@ -226,7 +241,7 @@ const PROTOTYPE: Record<string, Intro> = {
   },
 };
 
-export const INTROS: Record<string, Intro> = { ...PROTOTYPE, ...NOMBRES_INTROS, ...ALGEBRE_INTROS, ...GEOMETRIE_INTROS, ...DONNEES_INTROS, ...SECONDE_INTROS, ...PREMIERE_INTROS, ...LIMIT_INTROS };
+export const INTROS: Record<string, Intro> = { ...PROTOTYPE, ...NOMBRES_INTROS, ...ALGEBRE_INTROS, ...GEOMETRIE_INTROS, ...DONNEES_INTROS, ...SECONDE_INTROS, ...PREMIERE_INTROS, ...LIMIT_INTROS, ...TERMINALE_INTROS };
 export const introFor = (skillId: string): Intro | null => INTROS[skillId] ?? null;
 
 /** Valeur arrondie au milliardième (les × 10 et ÷ 10 successifs ne doivent pas laisser 0,30000000000000004). */
@@ -312,6 +327,7 @@ export function refValue(fn: RefFn, x: number): number | null {
   if (fn === 'sqrt') return x < 0 ? null : Math.sqrt(x);
   if (fn === 'exp') return Math.exp(x);
   if (fn === 'cubic') return (x * x * x) / 3 - x;
+  if (fn === 'ln') return x <= 0 ? null : Math.log(x);
   return (x - 1) ** 2 - 2;
 }
 /** Nombre de racines réelles de x² + bx + c (selon le signe de Δ). */
@@ -332,7 +348,7 @@ export function fiveNumbers(values: number[]): { min: number; q1: number; me: nu
 /** Les couples (dé 1 ; dé 2) dont la somme vaut s. */
 export const diceWays = (s: number) => Array.from({ length: 36 }, (_, i) => [Math.floor(i / 6) + 1, (i % 6) + 1] as [number, number]).filter(([a, b]) => a + b === s);
 /** Pente de la courbe en x pour les fonctions dont on montre la tangente (sinon null). */
-export const refSlope = (fn: RefFn, x: number): number | null => (fn === 'exp' ? Math.exp(x) : fn === 'cubic' ? x * x - 1 : null);
+export const refSlope = (fn: RefFn, x: number): number | null => (fn === 'exp' ? Math.exp(x) : fn === 'cubic' ? x * x - 1 : fn === 'ln' ? (x > 0 ? 1 / x : null) : null);
 /** f(x) = 0,5x² − 2x et la pente de la sécante entre a et a + h. */
 export const secantFn = (x: number) => 0.5 * x * x - 2 * x;
 export const secantSlope = (a: number, h: number) => (secantFn(a + h) - secantFn(a)) / h;
@@ -345,3 +361,13 @@ export const limitXs = (c: number, toward: 'infinity' | 'right') => (toward === 
 /** Une étape de dichotomie pour g(x) = x³ + x − 1 : la moitié de [lo ; hi] où g change de signe. */
 export const bisectG = (x: number) => x * x * x + x - 1;
 export function bisectStep(lo: number, hi: number): [number, number] { const m = (lo + hi) / 2; return bisectG(lo) * bisectG(m) <= 0 ? [lo, m] : [m, hi]; }
+/** Somme des rectangles à gauche (n rectangles) sous x² ou x sur [0 ; b], et la valeur exacte de l'intégrale. */
+export const riemannF = (fn: 'square' | 'line', x: number) => (fn === 'square' ? x * x : x);
+export const riemannSum = (fn: 'square' | 'line', b: number, n: number) => Array.from({ length: n }, (_, i) => riemannF(fn, (i * b) / n) * (b / n)).reduce((a, v) => a + v, 0);
+export const riemannExact = (fn: 'square' | 'line', b: number) => (fn === 'square' ? (b ** 3) / 3 : (b * b) / 2);
+/** Les sommets du cube unité, nommés comme en classe. */
+export const CUBE: Record<string, [number, number, number]> = { A: [0, 0, 0], B: [1, 0, 0], C: [1, 1, 0], D: [0, 1, 0], E: [0, 0, 1], F: [1, 0, 1], G: [1, 1, 1], H: [0, 1, 1] };
+/** Nombre d'arrangements de k objets parmi n. */
+export const arrangements = (n: number, k: number) => Array.from({ length: k }, (_, i) => n - i).reduce((a, b) => a * b, 1);
+/** Un pas de la méthode d'Euler pour y′ = ay. */
+export const eulerStep = (a: number, y: number, h: number) => y + h * a * y;

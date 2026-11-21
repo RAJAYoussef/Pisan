@@ -101,8 +101,8 @@ describe('Familles de chapitres', () => {
     expect(screen.getByRole('button', { name: /Nombres et calculs/, expanded: true })).toBeTruthy();
   });
   it('a short programme keeps its flat grid', () => {
-    const programme = programmeFor('us', 6)!;
-    render(<Workshop {...props3('us', 6)} level={6} programme={programme} notions={programmeNotions(programme)} progress={{ unlocked: [], attempts: [] }} />);
+    const programme = programmeFor('us', 4)!;
+    render(<Workshop {...props3('us', 4)} level={4} programme={programme} notions={programmeNotions(programme)} progress={{ unlocked: [], attempts: [] }} />);
     expect(document.querySelector('.ws-families')).toBeNull();
   });
 });
