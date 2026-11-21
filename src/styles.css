@@ -1091,3 +1091,13 @@ button.ws-score .points-badge { padding: 4px 8px; font-size: .8rem; white-space:
   .splash { animation-delay: 1.2s; }
   .splash-stage, .splash-piece, .splash-shadow, .splash-word > span { animation: none; opacity: 1; }
 }
+
+/* ───────────── Comptes enseignants ───────────── */
+.role-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 5px; margin-bottom: 22px; border-radius: 16px; background: var(--muted); }
+.role-tab { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border-radius: 12px; font-weight: 800; color: var(--muted-foreground); }
+.role-tab[aria-selected="true"] { background: var(--card); color: var(--foreground); box-shadow: 0 2px 0 var(--border); }
+.admin-accounts { margin-top: 40px; padding: 22px; border: 2px solid var(--border); border-radius: 20px; background: var(--card); }
+.admin-form { margin-top: 16px; padding: 16px; border-radius: 14px; background: var(--muted); }
+.admin-issued { margin-top: 16px; padding: 16px; border-radius: 14px; background: var(--success-soft); }
+.admin-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; }
+.admin-row-off { opacity: .55; }

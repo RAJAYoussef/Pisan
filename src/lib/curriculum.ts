@@ -187,6 +187,9 @@ export const COUNTRIES: Country[] = [
     ],
   },
 ];
+/** Les pays dans l'ordre alphabétique de leur nom, dans la langue affichée. */
+export const countriesByName = (lang: string): Country[] => [...COUNTRIES].sort((a, b) => (a.name[lang as keyof L] ?? a.name.fr).localeCompare(b.name[lang as keyof L] ?? b.name.fr, lang));
+
 
 export function getCountry(id: string): Country {
   return (COUNTRIES.find((c) => c.id === id) ?? COUNTRIES[0])!;

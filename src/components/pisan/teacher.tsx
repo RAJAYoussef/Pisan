@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { supabase } from '@/integrations/supabase/client';
 import { classDashboard, createClass, saveTeacher, setStudentDys, teacherOverview, removeClassStudent } from '@/lib/teacher.functions';
 import { classCsv, displayClassCode, blockingNotions, isInactive, masteryBand } from '@/lib/classroom';
-import { COUNTRIES, chaptersForLevel, getCountry, getLevel } from '@/lib/curriculum';
+import { countriesByName, chaptersForLevel, getCountry, getLevel } from '@/lib/curriculum';
 import { notionsForGrade } from '@/lib/programmes';
 import { mastery, say } from '@/lib/pisan';
 import { StreakBadge } from './streak';
@@ -18,9 +18,22 @@ import { teacherText } from '@/lib/teacher-i18n';
 import { BrandMark } from './brand';
 import { Dashboard } from './progress';
 import { ClassAssignments, ClassSkills, classSkillKinds } from './teacher-skills';
+import { whoAmI } from '@/lib/admin.functions';
+import { ChangePassword, TeacherAccounts } from './teacher-admin';
+import { RESET_FLAG } from './teacher-login';
 
+/** Entrée de l'espace enseignant : mot de passe provisoire à remplacer d'abord, puis les classes (et les comptes pour l'administrateur). */
 export function TeacherWorkspace() {
- const [lang,setLang]=useState<Lang>('fr'); const d=teacherText(lang);
+ const whoFn=useServerFn(whoAmI); const who=useQuery({queryKey:['teacher-who'],queryFn:()=>whoFn()});
+ const [lang,setLang]=useState<Lang>('fr');
+ const [resetAsked,setResetAsked]=useState(()=>{try{return typeof window!=='undefined'&&sessionStorage.getItem(RESET_FLAG)==='1';}catch{return false;}});
+ if(who.isPending) return <main className="mx-auto max-w-lg p-10"><p className="animate-pulse text-muted-foreground">PiSan…</p></main>;
+ if(who.data?.mustChangePassword||resetAsked) return <main dir={dirOf(lang)} className="pisan-root mx-auto min-h-screen max-w-lg px-5 py-12"><div className="mb-8 flex items-center justify-between"><BrandMark /><select aria-label="Language" className="language-select" value={lang} onChange={e=>setLang(e.target.value as Lang)}>{LANGS.map(l=><option key={l.id} value={l.id}>{l.id.toUpperCase()}</option>)}</select></div><ChangePassword lang={lang} onDone={()=>{try{sessionStorage.removeItem(RESET_FLAG);}catch{/* rien */}setResetAsked(false);void who.refetch();}}/></main>;
+ return <TeacherSpace admin={Boolean(who.data?.admin)} initialLang={lang} />;
+}
+
+function TeacherSpace({admin,initialLang}:{admin:boolean;initialLang:Lang}) {
+ const [lang,setLang]=useState<Lang>(initialLang); const d=teacherText(lang);
  const [removeId,setRemoveId]=useState(''); const [classId,setClassId]=useState(''); const [studentId,setStudentId]=useState('');
  const [profileOpen,setProfileOpen]=useState(false); const [createOpen,setCreateOpen]=useState(false);
  const [error,setError]=useState(''); const [busy,setBusy]=useState(false); const [notice,setNotice]=useState('');
@@ -50,7 +63,8 @@ export function TeacherWorkspace() {
  </>}
  </>}
  </>}
+ {admin && teacher && <TeacherAccounts lang={lang} selfId={teacher.id} />}
  </main><Dialog open={Boolean(removeId)} onOpenChange={open=>{if(!open)setRemoveId('');}}><DialogContent><DialogTitle>{d.remove}</DialogTitle><DialogDescription>{d.confirmRemove}</DialogDescription><Button disabled={busy} onClick={()=>remove(removeId)}>{d.remove}</Button></DialogContent></Dialog><Dialog open={profileOpen} onOpenChange={setProfileOpen}><DialogContent><DialogTitle>{d.profile}</DialogTitle><DialogDescription>{teacher?.school_name}</DialogDescription><TeacherProfile lang={lang} initial={teacher ?? undefined} busy={busy} onSubmit={data=>run(async()=>{await saveFn({data});setProfileOpen(false);})}/></DialogContent></Dialog><Dialog open={createOpen} onOpenChange={setCreateOpen}><DialogContent><DialogTitle>{d.newClass}</DialogTitle><DialogDescription>{teacher?.school_name}</DialogDescription><ClassForm lang={lang} busy={busy} onSubmit={data=>run(async()=>{const c=await createFn({data});if(c){setClassId(c.id);setStudentId('');setCreateOpen(false);}})}/></DialogContent></Dialog></div>;
 }
 function TeacherProfile({lang,initial,busy,onSubmit}:{lang:Lang;initial?:{display_name:string;school_name:string} | undefined;busy:boolean;onSubmit:(data:{display_name:string;school_name:string;code:string})=>Promise<void>}){const d=teacherText(lang);return <form className="mx-auto max-w-lg space-y-5" onSubmit={e=>{e.preventDefault();const f=new FormData(e.currentTarget);void onSubmit({display_name:String(f.get('display_name')),school_name:String(f.get('school_name')),code:String(f.get('code'))});}}><h2 className="text-2xl">{d.profile}</h2><label className="field-label">{d.name}<input name="display_name" className="form-input mt-2" defaultValue={initial?.display_name} required maxLength={80}/></label><label className="field-label">{d.school}<input name="school_name" className="form-input mt-2" defaultValue={initial?.school_name} required maxLength={120}/></label><label className="field-label">{d.partner}<input name="code" className="form-input mt-2" maxLength={100}/></label><Button type="submit" disabled={busy}>{d.save}</Button></form>;}
-function ClassForm({lang,busy,onSubmit}:{lang:Lang;busy:boolean;onSubmit:(data:{name:string;country:string;grade:number})=>Promise<void>}){const d=teacherText(lang);const [country,setCountry]=useState('ma');return <form className="space-y-5" onSubmit={e=>{e.preventDefault();const f=new FormData(e.currentTarget);void onSubmit({name:String(f.get('name')),country,grade:Number(f.get('grade'))});}}><label className="field-label">{d.className}<input name="name" className="form-input mt-2" required maxLength={80}/></label><label className="field-label">{d.country}<select className="form-select mt-2" value={country} onChange={e=>setCountry(e.target.value)}>{COUNTRIES.map(c=><option key={c.id} value={c.id}>{c.name[lang]}</option>)}</select></label><label className="field-label">{d.grade}<select name="grade" className="form-select mt-2" key={country}>{getCountry(country).grades.map((g,i)=><option key={i} value={i}>{g.label[lang]}</option>)}</select></label><Button type="submit" disabled={busy}><Plus/>{d.newClass}</Button></form>;}
+function ClassForm({lang,busy,onSubmit}:{lang:Lang;busy:boolean;onSubmit:(data:{name:string;country:string;grade:number})=>Promise<void>}){const d=teacherText(lang);const [country,setCountry]=useState('ma');return <form className="space-y-5" onSubmit={e=>{e.preventDefault();const f=new FormData(e.currentTarget);void onSubmit({name:String(f.get('name')),country,grade:Number(f.get('grade'))});}}><label className="field-label">{d.className}<input name="name" className="form-input mt-2" required maxLength={80}/></label><label className="field-label">{d.country}<select className="form-select mt-2" value={country} onChange={e=>setCountry(e.target.value)}>{countriesByName(lang).map(c=><option key={c.id} value={c.id}>{c.name[lang]}</option>)}</select></label><label className="field-label">{d.grade}<select name="grade" className="form-select mt-2" key={country}>{getCountry(country).grades.map((g,i)=><option key={i} value={i}>{g.label[lang]}</option>)}</select></label><Button type="submit" disabled={busy}><Plus/>{d.newClass}</Button></form>;}
