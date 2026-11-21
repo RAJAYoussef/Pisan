@@ -291,6 +291,8 @@ export const DONNEES_INTROS: Record<string, Intro> = {
   },
   // ───────────── Probabilités (Terminale) ─────────────
   'proba-tree': {
+    goal: t('Touche les quatre chemins de l’arbre : multiplie le long de chaque chemin.', 'Tap the four paths of the tree: multiply along each path.', 'المس المسارات الأربعة واضرب على كل مسار.', 'Toca los cuatro caminos y multiplica.'),
+    manip: { kind: 'tree', pa: 0.3, pba: 0.5, pbna: 0.2 },
     lesson: {
       points: [
         t('Sur un **arbre pondéré**, la somme des branches issues d’un même nœud vaut 1 ; on **multiplie** le long d’un chemin.', 'On a **probability tree**, branches from one node add up to 1; **multiply** along a path.', 'في **الشجرة**: مجموع الفروع 1 ونضرب على المسار.', 'En un **árbol**: las ramas suman 1; multiplica.'),
@@ -300,6 +302,8 @@ export const DONNEES_INTROS: Record<string, Intro> = {
     },
   },
   'proba-binomial': {
+    goal: t('Lâche au moins 200 billes dans la planche : chacune rebondit 4 fois, à gauche ou à droite.', 'Drop at least 200 balls: each bounces 4 times, left or right.', 'أسقط 200 كرة على الأقل.', 'Suelta al menos 200 bolas.'),
+    manip: { kind: 'galton', n: 4, p: 0.5 },
     lesson: {
       points: [
         t('**Loi binomiale B(n ; p)** : n épreuves **identiques et indépendantes**, deux issues (succès p) ; X compte les succès.', '**Binomial B(n, p)**: n **identical, independent** trials, two outcomes (success p); X counts the successes.', '**القانون الحداني**: n تجارب **مستقلة ومتطابقة**.', '**Binomial**: n pruebas **idénticas e independientes**.'),
@@ -309,6 +313,8 @@ export const DONNEES_INTROS: Record<string, Intro> = {
     },
   },
   'proba-expectation': {
+    goal: t('Lâche au moins 200 billes (3 rebonds, à droite avec la probabilité 0,4) et regarde la moyenne.', 'Drop at least 200 balls (3 bounces, right with probability 0.4) and watch the mean.', 'أسقط 200 كرة ولاحظ المتوسط.', 'Suelta 200 bolas y mira la media.'),
+    manip: { kind: 'galton', n: 3, p: 0.4 },
     lesson: {
       points: [
         t('Les probabilités d’une loi **somment à 1** (on complète la case manquante).', 'The probabilities of a distribution **add up to 1**.', 'مجموع الاحتمالات **1**.', 'Las probabilidades **suman 1**.'),

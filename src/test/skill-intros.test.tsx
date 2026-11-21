@@ -24,7 +24,7 @@ function solve(left: Side, right: Side): number | null {
 
 describe('Introductions (modèle de Singapour)', () => {
   const DONE: FigureKind[] = ['primes', 'linear', 'relatives', 'signs', 'decimals', 'arith', 'powers', 'sci', 'roots', 'expressions', 'literal', 'identities', 'equations', 'inequalities', 'systems', 'affine', 'seq', 'deriv', 'lines', 'polygons', 'angles', 'symmetry', 'measures', 'surfaces', 'solids', 'pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'fractions', 'proportion', 'stats', 'data', 'chance', 'proba', 'intervals', 'reference', 'signtable', 'lineeq', 'quartiles', 'events', 'unitcircle', 'quadratic', 'expo', 'scalar', 'trigfn'];
-  const LYCEE: FigureKind[] = ['seq', 'deriv', 'proba'];
+  const LYCEE: FigureKind[] = [];
   /** Une compétence « manipule » si son introduction a une manipulation ou si l'entraînement en contient une (widget, quadrillage). */
   const manipulates = (id: string) => Boolean(INTROS[id]?.manip) || getSkill(id)!.build(1).steps.some(st => st.type === 'widget' || st.type === 'grid' || st.type === 'tap');
   it('every skill of the finished chapters has a lesson card in four languages (and a goal with its manipulation)', () => {
@@ -348,5 +348,29 @@ describe('Manipulations de 1ère', () => {
     open('exp-derivative');
     press('Avancer x', 8);
     expect(found()).toMatch(/\(eˣ\)′ = eˣ/);
+  });
+});
+
+describe('Manipulations du lycée : dérivation et probabilités', () => {
+  const engine = () => localEngine({ secret: 'test', hash: 'a'.repeat(64) });
+  const open = (id: string) => render(<SkillActivity lang="fr" skill={getSkill(id)!} engine={engine()} attempts={[]} onBack={vi.fn()} />);
+  const press = (name: string | RegExp, times = 1) => { for (let i = 0; i < times; i++) fireEvent.click(screen.getByRole('button', { name })); };
+  const found = () => screen.getByRole('status').textContent!;
+  it('the secant slope tends to the derivative', () => {
+    open('deriv-slope');
+    press('Rapprocher M de A', 4);
+    expect(found()).toMatch(/tend vers 1 : c’est le nombre dérivé f′\(3\)/);
+  });
+  it('the tree: four paths, total probability P(B) = 0,29', () => {
+    open('proba-tree');
+    for (const path of ['A → B', 'A → B̄', 'Ā → B', 'Ā → B̄']) press(path);
+    expect(found()).toMatch(/P\(B\) = 0,15 \+ 0,14 = 0,29/);
+  });
+  it('the Galton board approaches B(4 ; 0,5) and its mean approaches 2', () => {
+    open('proba-binomial');
+    press('+100 billes', 3);
+    expect(found()).toMatch(/B\(4 ; 0,5\)/);
+    const mean = Number(screen.getByText(/300 billes · moyenne/).textContent!.match(/moyenne ([\d,]+)/)![1]!.replace(',', '.'));
+    expect(Math.abs(mean - 2)).toBeLessThan(0.25);
   });
 });

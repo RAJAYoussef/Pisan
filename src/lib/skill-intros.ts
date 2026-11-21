@@ -110,9 +110,15 @@ export type Manip =
   /** Monter ou descendre la parabole y = x² + bx + c (on règle c) : Δ et le nombre de points sur l'axe. */
   | { kind: 'parabola'; b: number; c: number }
   /** Faire tourner v autour de u : le produit scalaire ‖u‖ ‖v‖ cos θ, positif, nul puis négatif. */
-  | { kind: 'dot-rotate'; u: number; v: number };
+  | { kind: 'dot-rotate'; u: number; v: number }
+  /** Rapprocher M de A sur la courbe de 0,5x² − 2x : la pente de la sécante tend vers f′(a). */
+  | { kind: 'secant'; a: number }
+  /** Arbre pondéré à deux niveaux : toucher chaque feuille pour multiplier le long du chemin. */
+  | { kind: 'tree'; pa: number; pba: number; pbna: number }
+  /** Planche de Galton : chaque bille fait n rebonds (à droite avec la probabilité p) ; l'histogramme approche B(n ; p). */
+  | { kind: 'galton'; n: number; p: number };
 
-export type RefFn = 'square' | 'inverse' | 'sqrt' | 'cube' | 'parabola' | 'exp';
+export type RefFn = 'square' | 'inverse' | 'sqrt' | 'cube' | 'parabola' | 'exp' | 'cubic';
 
 export type Lesson = { points: L[]; example: { title: L; lines: L[] } };
 /** Une compétence a toujours sa carte de cours ; la manipulation est facultative (sinon on commence par le cours). */
@@ -300,6 +306,7 @@ export function refValue(fn: RefFn, x: number): number | null {
   if (fn === 'inverse') return x === 0 ? null : 1 / x;
   if (fn === 'sqrt') return x < 0 ? null : Math.sqrt(x);
   if (fn === 'exp') return Math.exp(x);
+  if (fn === 'cubic') return (x * x * x) / 3 - x;
   return (x - 1) ** 2 - 2;
 }
 /** Nombre de racines réelles de x² + bx + c (selon le signe de Δ). */
@@ -319,3 +326,11 @@ export function fiveNumbers(values: number[]): { min: number; q1: number; me: nu
 }
 /** Les couples (dé 1 ; dé 2) dont la somme vaut s. */
 export const diceWays = (s: number) => Array.from({ length: 36 }, (_, i) => [Math.floor(i / 6) + 1, (i % 6) + 1] as [number, number]).filter(([a, b]) => a + b === s);
+/** Pente de la courbe en x pour les fonctions dont on montre la tangente (sinon null). */
+export const refSlope = (fn: RefFn, x: number): number | null => (fn === 'exp' ? Math.exp(x) : fn === 'cubic' ? x * x - 1 : null);
+/** f(x) = 0,5x² − 2x et la pente de la sécante entre a et a + h. */
+export const secantFn = (x: number) => 0.5 * x * x - 2 * x;
+export const secantSlope = (a: number, h: number) => (secantFn(a + h) - secantFn(a)) / h;
+/** Coefficient binomial et loi B(n ; p). */
+export const choose = (n: number, k: number): number => (k < 0 || k > n ? 0 : k === 0 || k === n ? 1 : choose(n - 1, k - 1) + choose(n - 1, k));
+export const binomialP = (n: number, p: number, k: number) => choose(n, k) * p ** k * (1 - p) ** (n - k);

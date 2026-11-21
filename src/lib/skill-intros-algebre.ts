@@ -341,6 +341,8 @@ export const ALGEBRE_INTROS: Record<string, Intro> = {
   },
   // ───────────── Dérivation (Terminale) ─────────────
   'deriv-slope': {
+    goal: t('Rapproche le point M du point A : que devient la pente de la droite (AM) ?', 'Move M closer to A: what happens to the slope of (AM)?', 'قرّب M من A: ماذا يحدث لميل (AM)؟', 'Acerca M a A: ¿qué pasa con la pendiente de (AM)?'),
+    manip: { kind: 'secant', a: 3 },
     lesson: {
       points: [
         t('Le **nombre dérivé f′(a)** est la **pente de la tangente** à la courbe au point d’abscisse a.', 'The **derivative f′(a)** is the **slope of the tangent** at x = a.', '**العدد المشتق f′(a)** هو **ميل المماس**.', 'La **derivada f′(a)** es la **pendiente de la tangente**.'),
@@ -359,6 +361,8 @@ export const ALGEBRE_INTROS: Record<string, Intro> = {
     },
   },
   'deriv-variations': {
+    goal: t('Promène le point sur la courbe : compare le signe de la pente et le sens de la courbe.', 'Move the point along the curve: compare the sign of the slope with the direction of the curve.', 'قارن إشارة الميل واتجاه المنحنى.', 'Compara el signo de la pendiente y el sentido de la curva.'),
+    manip: { kind: 'curve-explore', fns: ['cubic'] },
     lesson: {
       points: [
         t('**f′ > 0** sur un intervalle ⇒ f **croissante** ; **f′ < 0** ⇒ f **décroissante**.', '**f′ > 0** ⇒ f **increasing**; **f′ < 0** ⇒ f **decreasing**.', '**f′ > 0** ⇒ **تزايدية**؛ **f′ < 0** ⇒ **تناقصية**.', '**f′ > 0** ⇒ **creciente**; **f′ < 0** ⇒ **decreciente**.'),
@@ -368,6 +372,8 @@ export const ALGEBRE_INTROS: Record<string, Intro> = {
     },
   },
   'deriv-tangent': {
+    goal: t('Promène le point : la tangente (en orange) suit la courbe ; où est-elle horizontale ?', 'Move the point: the tangent (orange) follows the curve; where is it horizontal?', 'أين يكون المماس أفقيًا؟', '¿Dónde es horizontal la tangente?'),
+    manip: { kind: 'curve-explore', fns: ['cubic'] },
     lesson: {
       points: [
         t('Tangente au point d’abscisse a : **y = f′(a)(x − a) + f(a)**.', 'Tangent at x = a: **y = f′(a)(x − a) + f(a)**.', 'المماس: **y = f′(a)(x − a) + f(a)**.', 'Tangente: **y = f′(a)(x − a) + f(a)**.'),

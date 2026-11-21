@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import type { Lang } from '@/lib/i18n';
 import type { L } from '@/lib/curriculum';
 import { say } from '@/lib/pisan';
-import { anglesWithCos, applyBalance, balanceOps, balanceSolved, clean, diceWays, rootCount, digitsByRank, fiveNumbers, inInterval, isPrime, PLACE_RANKS, rectanglePairs, refValue, angleKind, closes, median, runMachine, signRegions, simulate, tileAreas, type BalanceOp, type Manip, type RefFn, type Side } from '@/lib/skill-intros';
+import { binomialP, refSlope, secantFn, secantSlope, anglesWithCos, applyBalance, balanceOps, balanceSolved, clean, diceWays, rootCount, digitsByRank, fiveNumbers, inInterval, isPrime, PLACE_RANKS, rectanglePairs, refValue, angleKind, closes, median, runMachine, signRegions, simulate, tileAreas, type BalanceOp, type Manip, type RefFn, type Side } from '@/lib/skill-intros';
 
 type Done = (found: string) => void;
 
@@ -57,6 +57,9 @@ export function Manipulation({ manip, lang, onDone }: { manip: Manip; lang: Lang
   if (manip.kind === 'venn') return <Venn {...manip} lang={lang} onDone={onDone} />;
   if (manip.kind === 'unit-circle') return <UnitCircle target={manip.target} step={manip.step} quadrants={manip.quadrants ?? false} cosLevel={manip.cosLevel} lang={lang} onDone={onDone} />;
   if (manip.kind === 'parabola') return <Parabola b={manip.b} c={manip.c} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'secant') return <Secant a={manip.a} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'tree') return <Tree pa={manip.pa} pba={manip.pba} pbna={manip.pbna} lang={lang} onDone={onDone} />;
+  if (manip.kind === 'galton') return <Galton n={manip.n} p={manip.p} lang={lang} onDone={onDone} />;
   if (manip.kind === 'dot-rotate') return <DotRotate u={manip.u} v={manip.v} lang={lang} onDone={onDone} />;
   return <Bars parts={manip.parts} extra={manip.extra} total={manip.total} unit={manip.unit} rectangle={manip.rectangle ?? false} lang={lang} onDone={onDone} />;
 }
@@ -1013,7 +1016,7 @@ function IntervalWalk({ a, b, closedA, closedB, other, center, lang, onDone }: {
   </div>;
 }
 
-const FN_NAMES: Record<RefFn, string> = { square: 'x²', inverse: '1/x', sqrt: '√x', cube: 'x³', parabola: '(x − 1)² − 2', exp: 'eˣ' };
+const FN_NAMES: Record<RefFn, string> = { square: 'x²', inverse: '1/x', sqrt: '√x', cube: 'x³', parabola: '(x − 1)² − 2', exp: 'eˣ', cubic: 'x³/3 − x' };
 /** Repère carré de −4 à 4 (et −4 à 6 en ordonnée) : coordonnées → pixels. */
 const plotX = (v: number) => 100 + v * 20, plotY = (v: number) => 130 - v * 20;
 function PlotFrame({ children }: { children: ReactNode }) {
@@ -1057,14 +1060,15 @@ function CurveExplore({ fns, target, lang, onDone }: { fns: RefFn[]; target?: nu
       {target !== undefined && <line x1={20} x2={180} y1={plotY(target)} y2={plotY(target)} className="svg-height" />}
       <path d={curvePath(fn)} className="svg-curve" />
       {found.map(v => <circle key={v} cx={plotX(v)} cy={plotY(target!)} r={5} className="interval-in" />)}
-      {y !== null && fn === 'exp' && y < 6 && <line x1={plotX(x - 1)} x2={plotX(x + 1)} y1={plotY(y - y)} y2={plotY(y + y)} className="svg-height" />}
+      {y !== null && refSlope(fn, x) !== null && y < 6 && <line x1={plotX(x - 1)} x2={plotX(x + 1)} y1={plotY(y - refSlope(fn, x)!)} y2={plotY(y + refSlope(fn, x)!)} className="svg-height" />}
       {y !== null && <><line x1={plotX(x)} x2={plotX(x)} y1={plotY(0)} y2={plotY(y)} className="svg-ghost" /><circle cx={plotX(x)} cy={plotY(y)} r={5} className="svg-dot-move" /></>}
     </PlotFrame>
-    <Stepper lang={lang} label={y === null ? `x = ${num(x)} : ${say(lang, 'pas d’image', 'no image', 'لا صورة', 'sin imagen')}` : `f(${num(x)}) = ${num(Math.round(y * 100) / 100)}${fn === 'exp' ? ` · ${say(lang, 'pente', 'slope', 'الميل', 'pendiente')} ${num(Math.round(y * 100) / 100)}` : ''}`} onMinus={() => move(x - 0.5)} onPlus={() => move(x + 0.5)} minus={say(lang, 'Reculer x', 'Move x left', 'حرّك x يسارًا', 'Mover x a la izquierda')} plus={say(lang, 'Avancer x', 'Move x right', 'حرّك x يمينًا', 'Mover x a la derecha')} />
+    <Stepper lang={lang} label={y === null ? `x = ${num(x)} : ${say(lang, 'pas d’image', 'no image', 'لا صورة', 'sin imagen')}` : `f(${num(x)}) = ${num(Math.round(y * 100) / 100)}${refSlope(fn, x) !== null ? ` · ${say(lang, 'pente', 'slope', 'الميل', 'pendiente')} ${num(Math.round(refSlope(fn, x)! * 100) / 100)}` : ''}`} onMinus={() => move(x - 0.5)} onPlus={() => move(x + 0.5)} minus={say(lang, 'Reculer x', 'Move x left', 'حرّك x يسارًا', 'Mover x a la izquierda')} plus={say(lang, 'Avancer x', 'Move x right', 'حرّك x يمينًا', 'Mover x a la derecha')} />
     {target !== undefined && !finished && <p className="manip-feedback">{say(lang, `Trouve tous les x tels que f(x) = ${num(target)} (${found.length}/${goal.length}).`, `Find every x with f(x) = ${num(target)} (${found.length}/${goal.length}).`, `جد كل x بحيث f(x) = ${num(target)}.`, `Halla todos los x con f(x) = ${num(target)}.`)}</p>}
     {finished && <p className="manip-discovery" role="status">{target !== undefined
       ? say(lang, `${num(target)} a ${goal.length} antécédents : ${goal.map(num).join(' et ')}. Chaque x a une seule image, mais un nombre peut avoir plusieurs antécédents.`, `${num(target)} has ${goal.length} pre-images: ${goal.map(num).join(' and ')}. Each x has one image, but a number can have several pre-images.`, `لـ ${num(target)} سابقتان.`, `${num(target)} tiene ${goal.length} antecedentes.`)
       : fns.length > 1 ? say(lang, 'Carré : une parabole, décroissante puis croissante. Inverse : une hyperbole, décroissante sur chaque morceau. Racine : croissante, à partir de 0. Cube : toujours croissante.', 'Square: a parabola, down then up. Reciprocal: a hyperbola, decreasing on each branch. Root: increasing, from 0. Cube: always increasing.', 'المربع: شلجم. المقلوب: هذلول. الجذر والمكعب: تزايديتان.', 'Cuadrado: parábola. Inversa: hipérbola. Raíz y cubo: crecientes.')
+      : fn === 'cubic' ? say(lang, 'Quand la pente (f′) est positive, la courbe monte ; négative, elle descend. En x = −1 et x = 1, la tangente est horizontale (f′ = 0) : un maximum local puis un minimum local.', 'When the slope (f′) is positive the curve rises; negative, it falls. At x = −1 and x = 1 the tangent is horizontal (f′ = 0): a local max then a local min.', 'f′ > 0: تصعد؛ f′ < 0: تنزل؛ f′ = 0 عند −1 و 1.', 'f′ > 0: sube; f′ < 0: baja; f′ = 0 en −1 y 1.')
       : fn === 'exp' ? say(lang, 'eˣ est toujours positive et croissante, e⁰ = 1, et en chaque point la pente de la tangente vaut f(x) : (eˣ)′ = eˣ.', 'eˣ is always positive and increasing, e⁰ = 1, and at every point the slope of the tangent equals f(x): (eˣ)′ = eˣ.', 'eˣ موجبة وتزايدية و(eˣ)′ = eˣ.', 'eˣ es positiva y creciente, y (eˣ)′ = eˣ.')
       : say(lang, 'En avançant, la courbe descend puis remonte : f décroît jusqu’au point le plus bas (le minimum), puis croît. Le tableau de variations résume ce chemin.', 'Moving right, the curve goes down then up: f decreases to its lowest point (the minimum), then increases.', 'المنحنى ينزل ثم يصعد: القيمة الدنيا.', 'La curva baja y luego sube: el mínimo.')}</p>}
   </div>;
@@ -1292,5 +1296,78 @@ function DotRotate({ u, v, lang, onDone }: { u: number; v: number; lang: Lang; o
     <Stepper lang={lang} label={`θ = ${deg}°`} onMinus={() => go(deg - 15)} onPlus={() => go(deg + 15)} minus={say(lang, 'Fermer l’angle', 'Close the angle', 'أغلق الزاوية', 'Cerrar el ángulo')} plus={say(lang, 'Ouvrir l’angle', 'Open the angle', 'افتح الزاوية', 'Abrir el ángulo')} />
     <p className="manip-equation">u · v = {u} × {v} × cos {deg}° = {num(dot)}</p>
     {finished && <p className="manip-discovery" role="status">{say(lang, 'Angle aigu : u · v > 0. Angle droit : u · v = 0 (orthogonaux). Angle obtus : u · v < 0. Le trait bleu est la projection de v sur u : u · v = ‖u‖ × (projection signée).', 'Acute: u · v > 0. Right angle: u · v = 0 (orthogonal). Obtuse: u · v < 0. The blue segment is v projected onto u.', 'حادة: موجب. قائمة: منعدم. منفرجة: سالب.', 'Agudo: positivo. Recto: nulo. Obtuso: negativo.')}</p>}
+  </div>;
+}
+
+// ───────────── Lycée : sécante, arbre pondéré, planche de Galton ─────────────
+
+const SECANT_H = [2, 1, 0.5, 0.1, 0.01];
+function Secant({ a, lang, onDone }: { a: number; lang: Lang; onDone: Done }) {
+  const [i, setI] = useState(0);
+  const h = SECANT_H[i]!, m = secantSlope(a, h), fa = secantFn(a);
+  const path = Array.from({ length: 81 }, (_, k) => { const x = -4 + k * 0.1, y = secantFn(x); return y > 6.5 ? null : `${plotX(x).toFixed(1)} ${plotY(y).toFixed(1)}`; })
+    .reduce<string>((acc, p, k, arr) => (p === null ? acc : `${acc} ${k === 0 || arr[k - 1] === null ? 'M' : 'L'} ${p}`), '');
+  const done = i === SECANT_H.length - 1;
+  function closer() { if (done) return; const n = i + 1; setI(n); if (n === SECANT_H.length - 1) onDone(String(a - 2)); }
+  return <div className="manip">
+    <PlotFrame>
+      <path d={path} className="svg-curve" />
+      <clipPath id="sec-clip"><rect x={20} y={10} width={160} height={200} /></clipPath>
+      <line clipPath="url(#sec-clip)" x1={plotX(a - 4)} x2={plotX(a + 4)} y1={plotY(fa - 4 * m)} y2={plotY(fa + 4 * m)} className="svg-ray svg-ray-move" />
+      <circle cx={plotX(a)} cy={plotY(fa)} r={5} className="svg-dot" /><text x={plotX(a) - 14} y={plotY(fa) + 4} className="svg-label">A</text>
+      <circle cx={plotX(a + h)} cy={plotY(secantFn(a + h))} r={5} className="svg-dot-move" /><text x={plotX(a + h) + 6} y={plotY(secantFn(a + h)) - 4} className="svg-label">M</text>
+    </PlotFrame>
+    <p className="manip-equation">h = {num(h)} · {say(lang, 'pente', 'slope', 'الميل', 'pendiente')} = {num(Math.round(m * 1000) / 1000)}</p>
+    {!done && <Button variant="soft" onClick={closer}>{say(lang, 'Rapprocher M de A', 'Move M closer to A', 'قرّب M من A', 'Acercar M a A')}</Button>}
+    {done && <p className="manip-discovery" role="status">{say(lang, `Quand M se rapproche de A, la sécante devient la tangente et sa pente tend vers ${num(a - 2)} : c’est le nombre dérivé f′(${num(a)}). Ici f′(x) = x − 2.`, `As M gets closer to A, the secant becomes the tangent and its slope tends to ${num(a - 2)}: the derivative f′(${num(a)}). Here f′(x) = x − 2.`, `الميل يقترب من ${num(a - 2)} = f′(${num(a)}).`, `La pendiente tiende a ${num(a - 2)} = f′(${num(a)}).`)}</p>}
+  </div>;
+}
+
+function Tree({ pa, pba, pbna, lang, onDone }: { pa: number; pba: number; pbna: number; lang: Lang; onDone: Done }) {
+  const r = (v: number) => Math.round(v * 10000) / 10000;
+  const leaves = [
+    { path: 'A → B', p: r(pa * pba), parts: [pa, pba] }, { path: 'A → B̄', p: r(pa * (1 - pba)), parts: [pa, r(1 - pba)] },
+    { path: 'Ā → B', p: r((1 - pa) * pbna), parts: [r(1 - pa), pbna] }, { path: 'Ā → B̄', p: r((1 - pa) * (1 - pbna)), parts: [r(1 - pa), r(1 - pbna)] },
+  ];
+  const [on, setOn] = useState<number[]>([]);
+  function tap(k: number) { if (on.includes(k)) return; const next = [...on, k]; setOn(next); if (next.length === 4) onDone(String(leaves[0]!.p + leaves[2]!.p)); }
+  const pb = r(leaves[0]!.p + leaves[2]!.p);
+  const Y = [20, 55, 95, 130];
+  return <div className="manip">
+    <svg viewBox="0 0 220 150" className="manip-svg" aria-hidden>
+      <line x1={10} y1={75} x2={80} y2={37} className="svg-tick" /><line x1={10} y1={75} x2={80} y2={113} className="svg-tick" />
+      <text x={30} y={46} className="svg-small">{num(pa)}</text><text x={30} y={112} className="svg-small">{num(r(1 - pa))}</text>
+      <text x={84} y={41} className="svg-label">A</text><text x={84} y={117} className="svg-label">Ā</text>
+      {Y.map((y, k) => <g key={k}><line x1={98} y1={k < 2 ? 37 : 113} x2={160} y2={y} className={on.includes(k) ? 'svg-ray svg-ray-move' : 'svg-tick'} />
+        <text x={120} y={(y + (k < 2 ? 37 : 113)) / 2 - 2} className="svg-small">{num(leaves[k]!.parts[1]!)}</text>
+        <text x={164} y={y + 4} className="svg-label">{k % 2 ? 'B̄' : 'B'}</text></g>)}
+    </svg>
+    <div className="manip-controls">{leaves.map((l, k) => <Button key={k} variant={on.includes(k) ? 'default' : 'soft'} size="sm" onClick={() => tap(k)}>{l.path}</Button>)}</div>
+    <p className="manip-equation">{on.length ? on.map(k => `${num(leaves[k]!.parts[0]!)} × ${num(leaves[k]!.parts[1]!)} = ${num(leaves[k]!.p)}`).join(' · ') : say(lang, 'Touche un chemin', 'Tap a path', 'المس مسارًا', 'Toca un camino')}</p>
+    {on.length === 4 && <p className="manip-discovery" role="status">{say(lang, `Les quatre chemins font 1 en tout. P(B) = ${num(leaves[0]!.p)} + ${num(leaves[2]!.p)} = ${num(pb)} (probabilités totales) : on additionne les chemins qui mènent à B.`, `The four paths add up to 1. P(B) = ${num(leaves[0]!.p)} + ${num(leaves[2]!.p)} = ${num(pb)} (total probability): add the paths that lead to B.`, `P(B) = ${num(pb)}.`, `P(B) = ${num(pb)}.`)}</p>}
+  </div>;
+}
+
+function Galton({ n, p, lang, onDone }: { n: number; p: number; lang: Lang; onDone: Done }) {
+  const [counts, setCounts] = useState<number[]>(Array.from({ length: n + 1 }, () => 0));
+  const total = counts.reduce((a, b) => a + b, 0);
+  const [finished, setFinished] = useState(false);
+  function drop(k: number) {
+    const rights = simulate([1 - p, p], k * n, total * n + 7);
+    const next = [...counts];
+    for (let b = 0; b < k; b++) next[rights.slice(b * n, b * n + n).filter(r => r === 1).length]! += 1;
+    setCounts(next);
+    if (!finished && total + k >= 200) { setFinished(true); onDone('galton'); }
+  }
+  const top = Math.max(1, ...counts.map(c => c / Math.max(1, total)), ...counts.map((_, k) => binomialP(n, p, k)));
+  const mean = total ? counts.reduce((a, c, k) => a + c * k, 0) / total : 0;
+  return <div className="manip">
+    <div className="tally-bars">{counts.map((c, k) => <div key={k} className="tally-col"><span className="tally-count">{c}</span>
+      <span className="tally-bar" style={{ height: `${((total ? c / total : 0) / top) * 100}%` }} />
+      <span className="galton-theory" style={{ bottom: `calc(${(binomialP(n, p, k) / top) * 100}% * .8 + 1.6rem)` }} />
+      <span className="tally-label">X = {k}</span></div>)}</div>
+    <div className="manip-controls">{[1, 10, 100].map(k => <Button key={k} variant="soft" size="sm" onClick={() => drop(k)}>{say(lang, `+${k} bille${k > 1 ? 's' : ''}`, `+${k} ball${k > 1 ? 's' : ''}`, `+${k}`, `+${k}`)}</Button>)}</div>
+    <p className="manip-equation">{say(lang, `${total} billes · moyenne ${num(Math.round(mean * 100) / 100)}`, `${total} balls · mean ${Math.round(mean * 100) / 100}`, `${total} كرة · المتوسط ${num(Math.round(mean * 100) / 100)}`, `${total} bolas · media ${num(Math.round(mean * 100) / 100)}`)}</p>
+    {finished && <p className="manip-discovery" role="status">{say(lang, `Chaque bille fait ${n} rebonds indépendants, à droite avec la probabilité ${num(p)} : X (le nombre de rebonds à droite) suit la loi B(${n} ; ${num(p)}). L’histogramme épouse les traits (les probabilités théoriques) et la moyenne se rapproche de E(X) = n × p = ${num(n * p)}.`, `Each ball makes ${n} independent bounces, right with probability ${p}: X follows B(${n}, ${p}). The histogram matches the marks (theoretical probabilities) and the mean approaches E(X) = np = ${n * p}.`, `X ~ B(${n} ; ${num(p)}) و E(X) = ${num(n * p)}.`, `X ~ B(${n} ; ${num(p)}), E(X) = ${num(n * p)}.`)}</p>}
   </div>;
 }

@@ -1064,3 +1064,5 @@ button.ws-score .points-badge { padding: 4px 8px; font-size: .8rem; white-space:
 .venn-twice { fill: var(--destructive); }
 .uc-cos { stroke: var(--sky); stroke-width: 4; } .uc-sin { stroke: var(--accent); stroke-width: 4; }
 .uc-cos-text { color: var(--sky); } .uc-sin-text { color: var(--accent); }
+.galton-theory { position: absolute; left: 10%; right: 10%; height: 3px; border-radius: 2px; background: var(--accent); }
+.tally-col { position: relative; }
