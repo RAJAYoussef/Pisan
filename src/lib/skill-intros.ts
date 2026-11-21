@@ -11,6 +11,7 @@ import { SECONDE_INTROS } from './skill-intros-seconde';
 import { PREMIERE_INTROS } from './skill-intros-premiere';
 import { LIMIT_INTROS } from './skill-intros-limites';
 import { TERMINALE_INTROS } from './skill-intros-terminale';
+import { TERMINALE_END_INTROS } from './skill-intros-terminale-fin';
 
 const t = (fr: string, en: string, ar: string, es: string): L => ({ fr, en, ar, es });
 
@@ -136,7 +137,15 @@ export type Manip =
   /** Plan complexe : multiplier par i (quart de tour) ou placer a + ib et lire son module. */
   | { kind: 'complex-plane'; mode: 'rotate' | 'place'; a: number; b: number }
   /** Méthode d'Euler pour y′ = ay : avancer de h en suivant la tangente, comparer à la vraie courbe. */
-  | { kind: 'euler'; a: number; y0: number; h: number; steps: number };
+  | { kind: 'euler'; a: number; y0: number; h: number; steps: number }
+  /** Régler m et p pour que la droite y = mx + p passe au plus près des points (somme des carrés des écarts). */
+  | { kind: 'scatter'; xs: number[]; ys: number[]; m: number; p: number }
+  /** Horloge à n cases : avancer de `step` (ou multiplier par `step`) et voir les restes revenir. */
+  | { kind: 'clock'; n: number; start: number; step: number; op: 'add' | 'mul'; turns: number }
+  /** Algorithme d'Euclide : remplacer (a ; b) par (b ; reste) jusqu'au reste nul. */
+  | { kind: 'euclid'; a: number; b: number }
+  /** Table de ℤ/nℤ pour × : toucher les cases cherchées (inverses, ou produits nuls de facteurs non nuls). */
+  | { kind: 'cayley'; n: number; goal: 'inverses' | 'zero-divisors' };
 
 export type RefFn = 'square' | 'inverse' | 'sqrt' | 'cube' | 'parabola' | 'exp' | 'cubic' | 'ln';
 
@@ -241,7 +250,7 @@ const PROTOTYPE: Record<string, Intro> = {
   },
 };
 
-export const INTROS: Record<string, Intro> = { ...PROTOTYPE, ...NOMBRES_INTROS, ...ALGEBRE_INTROS, ...GEOMETRIE_INTROS, ...DONNEES_INTROS, ...SECONDE_INTROS, ...PREMIERE_INTROS, ...LIMIT_INTROS, ...TERMINALE_INTROS };
+export const INTROS: Record<string, Intro> = { ...PROTOTYPE, ...NOMBRES_INTROS, ...ALGEBRE_INTROS, ...GEOMETRIE_INTROS, ...DONNEES_INTROS, ...SECONDE_INTROS, ...PREMIERE_INTROS, ...LIMIT_INTROS, ...TERMINALE_INTROS, ...TERMINALE_END_INTROS };
 export const introFor = (skillId: string): Intro | null => INTROS[skillId] ?? null;
 
 /** Valeur arrondie au milliardième (les × 10 et ÷ 10 successifs ne doivent pas laisser 0,30000000000000004). */
@@ -371,3 +380,11 @@ export const CUBE: Record<string, [number, number, number]> = { A: [0, 0, 0], B:
 export const arrangements = (n: number, k: number) => Array.from({ length: k }, (_, i) => n - i).reduce((a, b) => a * b, 1);
 /** Un pas de la méthode d'Euler pour y′ = ay. */
 export const eulerStep = (a: number, y: number, h: number) => y + h * a * y;
+/** Somme des carrés des écarts verticaux entre les points et la droite y = mx + p. */
+export const squaredResiduals = (xs: number[], ys: number[], m: number, p: number) => xs.reduce((a, x, i) => a + (ys[i]! - (m * x + p)) ** 2, 0);
+/** Les cases (a ; b), a et b non nuls, cherchées dans la table de multiplication de ℤ/nℤ. */
+export function cayleyTargets(n: number, goal: 'inverses' | 'zero-divisors'): string[] {
+  const out: string[] = [];
+  for (let a = 1; a < n; a++) for (let b = 1; b < n; b++) if ((a * b) % n === (goal === 'inverses' ? 1 : 0)) out.push(`${a}-${b}`);
+  return out;
+}

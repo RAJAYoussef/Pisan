@@ -701,6 +701,9 @@ export const CHAPTER_NAMES: Record<FigureKind, L> = {
   counting: { fr: 'Dénombrement', en: 'Counting', ar: 'التعداد', es: 'Combinatoria' },
   complex: { fr: 'Nombres complexes', en: 'Complex numbers', ar: 'الأعداد العقدية', es: 'Números complejos' },
   diffeq: { fr: 'Équations différentielles', en: 'Differential equations', ar: 'المعادلات التفاضلية', es: 'Ecuaciones diferenciales' },
+  twovar: { fr: 'Statistique à deux variables', en: 'Two-variable statistics', ar: 'الإحصاء بمتغيرين', es: 'Estadística bidimensional' },
+  congru: { fr: 'Arithmétique dans ℤ', en: 'Number theory in ℤ', ar: 'الحسابيات في ℤ', es: 'Aritmética en ℤ' },
+  structures: { fr: 'Structures algébriques', en: 'Algebraic structures', ar: 'البنيات الجبرية', es: 'Estructuras algebraicas' },
 };
 const STATUS: Record<SkillStatus, (lang: Lang) => string> = {
   mastered: lang => say(lang, 'Acquis', 'Mastered', 'مكتسبة', 'Adquirida'),

@@ -26,8 +26,8 @@ const typed = (step: Extract<Step, { type: 'number' }>) => {
 const chipsSolution = (step: Extract<Step, { type: 'chips' }>) => step.ordered ? step.groups[0]! : step.groups.flatMap((g, i) => [...(i ? ['='] : []), ...g.flatMap((tok, j) => j ? ['+', tok] : [tok])]);
 
 describe('Parcours de compétences : contenu', () => {
-  it('covers the fifty-four chapters with the agreed skills', () => {
-    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 11, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]);
+  it('covers the fifty-seven chapters with the agreed skills', () => {
+    expect(FIGURE_KINDS.map(k => skillsFor(k).length)).toEqual([5, 5, 4, 3, 5, 4, 4, 4, 4, 4, 11, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]);
     expect(new Set(SKILLS.map(s => s.id)).size).toBe(SKILLS.length);
     for (const s of SKILLS) { expect(s.id).toMatch(/^[a-z]+(-[a-z]+){1,2}$/); expect(filled(s.title) && filled(s.desc)).toBe(true); }
   });
@@ -664,17 +664,15 @@ describe('6e', () => {
       expect(value(l!, eq.answer)).toBe(value(r!, eq.answer));
     }
   });
-  it('Terminale: every chapter has a pathway (but regression and number theory), the new chapters stay in Terminale, and the answers check out', async () => {
+  it('Terminale: every chapter of the five countries has a pathway, the new chapters stay in Terminale, and the answers check out', async () => {
     const { chapterSkillKinds, figuresFor } = await import('@/lib/figures');
     const { programmesFor, programmeNotions } = await import('@/lib/programmes');
     const { getLevel } = await import('@/lib/curriculum');
     const { linear } = await import('@/lib/skills-terminale');
-    const LATER = ['regression', 'congruences', 'algebraic-structures'];
     for (const [country, grade] of [['fr', 6], ['ma', 5], ['ci', 6], ['sn', 6], ['us', 6]] as const) for (const p of programmesFor(country, grade)) for (const ch of p.chapters) {
-      if (ch.notions.every(n => LATER.includes(n))) continue;
       expect(chapterSkillKinds(ch), `${country} ${p.track?.id} ${ch.title.fr}`).not.toEqual([]);
     }
-    const NEW = ['ln', 'integral', 'space', 'counting', 'complex', 'diffeq'];
+    const NEW = ['ln', 'integral', 'space', 'counting', 'complex', 'diffeq', 'twovar', 'congru', 'structures'];
     for (const country of ['fr', 'ma', 'ci', 'sn', 'us']) for (const grade of [0, 1, 2, 3, 4, 5, 6]) for (const p of programmesFor(country, grade)) {
       if (getLevel(country, grade) === 6) continue;
       // le dénombrement commence dès la 1ère en Côte d'Ivoire et au Sénégal
@@ -702,6 +700,18 @@ describe('6e', () => {
       const onPlane = n.reduce((acc, v, i) => acc + v * B[i]!, 0) + d === 0;
       if (plane[1]!.type !== 'choice') throw new Error();
       expect(plane[1]!.answer === 0).toBe(onPlane);
+    }
+  });
+  it('number theory: remainders, powers and gcd are right', async () => {
+    const { mod, powMod, gcd } = await import('@/lib/skills-terminale-fin');
+    expect([mod(-17, 5), powMod(3, 2026, 5), gcd(252, 198)]).toEqual([3, 4, 18]);
+    for (let seed = 0; seed < 60; seed++) {
+      const div = getSkill('cg-division')!.build(seed).steps;
+      const [r, q] = div.map(st => (st.type === 'number' ? st.answer : NaN));
+      const [a, n] = div[0]!.prompt.fr.match(/de (−?\d+) par (\d+)/)!.slice(1).map(v => Number(v.replace('−', '-')));
+      expect(n! * q! + r!).toBe(a);
+      expect(r).toBeGreaterThanOrEqual(0);
+      expect(r).toBeLessThan(n!);
     }
   });
   it('decimal traps are really traps: 2,5 > 2,45 and 2,5 = 2,50', () => {

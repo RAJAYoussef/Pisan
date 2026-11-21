@@ -23,7 +23,7 @@ function solve(left: Side, right: Side): number | null {
 }
 
 describe('Introductions (modèle de Singapour)', () => {
-  const DONE: FigureKind[] = ['primes', 'linear', 'relatives', 'signs', 'decimals', 'arith', 'powers', 'sci', 'roots', 'expressions', 'literal', 'identities', 'equations', 'inequalities', 'systems', 'affine', 'seq', 'deriv', 'lines', 'polygons', 'angles', 'symmetry', 'measures', 'surfaces', 'solids', 'pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'fractions', 'proportion', 'stats', 'data', 'chance', 'proba', 'intervals', 'reference', 'signtable', 'lineeq', 'quartiles', 'events', 'unitcircle', 'quadratic', 'expo', 'scalar', 'trigfn', 'limits', 'ln', 'integral', 'space', 'counting', 'complex', 'diffeq'];
+  const DONE: FigureKind[] = ['primes', 'linear', 'relatives', 'signs', 'decimals', 'arith', 'powers', 'sci', 'roots', 'expressions', 'literal', 'identities', 'equations', 'inequalities', 'systems', 'affine', 'seq', 'deriv', 'lines', 'polygons', 'angles', 'symmetry', 'measures', 'surfaces', 'solids', 'pythagoras', 'thales', 'trigo', 'inscribed', 'vectors', 'fractions', 'proportion', 'stats', 'data', 'chance', 'proba', 'intervals', 'reference', 'signtable', 'lineeq', 'quartiles', 'events', 'unitcircle', 'quadratic', 'expo', 'scalar', 'trigfn', 'limits', 'ln', 'integral', 'space', 'counting', 'complex', 'diffeq', 'twovar', 'congru', 'structures'];
   const LYCEE: FigureKind[] = [];
   /** Une compétence « manipule » si son introduction a une manipulation ou si l'entraînement en contient une (widget, quadrillage). */
   const manipulates = (id: string) => Boolean(INTROS[id]?.manip) || getSkill(id)!.build(1).steps.some(st => st.type === 'widget' || st.type === 'grid' || st.type === 'tap');
@@ -415,4 +415,19 @@ describe('Manipulations de Terminale', () => {
   });
   it('× i four times is a full turn', () => { open('cx-powers'); press('Multiplier par i', 4); expect(found()).toMatch(/i⁴ = 1/); });
   it('Euler follows y = eˣ', () => { open('de-exp'); press('Avancer de 0,25 sur la tangente', 4); expect(found()).toMatch(/vaut 2,718/); });
+});
+
+describe('Manipulations : statistique à deux variables, arithmétique, structures', () => {
+  const engine = () => localEngine({ secret: 'test', hash: 'e'.repeat(64) });
+  const open = (id: string) => render(<SkillActivity lang="fr" skill={getSkill(id)!} engine={engine()} attempts={[]} onBack={vi.fn()} />);
+  const press = (name: string | RegExp, times = 1) => { for (let i = 0; i < times; i++) fireEvent.click(screen.getByRole('button', { name })); };
+  const found = () => screen.getByRole('status').textContent!;
+  it('the least-squares line y = 0,5x + 1', () => { open('tv-line'); press('Augmenter m', 2); press('Diminuer p', 4); expect(found()).toMatch(/y = 0,5x \+ 1 : c’est la droite des moindres carrés/); });
+  it('powers of 3 modulo 5 come back after 4 steps', () => { open('cg-powers'); press('Multiplier par 3', 4); expect(found()).toMatch(/3\^4 ≡ 1 \[5\]/); });
+  it('Euclid: gcd(252 ; 198) = 18', () => { open('cg-gcd'); press(/^Diviser/, 4); expect(found()).toMatch(/PGCD\(252 ; 198\) = 18/); });
+  it('ℤ/6ℤ has zero divisors', () => {
+    open('st-ring');
+    for (const c of ['2 × 3', '3 × 2', '3 × 4', '4 × 3']) press(c);
+    expect(found()).toMatch(/diviseurs de zéro/);
+  });
 });

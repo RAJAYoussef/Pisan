@@ -19,10 +19,10 @@ export type Family = 'numbers' | 'algebra' | 'geometry' | 'data';
 export const FAMILIES: Family[] = ['numbers', 'algebra', 'geometry', 'data'];
 export const FAMILY_THRESHOLD = 8;
 export const KIND_FAMILY: Record<FigureKind, Family> = {
-  decimals: 'numbers', fractions: 'numbers', relatives: 'numbers', signs: 'numbers', arith: 'numbers', primes: 'numbers', powers: 'numbers', sci: 'numbers', roots: 'numbers', intervals: 'numbers', complex: 'numbers',
+  decimals: 'numbers', fractions: 'numbers', relatives: 'numbers', signs: 'numbers', arith: 'numbers', primes: 'numbers', powers: 'numbers', sci: 'numbers', roots: 'numbers', intervals: 'numbers', complex: 'numbers', congru: 'numbers', structures: 'numbers',
   expressions: 'algebra', literal: 'algebra', identities: 'algebra', equations: 'algebra', linear: 'algebra', inequalities: 'algebra', systems: 'algebra', affine: 'algebra', seq: 'algebra', deriv: 'algebra', reference: 'algebra', signtable: 'algebra', quadratic: 'algebra', expo: 'algebra', limits: 'algebra', ln: 'algebra', integral: 'algebra', diffeq: 'algebra',
   lines: 'geometry', polygons: 'geometry', angles: 'geometry', symmetry: 'geometry', measures: 'geometry', surfaces: 'geometry', solids: 'geometry', pythagoras: 'geometry', thales: 'geometry', trigo: 'geometry', inscribed: 'geometry', vectors: 'geometry', lineeq: 'geometry', unitcircle: 'geometry', scalar: 'geometry', trigfn: 'geometry', space: 'geometry',
-  proportion: 'data', data: 'data', stats: 'data', chance: 'data', proba: 'data', quartiles: 'data', events: 'data', counting: 'data',
+  proportion: 'data', data: 'data', stats: 'data', chance: 'data', proba: 'data', quartiles: 'data', events: 'data', counting: 'data', twovar: 'data',
 };
 export const FAMILY_NAMES: Record<Family, (lang: Lang) => string> = {
   numbers: lang => say(lang, 'Nombres et calculs', 'Numbers', 'الأعداد والحساب', 'Números y cálculo'),
@@ -33,7 +33,7 @@ export const FAMILY_NAMES: Record<Family, (lang: Lang) => string> = {
 export const FAMILY_TONE: Record<Family, string> = { numbers: 'module-sun', algebra: 'module-sky', geometry: 'module-teal', data: 'module-coral' };
 
 /** Couleur de chaque chapitre (mêmes variables que les modules de l'accueil). */
-export const KIND_TONE: Record<FigureKind, string> = { pythagoras: 'module-teal', thales: 'module-coral', trigo: 'module-sky', inscribed: 'module-sun', vectors: 'module-coral', affine: 'module-teal', stats: 'module-sky', seq: 'module-sun', deriv: 'module-coral', proba: 'module-teal', fractions: 'module-sun', decimals: 'module-teal', proportion: 'module-coral', lines: 'module-sky', symmetry: 'module-sun', measures: 'module-coral', relatives: 'module-sky', data: 'module-teal', arith: 'module-coral', powers: 'module-sun', expressions: 'module-sky', equations: 'module-teal', polygons: 'module-coral', primes: 'module-sun', angles: 'module-sky', surfaces: 'module-teal', chance: 'module-coral', signs: 'module-sky', sci: 'module-sun', literal: 'module-teal', linear: 'module-coral', roots: 'module-sun', identities: 'module-sky', inequalities: 'module-coral', systems: 'module-teal', solids: 'module-sun', intervals: 'module-sky', reference: 'module-coral', signtable: 'module-sun', lineeq: 'module-teal', quartiles: 'module-coral', events: 'module-sky', unitcircle: 'module-sun', quadratic: 'module-teal', expo: 'module-coral', scalar: 'module-sky', trigfn: 'module-teal', limits: 'module-sun', ln: 'module-sky', integral: 'module-coral', space: 'module-sun', counting: 'module-teal', complex: 'module-coral', diffeq: 'module-sky' };
+export const KIND_TONE: Record<FigureKind, string> = { pythagoras: 'module-teal', thales: 'module-coral', trigo: 'module-sky', inscribed: 'module-sun', vectors: 'module-coral', affine: 'module-teal', stats: 'module-sky', seq: 'module-sun', deriv: 'module-coral', proba: 'module-teal', fractions: 'module-sun', decimals: 'module-teal', proportion: 'module-coral', lines: 'module-sky', symmetry: 'module-sun', measures: 'module-coral', relatives: 'module-sky', data: 'module-teal', arith: 'module-coral', powers: 'module-sun', expressions: 'module-sky', equations: 'module-teal', polygons: 'module-coral', primes: 'module-sun', angles: 'module-sky', surfaces: 'module-teal', chance: 'module-coral', signs: 'module-sky', sci: 'module-sun', literal: 'module-teal', linear: 'module-coral', roots: 'module-sun', identities: 'module-sky', inequalities: 'module-coral', systems: 'module-teal', solids: 'module-sun', intervals: 'module-sky', reference: 'module-coral', signtable: 'module-sun', lineeq: 'module-teal', quartiles: 'module-coral', events: 'module-sky', unitcircle: 'module-sun', quadratic: 'module-teal', expo: 'module-coral', scalar: 'module-sky', trigfn: 'module-teal', limits: 'module-sun', ln: 'module-sky', integral: 'module-coral', space: 'module-sun', counting: 'module-teal', complex: 'module-coral', diffeq: 'module-sky', twovar: 'module-teal', congru: 'module-sun', structures: 'module-sky' };
 
 /** Petit dessin propre à chaque chapitre. */
 export function ChapterGlyph({ kind }: { kind: FigureKind }) {
@@ -74,6 +74,9 @@ export function ChapterGlyph({ kind }: { kind: FigureKind }) {
     counting: <><text x="20" y="27" textAnchor="middle" className="glyph-text">n!</text></>,
     complex: <><path d="M4 20 H36 M20 4 V36" className="glyph-thin" /><path d="M20 20 L31 9" /><circle cx="31" cy="9" r="2.5" /></>,
     diffeq: <><text x="20" y="26" textAnchor="middle" className="glyph-text glyph-small">y′=ay</text></>,
+    twovar: <><path d="M4 34 L36 8" className="glyph-thin" /><circle cx="10" cy="26" r="2.5" /><circle cx="17" cy="25" r="2.5" /><circle cx="22" cy="17" r="2.5" /><circle cx="30" cy="14" r="2.5" /></>,
+    congru: <><circle cx="20" cy="20" r="14" className="glyph-thin" /><path d="M20 20 V9 M20 20 L28 24" /></>,
+    structures: <><rect x="6" y="6" width="28" height="28" rx="3" className="glyph-thin" /><path d="M6 15 H34 M15 6 V34" /></>,
     unitcircle: <><circle cx="20" cy="20" r="14" className="glyph-thin" /><path d="M20 20 L30 10" /><path d="M4 20 H36 M20 4 V36" className="glyph-thin" /></>,
     signs: <><text x="20" y="27" textAnchor="middle" className="glyph-text">−×−</text></>,
     sci: <><text x="16" y="29" textAnchor="middle" className="glyph-text">10</text><text x="31" y="16" textAnchor="middle" className="glyph-text glyph-small">−3</text></>,
