@@ -284,7 +284,7 @@ function Loading({ lang, failed, onBack, onRetry }: { lang: Lang; failed: boolea
 const checkLabel = (lang: Lang) => say(lang, 'Vérifier', 'Check', 'تحقق', 'Comprobar');
 const Solved = ({ lang }: { lang: Lang }) => <p role="status" className="mt-4 flex items-center justify-center gap-2 font-bold text-primary-deep"><Check className="h-5 w-5" />{say(lang, 'C’est juste !', 'That’s right!', 'صحيح!', '¡Correcto!')}</p>;
 
-function StepView({ lang, step, solved, onAnswer, onFractionInteraction }: { lang: Lang; step: Step; solved: boolean; onAnswer: (reply: StepAnswer) => void; onFractionInteraction?: (event: FractionInteractionEvent, widget: FractionWidgetSpec) => void }) {
+export function StepView({ lang, step, solved, onAnswer, onFractionInteraction }: { lang: Lang; step: Step; solved: boolean; onAnswer: (reply: StepAnswer) => void; onFractionInteraction?: (event: FractionInteractionEvent, widget: FractionWidgetSpec) => void }) {
   const show = (l: L) => localizeMath(l[lang], lang);
   const [picked, setPicked] = useState<number | null>(null);
   const [tapped, setTapped] = useState<string | null>(null);

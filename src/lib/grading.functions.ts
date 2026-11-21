@@ -70,7 +70,7 @@ export const startSkillSession = createServerFn({ method: 'POST' })
     return { seeds: ticket.seeds, ticket: await signTicket(ticket, secret()) };
   });
 
-const answer: z.ZodType<StepAnswer> = z.discriminatedUnion('type', [
+export const answer: z.ZodType<StepAnswer> = z.discriminatedUnion('type', [
   z.object({ type: z.literal('choice'), choice: z.number().int().min(0).max(20) }).strict(),
   z.object({ type: z.literal('tap'), id: z.string().max(20) }).strict(),
   z.object({ type: z.literal('chips'), tokens: z.array(z.string().max(200)).max(40) }).strict(),

@@ -1104,3 +1104,10 @@ button.ws-score .points-badge { padding: 4px 8px; font-size: .8rem; white-space:
 .teacher-entry { display: inline-flex; gap: 6px; padding-inline: 10px; border: 2px solid var(--border); border-radius: 999px; }
 .recovery-code { padding: 14px; border-radius: 12px; background: var(--muted); font: 700 1.05rem/1.6 ui-monospace, monospace; letter-spacing: .03em; word-break: break-all; text-align: center; }
 .assign-chapter { padding: 6px 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
+/* ───────────── Test de positionnement ───────────── */
+.placement-card { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; padding: 18px 20px; border: 2px solid var(--primary); border-radius: 20px; background: var(--card); color: var(--primary-deep); }
+.placement-card h2, .placement-card p.text-sm { color: var(--foreground); }
+.placement-screen { position: fixed; inset: 0; z-index: 60; overflow-y: auto; background: var(--background); }
+.placement-progress { height: 8px; border-radius: 999px; background: var(--muted); overflow: hidden; }
+.placement-progress span { display: block; height: 100%; background: var(--primary); transition: width .3s; }
+.placement-box { padding: 14px 16px; border: 2px solid var(--border); border-radius: 16px; background: var(--card); }

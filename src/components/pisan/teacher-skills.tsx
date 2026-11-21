@@ -7,19 +7,15 @@ import { Button } from '@/components/ui/button';
 import { addDays, assignedTo, assignmentProgress, daysLeft, knownSkills, todayIso, validDueDate, type AssignmentKind } from '@/lib/assignments';
 import { classAssignments, createAssignment, deleteAssignment, updateAssignment } from '@/lib/teacher.functions';
 import { blockingSkills, type ClassStudent } from '@/lib/classroom';
-import { figuresFor, type FigureKind } from '@/lib/figures';
+import type { FigureKind } from '@/lib/figures';
 import type { Lang } from '@/lib/i18n';
 import { say } from '@/lib/pisan';
-import { programmeFor, programmeNotions } from '@/lib/programmes';
-import { getLevel } from '@/lib/curriculum';
+import { classKinds } from '@/lib/placement';
 import { skillsFor, skillStatus, type SkillStatus } from '@/lib/skills';
 import { CHAPTER_NAMES } from './chapter-names';
 
-/** Les chapitres à parcours du programme de la classe. */
-export function classSkillKinds(country: string, grade: number, track?: string | null): FigureKind[] {
-  const programme = programmeFor(country, grade, track ?? undefined);
-  return programme ? figuresFor(programme, programmeNotions(programme).map(n => n.id), getLevel(country, grade)) : [];
-}
+/** Les chapitres à parcours du programme de la classe (voir src/lib/placement.ts). */
+export const classSkillKinds = classKinds;
 
 const LABEL: Record<SkillStatus, (lang: Lang) => string> = {
   mastered: lang => say(lang, 'Acquis', 'Mastered', 'مكتسبة', 'Adquirida'),
