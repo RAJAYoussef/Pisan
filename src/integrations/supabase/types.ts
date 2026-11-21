@@ -20,6 +20,8 @@ export type Database = {
           created_at: string
           due_date: string
           id: string
+          kind: string
+          member_ids: string[] | null
           skill_ids: string[]
           title: string
         }
@@ -28,6 +30,8 @@ export type Database = {
           created_at?: string
           due_date: string
           id?: string
+          kind?: string
+          member_ids?: string[] | null
           skill_ids: string[]
           title: string
         }
@@ -36,6 +40,8 @@ export type Database = {
           created_at?: string
           due_date?: string
           id?: string
+          kind?: string
+          member_ids?: string[] | null
           skill_ids?: string[]
           title?: string
         }
@@ -95,6 +101,7 @@ export type Database = {
           leaderboard_enabled: boolean
           name: string
           teacher_id: string
+          track: string | null
         }
         Insert: {
           country: string
@@ -105,6 +112,7 @@ export type Database = {
           leaderboard_enabled?: boolean
           name: string
           teacher_id: string
+          track?: string | null
         }
         Update: {
           country?: string
@@ -115,6 +123,7 @@ export type Database = {
           leaderboard_enabled?: boolean
           name?: string
           teacher_id?: string
+          track?: string | null
         }
         Relationships: [
           {
@@ -399,6 +408,10 @@ export type Database = {
         Returns: Json
       }
       refund_pisan_coach: { Args: { p_hash: string }; Returns: undefined }
+      rekey_pisan_session: {
+        Args: { p_new_hash: string; p_old_hash: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

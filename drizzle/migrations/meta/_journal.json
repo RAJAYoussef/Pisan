@@ -99,6 +99,13 @@
       "when": 1795294127230,
       "tag": "0013_security_hardening_skill_runs_rate_limits_coach_refund",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1795298160057,
+      "tag": "0014_class_track_flexible_assignments_rekey",
+      "breakpoints": true
     }
   ]
 }
