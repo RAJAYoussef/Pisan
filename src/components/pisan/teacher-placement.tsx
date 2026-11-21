@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useServerFn } from '@tanstack/react-start';
-import { Download, Lock, Play, Trash2, Unlock } from 'lucide-react';
+import { Download, FileText, Lock, Play, Trash2, Unlock } from 'lucide-react';
+import { useNavigate } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
 import { classTests, createClassTest, deleteClassTest, setClassTestOpen } from '@/lib/placement.functions';
 import { classChapterAverages, placementCsv, placementRows } from '@/lib/placement';
@@ -17,6 +18,7 @@ const gainText = (g: number | null) => (g === null ? '—' : g > 0 ? `+${g}` : S
 
 export function PlacementPanel({ lang, classId, className, students }: { lang: Lang; classId: string; className: string; students: ClassStudent[] }) {
   const t = (fr: string, en: string, ar: string, es: string) => say(lang, fr, en, ar, es);
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const listFn = useServerFn(classTests), createFn = useServerFn(createClassTest), openFn = useServerFn(setClassTestOpen), deleteFn = useServerFn(deleteClassTest);
   const data = useQuery({ queryKey: ['class-tests', classId], queryFn: () => listFn({ data: { classId } }) });
@@ -51,7 +53,7 @@ export function PlacementPanel({ lang, classId, className, students }: { lang: L
   };
   return <section className="mt-10">
     <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="text-xl">{t('Tests de positionnement', 'Placement tests', 'اختبارات تحديد المستوى', 'Pruebas de nivel')}</h3>
-      {results.length > 0 && <Button variant="soft" onClick={exportCsv}><Download />{t('Exporter (Excel)', 'Export (Excel)', 'تصدير', 'Exportar')}</Button>}</div>
+      {results.length > 0 && <div className="flex flex-wrap gap-2"><Button variant="soft" onClick={() => void navigate({ to: '/bilan', search: { classe: classId } })}><FileText />{t('Bilan imprimable', 'Printable report', 'تقرير للطباعة', 'Informe imprimible')}</Button><Button variant="soft" onClick={exportCsv}><Download />{t('Exporter (Excel)', 'Export (Excel)', 'تصدير', 'Exportar')}</Button></div>}</div>
     <p className="mt-1 text-sm text-muted-foreground">{t('À faire passer en classe, sans aide. Les élèves ne voient pas leur score ; vous voyez tout ici.', 'To be taken in class, without help. Pupils do not see their score; you see everything here.', 'يُجرى في القسم بدون مساعدة.', 'En clase, sin ayuda.')}</p>
     <div className="mt-4 grid gap-3 sm:grid-cols-2">{testBox('A')}{testBox('B')}</div>
     {error && <p role="alert" className="mt-3 text-destructive">{error}</p>}

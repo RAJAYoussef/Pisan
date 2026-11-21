@@ -90,3 +90,25 @@ export function placementCsv(rows: PlacementRow[], chapters: { label: string; a:
   const lines: (string | number | null)[][] = [[labels.pupil, labels.a, labels.b, labels.gain, labels.minutes, labels.activities], ...rows.map(r => [r.nickname, r.a, r.b, r.gain, r.minutes, r.activities]), [], [labels.chapter, labels.a, labels.b, labels.gain], ...chapters.map(c => [c.label, c.a, c.b, c.a !== null && c.b !== null ? c.b - c.a : null])];
   return '\uFEFF' + lines.map(l => l.map(csvCell).join(',')).join('\r\n');
 }
+
+/** Les chiffres clés du bilan de classe (seuls les élèves qui ont passé les deux tests comptent pour la progression). */
+export type PlacementSummary = {
+  pupils: number; tookA: number; tookB: number; both: number;
+  avgA: number | null; avgB: number | null; avgGain: number | null;
+  progressed: number; minutes: number;
+  /** Progression moyenne des élèves les plus réguliers (temps ≥ médiane) et des autres. */
+  regular: { count: number; gain: number | null }; occasional: { count: number; gain: number | null };
+};
+const avg = (xs: number[]) => (xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : null);
+export function placementSummary(rows: PlacementRow[]): PlacementSummary {
+  const both = rows.filter(r => r.gain !== null);
+  const sorted = [...both].sort((x, y) => x.minutes - y.minutes);
+  const median = sorted.length ? sorted[Math.floor(sorted.length / 2)]!.minutes : 0;
+  const regular = both.filter(r => r.minutes >= median && r.minutes > 0), occasional = both.filter(r => !regular.includes(r));
+  return {
+    pupils: rows.length, tookA: rows.filter(r => r.a !== null).length, tookB: rows.filter(r => r.b !== null).length, both: both.length,
+    avgA: avg(rows.flatMap(r => (r.a === null ? [] : [r.a]))), avgB: avg(rows.flatMap(r => (r.b === null ? [] : [r.b]))), avgGain: avg(both.map(r => r.gain!)),
+    progressed: both.filter(r => r.gain! > 0).length, minutes: rows.reduce((s, r) => s + r.minutes, 0),
+    regular: { count: regular.length, gain: avg(regular.map(r => r.gain!)) }, occasional: { count: occasional.length, gain: avg(occasional.map(r => r.gain!)) },
+  };
+}

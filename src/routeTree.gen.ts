@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedBilanRouteImport } from './routes/_authenticated/bilan'
 import { Route as AuthenticatedTeacherRouteImport } from './routes/_authenticated/teacher'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 
@@ -29,6 +30,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedBilanRoute = AuthenticatedBilanRouteImport.update({
+  id: '/bilan',
+  path: '/bilan',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedTeacherRoute = AuthenticatedTeacherRouteImport.update({
   id: '/teacher',
   path: '/teacher',
@@ -43,12 +49,14 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/bilan': typeof AuthenticatedBilanRoute
   '/teacher': typeof AuthenticatedTeacherRoute
   '/auth/callback': typeof AuthCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/bilan': typeof AuthenticatedBilanRoute
   '/teacher': typeof AuthenticatedTeacherRoute
   '/auth/callback': typeof AuthCallbackRoute
 }
@@ -57,19 +65,21 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
+  '/_authenticated/bilan': typeof AuthenticatedBilanRoute
   '/_authenticated/teacher': typeof AuthenticatedTeacherRoute
   '/auth/callback': typeof AuthCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/teacher' | '/auth/callback'
+  fullPaths: '/' | '/auth' | '/bilan' | '/teacher' | '/auth/callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/teacher' | '/auth/callback'
+  to: '/' | '/auth' | '/bilan' | '/teacher' | '/auth/callback'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/bilan'
     | '/_authenticated/teacher'
     | '/auth/callback'
   fileRoutesById: FileRoutesById
@@ -103,6 +113,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/bilan': {
+      id: '/_authenticated/bilan'
+      path: '/bilan'
+      fullPath: '/bilan'
+      preLoaderRoute: typeof AuthenticatedBilanRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/teacher': {
       id: '/_authenticated/teacher'
       path: '/teacher'
@@ -121,10 +138,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedBilanRoute: typeof AuthenticatedBilanRoute
   AuthenticatedTeacherRoute: typeof AuthenticatedTeacherRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedBilanRoute: AuthenticatedBilanRoute,
   AuthenticatedTeacherRoute: AuthenticatedTeacherRoute,
 }
 
