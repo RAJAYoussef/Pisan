@@ -1,4 +1,4 @@
-// « Installer PiSan sur mon téléphone » : bouton natif sur Android/Chrome, consigne pas à pas sur iPhone.
+// « Installer PiSan sur mon téléphone » : bouton natif sur Android/Chrome, consigne pas à pas sur iPhone.
 import { useState } from 'react';
 import { Check, Download, Share, Smartphone, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,11 +13,11 @@ function IosSteps({ lang }: { lang: Lang }) {
   return <ol className="install-steps">
     <li>{say(lang, 'Ouvre PiSan dans Safari.', 'Open PiSan in Safari.', 'افتح PiSan في Safari.', 'Abre PiSan en Safari.')}</li>
     <li><span>{say(lang, 'Touche le bouton Partager', 'Tap the Share button', 'اضغط على زر المشاركة', 'Toca el botón Compartir')}</span> <Share className="inline h-4 w-4" aria-hidden /></li>
-    <li>{say(lang, 'Choisis « Sur l’écran d’accueil », puis « Ajouter ».', 'Choose “Add to Home Screen”, then “Add”.', 'اختر « إضافة إلى الشاشة الرئيسية » ثم « إضافة ».', 'Elige «Añadir a pantalla de inicio» y luego «Añadir».')}</li>
+    <li>{say(lang, 'Choisis «\u00a0Sur l’écran d’accueil\u00a0», puis «\u00a0Ajouter\u00a0».', 'Choose “Add to Home Screen”, then “Add”.', 'اختر «\u00a0إضافة إلى الشاشة الرئيسية\u00a0» ثم «\u00a0إضافة\u00a0».', 'Elige «Añadir a pantalla de inicio» y luego «Añadir».')}</li>
   </ol>;
 }
 
-/** Dans « Mon profil » : toujours visible, avec la consigne adaptée à l'appareil. */
+/** Dans «\u00a0Mon profil\u00a0» : toujours visible, avec la consigne adaptée à l'appareil. */
 export function InstallCard({ lang }: { lang: Lang }) {
   const state = useInstallState();
   const [open, setOpen] = useState(false);
@@ -32,7 +32,7 @@ export function InstallCard({ lang }: { lang: Lang }) {
         {state === 'none' && <>
           <Button size="sm" variant="soft" className="mt-3" aria-expanded={open} onClick={() => setOpen(o => !o)}>{say(lang, 'Comment faire ?', 'How?', 'كيف؟', '¿Cómo?')}</Button>
           {open && <div className="mt-2 text-sm">
-            <p><b>Android</b> : {say(lang, 'ouvre PiSan dans Chrome, menu ⋮ puis « Installer l’application » (ou « Ajouter à l’écran d’accueil »).', 'open PiSan in Chrome, menu ⋮ then “Install app” (or “Add to Home screen”).', 'افتح PiSan في Chrome، ثم القائمة ⋮ و« تثبيت التطبيق ».', 'abre PiSan en Chrome, menú ⋮ y «Instalar aplicación».')}</p>
+            <p><b>Android</b> : {say(lang, 'ouvre PiSan dans Chrome, menu ⋮ puis «\u00a0Installer l’application\u00a0» (ou «\u00a0Ajouter à l’écran d’accueil\u00a0»).', 'open PiSan in Chrome, menu ⋮ then “Install app” (or “Add to Home screen”).', 'افتح PiSan في Chrome، ثم القائمة ⋮ و«\u00a0تثبيت التطبيق\u00a0».', 'abre PiSan en Chrome, menú ⋮ y «Instalar aplicación».')}</p>
             <p className="mt-1"><b>iPhone / iPad</b> :</p>
             <IosSteps lang={lang} />
           </div>}
