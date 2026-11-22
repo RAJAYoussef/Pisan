@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CoachRouteImport } from './routes/coach'
 import { Route as ConfidentialiteRouteImport } from './routes/confidentialite'
 import { Route as FamillesRouteImport } from './routes/familles'
 import { Route as AuthenticatedBilanRouteImport } from './routes/_authenticated/bilan'
@@ -30,6 +31,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CoachRoute = CoachRouteImport.update({
+  id: '/coach',
+  path: '/coach',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfidentialiteRoute = ConfidentialiteRouteImport.update({
@@ -61,6 +67,7 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/coach': typeof CoachRoute
   '/confidentialite': typeof ConfidentialiteRoute
   '/familles': typeof FamillesRoute
   '/bilan': typeof AuthenticatedBilanRoute
@@ -70,6 +77,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/coach': typeof CoachRoute
   '/confidentialite': typeof ConfidentialiteRoute
   '/familles': typeof FamillesRoute
   '/bilan': typeof AuthenticatedBilanRoute
@@ -81,6 +89,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
+  '/coach': typeof CoachRoute
   '/confidentialite': typeof ConfidentialiteRoute
   '/familles': typeof FamillesRoute
   '/_authenticated/bilan': typeof AuthenticatedBilanRoute
@@ -92,6 +101,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/coach'
     | '/confidentialite'
     | '/familles'
     | '/bilan'
@@ -101,6 +111,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/coach'
     | '/confidentialite'
     | '/familles'
     | '/bilan'
@@ -111,6 +122,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/coach'
     | '/confidentialite'
     | '/familles'
     | '/_authenticated/bilan'
@@ -122,6 +134,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
+  CoachRoute: typeof CoachRoute
   ConfidentialiteRoute: typeof ConfidentialiteRoute
   FamillesRoute: typeof FamillesRoute
 }
@@ -147,6 +160,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/coach': {
+      id: '/coach'
+      path: '/coach'
+      fullPath: '/coach'
+      preLoaderRoute: typeof CoachRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/confidentialite': {
@@ -214,6 +234,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
+  CoachRoute: CoachRoute,
   ConfidentialiteRoute: ConfidentialiteRoute,
   FamillesRoute: FamillesRoute,
 }

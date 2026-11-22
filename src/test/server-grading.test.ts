@@ -30,8 +30,8 @@ vi.mock('@/integrations/supabase/client.server', () => {
 });
 
 import { consolidationOk, gradeExam, profileProgramme, replayDiagnostic } from '@/lib/grading';
-import { advance, gradeStep, newTicket, readTicket, signTicket, ticketAttempts, ticketSteps, type StepAnswer } from '@/lib/skill-session';
-import { getSkill, SKILLS, type Step } from '@/lib/skills';
+import { advance, gradeStep, newTicket, seriesSkills, readTicket, signTicket, ticketAttempts, ticketSteps, type StepAnswer } from '@/lib/skill-session';
+import { getSkill, reviewStep, SKILLS, skillsFor, skillState, type Step } from '@/lib/skills';
 import { getNotion } from '@/lib/curriculum';
 import { diagnosticPath, nextIndex, pickQuestion, startIndex, type DiagAnswer } from '@/lib/diagnostic';
 import * as fns from '@/lib/grading.functions';
@@ -208,5 +208,37 @@ describe('Fonctions serveur : plus de score déclaré par le navigateur', () => 
     for (const step of steps.slice(1)) ticket = (await call<{ ok: boolean; ticket: string }>(fns.checkSkillStep, { token: TOKEN, ticket, answer: rightAnswer(step) })).ticket;
     await call(fns.finishSkillSession, { token: TOKEN, ticket });
     expect(db.recorded).toEqual([expect.objectContaining({ skill: 'vec-sum', correct: steps.length - 1, total: steps.length })]);
+  });
+});
+
+describe('Séries d’entraînement (niveaux 2 et 3)', () => {
+  // Une compétence qui n'est pas la première de son chapitre : le niveau 3 peut la mélanger avec les précédentes.
+  const target = SKILLS.find(s => skillsFor(s.chapter).findIndex(x => x.id === s.id) >= 2)!;
+  const before = skillsFor(target.chapter).slice(0, skillsFor(target.chapter).findIndex(x => x.id === target.id)).map(s => s.id);
+  it('level 2 asks the same skill 5 times; level 3 mixes it (3 times) with earlier skills of the chapter', () => {
+    expect(seriesSkills(target, 2)).toEqual(Array(5).fill(target.id));
+    for (let i = 0; i < 20; i++) {
+      const mix = seriesSkills(target, 3);
+      expect(mix).toHaveLength(6);
+      expect(mix.filter(id => id === target.id).length).toBeGreaterThanOrEqual(3);
+      expect(mix.filter(id => id !== target.id).every(id => before.includes(id))).toBe(true);
+    }
+    const first = skillsFor(target.chapter)[0]!;
+    expect(seriesSkills(first, 3)).toEqual(Array(6).fill(first.id));
+  });
+  it('the server draws the series, grades it, and records one line that never validates the skill', async () => {
+    const start = await call<{ seeds: number[]; skills: string[]; ticket: string }>(fns.startSkillSession, { token: TOKEN, kind: 'series', skills: [target.id], level: 3 });
+    expect(start.skills).toHaveLength(6);
+    const steps = start.skills.map((id, i) => reviewStep(getSkill(id)!, start.seeds[i]!));
+    let ticket = (await call<{ ok: boolean; ticket: string }>(fns.checkSkillStep, { token: TOKEN, ticket: start.ticket, answer: wrongAnswer(steps[0]!) })).ticket;
+    for (const step of steps) ticket = (await call<{ ok: boolean; ticket: string }>(fns.checkSkillStep, { token: TOKEN, ticket, answer: rightAnswer(step) })).ticket;
+    await call(fns.finishSkillSession, { token: TOKEN, ticket });
+    expect(db.recorded).toEqual([expect.objectContaining({ kind: 'workshop', skill: target.id, series: 3, correct: 5, total: 6 })]);
+    const perfect = { ...(db.recorded[0] as object), correct: 6, total: 6 } as { skill: string; correct: number; total: number; date: string; series: number };
+    expect(skillState([perfect], target.id).status).toBe('todo');
+  });
+  it('a series needs exactly one known skill', async () => {
+    await expect(call(fns.startSkillSession, { token: TOKEN, kind: 'series', skills: [target.id, target.id], level: 2 })).rejects.toThrow();
+    await expect(call(fns.startSkillSession, { token: TOKEN, kind: 'series', skills: [target.id], level: 4 })).rejects.toThrow();
   });
 });

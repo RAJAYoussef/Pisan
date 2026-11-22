@@ -20,7 +20,7 @@ export function starsFor(correct: number, total: number): 1 | 2 | 3 {
   return total - correct <= 1 ? 2 : 1;
 }
 
-const skillAttempts = (attempts: Attempt[], skillId: string) => attempts.filter(a => a.skill === skillId && !a.review);
+const skillAttempts = (attempts: Attempt[], skillId: string) => attempts.filter(a => a.skill === skillId && !a.review && !a.series);
 
 /** Meilleures étoiles obtenues sur une compétence (0 si jamais terminée). */
 export function bestStars(attempts: Attempt[], skillId: string): 0 | 1 | 2 | 3 {

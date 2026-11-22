@@ -10,6 +10,8 @@ import { Speaker, Tutor } from './shared';
 import { AskPi } from './coach';
 import { ConcreteObjects } from './concrete';
 import { ReviewActivity, SkillActivity } from './skills';
+import { SeriesActivity } from './series';
+import type { SeriesLevel } from '@/lib/skill-session';
 import { ChapterPath, WorkshopHome, type Tile } from './workshop-home';
 import { RewardsScreen } from './rewards-screen';
 import type { StreakView } from './streak';
@@ -46,12 +48,13 @@ export function Workshop(props: Props) {
   const [skill, setSkill] = useState<Skill | null>(null);
   const [adaptiveSkillId, setAdaptiveSkillId] = useState<string | null>(null);
   const [review, setReview] = useState<Skill[] | null>(null);
+  const [series, setSeries] = useState<{ skill: Skill; level: SeriesLevel } | null>(null);
   const [chapter, setChapter] = useState<FigureKind | null>(null);
   const [lastChapter, setLastChapter] = useState<FigureKind | null>(null);
   const [rewards, setRewards] = useState(false);
   const [bars, setBars] = useState(false);
   // Chaque changement d'écran repart du haut de la page.
-  useEffect(() => { if (typeof window !== 'undefined') window.scrollTo(0, 0); }, [chapter, bars, skill, review, exercise, highActive, rewards]);
+  useEffect(() => { if (typeof window !== 'undefined') window.scrollTo(0, 0); }, [chapter, bars, skill, review, series, exercise, highActive, rewards]);
   const attempts = (props.progress ?? emptyProgress).attempts;
   // Parcours de compétences en géométrie : quand le programme les contient (ou par niveau, sans programme connu).
   const figures = figuresFor(programme, ids, level);
@@ -67,9 +70,17 @@ export function Workshop(props: Props) {
   }
   const due = dueReviews(attempts);
   if (review) return <ReviewActivity lang={lang} skills={review} engine={props.engine} onBack={() => setReview(null)} />;
-  if (skill) return <SkillActivity key={skill.id} lang={lang} skill={skill} engine={props.engine} attempts={attempts} onBack={() => setSkill(null)} onAdaptiveSkill={setAdaptiveSkillId} onJournalEvent={event => props.onJournalEvent?.(skill.id, event)} />;
+  if (series) return <SeriesActivity key={`${series.skill.id}-${series.level}`} lang={lang} skill={series.skill} level={series.level} engine={props.engine} onBack={() => setSeries(null)} onLevel={level => void openLevel(series.skill, level)} />;
+  if (skill) return <SkillActivity key={skill.id} lang={lang} skill={skill} engine={props.engine} attempts={attempts} onBack={() => setSkill(null)} onSeries={level => void openLevel(skill, level)} onAdaptiveSkill={setAdaptiveSkillId} onJournalEvent={event => props.onJournalEvent?.(skill.id, event)} />;
   async function openReview() { setBusy(true); setError(''); try { if (await onStart()) setReview(due); } catch { setError(say(lang, 'Exercice indisponible. Réessaie.', 'Exercise unavailable. Try again.', 'التمرين غير متاح.', 'Ejercicio no disponible.')); } finally { setBusy(false); } }
   async function openReviewOf(skills: Skill[]) { setBusy(true); setError(''); try { if (await onStart()) setReview(skills); } catch { setError(say(lang, 'Exercice indisponible. Réessaie.', 'Exercise unavailable. Try again.', 'التمرين غير متاح.', 'Ejercicio no disponible.')); } finally { setBusy(false); } }
+  /** Niveau 1 : le parcours guidé ; niveaux 2 et 3 : une série (compte comme un exercice du jour). */
+  async function openLevel(target: Skill, level: 1 | SeriesLevel) {
+    setBusy(true); setError('');
+    try { if (await onStart()) { if (level === 1) { setSeries(null); setSkill(target); } else { setSkill(null); setSeries({ skill: target, level }); } } }
+    catch { setError(say(lang, 'Exercice indisponible. Réessaie.', 'Exercise unavailable. Try again.', 'التمرين غير متاح.', 'Ejercicio no disponible.')); }
+    setBusy(false);
+  }
   async function openSkill(next: Skill) { setBusy(true); setError(''); try { if (await onStart()) { setSkill(next); setAdaptiveSkillId(null); } } catch { setError(say(lang, 'Exercice indisponible. Réessaie.', 'Exercise unavailable. Try again.', 'التمرين غير متاح.', 'Ejercicio no disponible.')); } finally { setBusy(false); } }
   if (highActive) return <HighSchool {...props} modes={modes} onBack={() => setHighActive(false)} />;
   if (exercise) return <BarExercise key={exercise.id} {...props} exercise={exercise} onBack={() => setExercise(null)} />;

@@ -4,7 +4,7 @@
 // Le résultat n'est enregistré qu'à la fin, avec le dernier jeton : on ne peut ni inventer un score ni effacer une erreur.
 // Pur (Web Crypto) : utilisé par src/lib/grading.functions.ts et par les tests.
 import { INSCRIBED_SPAN } from './figures';
-import { chipsOk, getSkill, numberOk, reviewStep, sentenceOk, skillNotion, type Step } from './skills';
+import { chipsOk, getSkill, numberOk, reviewStep, sentenceOk, skillNotion, skillsFor, type Skill, type Step } from './skills';
 import type { Attempt } from './pisan';
 
 export type StepAnswer =
@@ -60,7 +60,9 @@ export type Ticket = {
   v: 1;
   /** Début du hash de la session : le jeton ne sert qu'à cet élève. */
   h: string;
-  kind: 'skill' | 'review';
+  kind: 'skill' | 'review' | 'series';
+  /** Série d'entraînement : niveau 2 (en autonomie) ou 3 (défi mélangé), et la compétence travaillée. */
+  series?: { level: SeriesLevel; skill: string };
   skills: string[];
   seeds: number[];
   step: number;
@@ -70,6 +72,22 @@ export type Ticket = {
   exp: number;
 };
 export const TICKET_HOURS = 6;
+
+// ───────────── Séries d'entraînement (niveaux 2 et 3) ─────────────
+// Niveau 1 = le parcours guidé. Niveau 2 : 5 questions de la compétence, nouveaux nombres, indice après une erreur.
+// Niveau 3 : 6 questions mélangées avec des compétences vues avant dans le chapitre, indice après deux erreurs.
+export type SeriesLevel = 2 | 3;
+export const SERIES_LENGTH: Record<SeriesLevel, number> = { 2: 5, 3: 6 };
+/** Les compétences des questions d'une série, dans l'ordre (tirées par le serveur). */
+export function seriesSkills(skill: Skill, level: SeriesLevel, rand: () => number = Math.random): string[] {
+  if (level === 2) return Array.from({ length: SERIES_LENGTH[2] }, () => skill.id);
+  const chapter = skillsFor(skill.chapter);
+  const before = chapter.slice(0, Math.max(0, chapter.findIndex(s => s.id === skill.id))).map(s => s.id);
+  const others = Array.from({ length: 3 }, () => (before.length ? before[Math.floor(rand() * before.length)]! : skill.id));
+  const list = [skill.id, skill.id, skill.id, ...others];
+  for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [list[i], list[j]] = [list[j]!, list[i]!]; }
+  return list;
+}
 
 const enc = new TextEncoder();
 const b64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -105,13 +123,14 @@ export async function readTicket(token: string, secret: string | string[], hash:
 export function ticketSteps(t: Pick<Ticket, 'kind' | 'skills' | 'seeds'>): Step[] | null {
   const skills = t.skills.map(getSkill);
   if (skills.some(s => !s) || !skills.length || skills.length !== t.seeds.length) return null;
+  if (t.kind === 'series' && skills.length > 6) return null;
   return t.kind === 'skill' ? skills[0]!.build(t.seeds[0]!).steps : skills.map((s, i) => reviewStep(s!, t.seeds[i]!));
 }
 
-export function newTicket(hash: string, kind: Ticket['kind'], skills: string[], rand: () => number = Math.random, now = Date.now()): Ticket {
+export function newTicket(hash: string, kind: Ticket['kind'], skills: string[], rand: () => number = Math.random, now = Date.now(), series?: Ticket['series']): Ticket {
   const seeds = skills.map(() => Math.floor(rand() * 100000));
   const ref = Array.from({ length: 4 }, () => Math.floor(rand() * 2 ** 32).toString(36)).join('');
-  return { v: 1, h: hash.slice(0, 16), kind, skills, seeds, step: 0, missed: [], ref, exp: now + TICKET_HOURS * 3600000 };
+  return { v: 1, h: hash.slice(0, 16), kind, skills, seeds, step: 0, missed: [], ref, exp: now + TICKET_HOURS * 3600000, ...(series ? { series } : {}) };
 }
 
 /** Corrige l'étape en cours : juste → étape suivante ; faux → l'erreur est retenue (une fois) et on reste. */
@@ -127,6 +146,12 @@ export function advance(t: Ticket, steps: Step[], answer: StepAnswer): { ok: boo
 export function ticketAttempts(t: Ticket, steps: Step[], date = new Date().toISOString()): Attempt[] | null {
   if (t.step !== steps.length) return null;
   const skills = t.skills.map(id => getSkill(id)!);
+  if (t.kind === 'series') {
+    const skill = t.series && getSkill(t.series.skill);
+    if (!skill) return null;
+    // Une seule ligne : elle compte pour les points et la notion, jamais pour l'acquisition (voir skillState).
+    return [{ kind: 'workshop', notion: skillNotion(skill), skill: skill.id, series: t.series!.level, correct: steps.length - t.missed.length, total: steps.length, date, minutes: Math.min(20, steps.length * 2), ref: t.ref }];
+  }
   if (t.kind === 'skill') {
     const skill = skills[0]!;
     return [{ kind: 'workshop', notion: skillNotion(skill), skill: skill.id, correct: steps.length - t.missed.length, total: steps.length, date, minutes: Math.min(20, steps.length * 2), ref: t.ref }];
@@ -138,7 +163,8 @@ export function ticketAttempts(t: Ticket, steps: Step[], date = new Date().toISO
 
 /** Ce dont les écrans de parcours ont besoin : démarrer, vérifier une étape, terminer. */
 export type SkillEngine = {
-  start: (kind: Ticket['kind'], skills: string[]) => Promise<{ seeds: number[]; ticket: string }>;
+  /** Pour une série, `skills` = [la compétence] et `level` ; la réponse donne les compétences tirées. */
+  start: (kind: Ticket['kind'], skills: string[], level?: SeriesLevel) => Promise<{ seeds: number[]; ticket: string; skills?: string[] }>;
   check: (ticket: string, answer: StepAnswer) => Promise<{ ok: boolean; ticket: string }>;
   finish: (ticket: string) => Promise<{ attempts: Attempt[] }>;
 };
@@ -146,7 +172,11 @@ export type SkillEngine = {
 /** Le même moteur que le serveur, exécuté sur place : pour les tests et les démonstrations, jamais pour enregistrer. */
 export function localEngine({ secret, hash, rand = Math.random, onRecord }: { secret: string; hash: string; rand?: () => number; onRecord?: (a: Attempt[]) => void }): SkillEngine {
   return {
-    start: async (kind, skills) => { const t = newTicket(hash, kind, skills, rand); return { seeds: t.seeds, ticket: await signTicket(t, secret) }; },
+    start: async (kind, skills, level) => {
+      const t = kind === 'series' ? startSeries(hash, skills[0]!, level ?? 2, rand) : newTicket(hash, kind, skills, rand);
+      if (!t) throw new Error('Compétence inconnue');
+      return { seeds: t.seeds, ticket: await signTicket(t, secret), skills: t.skills };
+    },
     check: async (token, answer) => {
       const t = await readTicket(token, secret, hash);
       const steps = t && ticketSteps(t);
@@ -163,4 +193,10 @@ export function localEngine({ secret, hash, rand = Math.random, onRecord }: { se
       return { attempts };
     },
   };
+}
+
+/** Le jeton d'une série (null si la compétence n'existe pas). */
+export function startSeries(hash: string, skillId: string, level: SeriesLevel, rand: () => number = Math.random, now = Date.now()): Ticket | null {
+  const skill = getSkill(skillId);
+  return skill ? newTicket(hash, 'series', seriesSkills(skill, level, rand), rand, now, { level, skill: skill.id }) : null;
 }

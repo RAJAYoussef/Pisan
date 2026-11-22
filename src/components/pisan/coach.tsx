@@ -82,7 +82,7 @@ function AskPiPanel({ lang, activity, coachRef, step, label }: Props) {
   if (!open) return <Button variant="soft" className="mt-4" onClick={() => setOpen(true)}><MessageCircleQuestion />{label ?? t.button}</Button>;
   return <div className="mt-5 rounded-lg border border-border bg-card p-4" role="region" aria-label={t.button}>
     <div className="mb-3 flex items-center justify-between gap-3"><div className="flex items-center gap-2"><img src={avatar} alt="π" className="h-9 w-9 object-contain" /><p className="font-bold text-primary-deep">Pi</p></div><Button size="icon" variant="ghost" onClick={() => setOpen(false)} aria-label={t.close}><X /></Button></div>
-    <p className="mb-3 text-xs text-muted-foreground">{t.privacy}</p>
+    <p className="mb-3 text-xs text-muted-foreground">{t.privacy} <a href="/coach" target="_blank" rel="noopener" className="underline underline-offset-2">{say(lang, 'Comme toute IA, Pi peut se tromper : en savoir plus', 'Like any AI, Pi can make mistakes: learn more', 'مثل أي ذكاء اصطناعي، قد يخطئ Pi: اعرف المزيد', 'Como toda IA, Pi puede equivocarse: más información')}</a></p>
     <div className="space-y-3" aria-live="polite">
       <p className="text-sm leading-relaxed">{t.intro}</p>
       {messages.map((m, i) => m.role === 'user'

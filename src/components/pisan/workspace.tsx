@@ -194,7 +194,7 @@ export function Workspace() {
     consolidation: async (notion, choices) => { const r = await consolidationFn({ data: { token, notion, choices } }); applyStreak(r.progress, r.streak); },
   };
   const engine = useMemo<SkillEngine>(() => ({
-    start: (kind, skills) => startFn({ data: { token, kind, skills } }),
+    start: (kind, skills, level) => startFn({ data: { token, kind, skills, ...(level ? { level } : {}) } }),
     check: (ticket, answer) => checkFn({ data: { token, ticket, answer } }),
     finish: async ticket => { const r = await finishFn({ data: { token, ticket } }); applyStreakRef.current(r.progress, r.streak); return { attempts: r.attempts }; },
   }), [token, startFn, checkFn, finishFn]);

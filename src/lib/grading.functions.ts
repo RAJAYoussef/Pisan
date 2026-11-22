@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { isNotionId, type NotionId } from './curriculum';
 import { consolidationOk, gradeExam, profileProgramme, replayDiagnostic } from './grading';
 import { signingSecrets } from './signing-secrets';
-import { advance, newTicket, readTicket, signTicket, ticketAttempts, ticketSteps, type StepAnswer } from './skill-session';
+import { advance, newTicket, startSeries, readTicket, signTicket, ticketAttempts, ticketSteps, type StepAnswer } from './skill-session';
 import { getSkill } from './skills';
 import { hashToken, recordAttempt } from './session.functions';
 import type { LearningSession } from './pisan';
@@ -62,12 +62,14 @@ export const submitConsolidation = createServerFn({ method: 'POST' })
 
 /** Début d'un parcours (une compétence) ou d'un mini-contrôle (plusieurs) : le serveur tire l'énoncé et signe un jeton. */
 export const startSkillSession = createServerFn({ method: 'POST' })
-  .inputValidator(z.object({ token: credential, kind: z.enum(['skill', 'review']), skills: z.array(skillId).min(1).max(4) }).strict())
+  .inputValidator(z.object({ token: credential, kind: z.enum(['skill', 'review', 'series']), skills: z.array(skillId).min(1).max(4), level: z.union([z.literal(2), z.literal(3)]).optional() }).strict())
   .handler(async ({ data }) => {
-    if (data.kind === 'skill' && data.skills.length !== 1) throw new Error('Une seule compétence.');
+    if (data.kind !== 'review' && data.skills.length !== 1) throw new Error('Une seule compétence.');
     const { hash } = await loadSession(data.token);
-    const ticket = newTicket(hash, data.kind, data.skills);
-    return { seeds: ticket.seeds, ticket: await signTicket(ticket, secret()) };
+    // Série : le serveur tire lui-même les questions (et celles des autres compétences au niveau 3).
+    const ticket = data.kind === 'series' ? startSeries(hash, data.skills[0]!, data.level ?? 2) : newTicket(hash, data.kind, data.skills);
+    if (!ticket) throw new Error('Compétence inconnue.');
+    return { seeds: ticket.seeds, skills: ticket.skills, ticket: await signTicket(ticket, secret()) };
   });
 
 export const answer: z.ZodType<StepAnswer> = z.discriminatedUnion('type', [

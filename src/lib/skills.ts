@@ -552,7 +552,7 @@ export const reviewStep = (skill: Skill, seed: number): Step => { const steps = 
 // ───────────── Acquis, à revoir, mini-contrôles ─────────────
 
 export type SkillStatus = 'mastered' | 'started' | 'review' | 'todo';
-type SkillAttempt = { skill?: string | undefined; review?: boolean | undefined; correct: number; total: number; date: string };
+type SkillAttempt = { skill?: string | undefined; review?: boolean | undefined; series?: number | undefined; correct: number; total: number; date: string };
 const DAY = 86400000;
 /** Premier mini-contrôle 3 jours après l'acquisition, puis l'écart double à chaque réussite (au plus 30 jours). */
 export const REVIEW_DAYS = 3;
@@ -563,7 +563,8 @@ export type SkillState = { status: SkillStatus; due: boolean; since: string | nu
  * « à revoir » jusqu'à la prochaine activité complète sans faute. Les tentatives sont dans l'ordre chronologique.
  */
 export function skillState(attempts: SkillAttempt[], id: string, now = Date.now()): SkillState {
-  const mine = attempts.filter(a => a.skill === id);
+  // Les séries d'entraînement (niveaux 2 et 3) ne changent pas l'état d'acquisition.
+  const mine = attempts.filter(a => a.skill === id && !a.series);
   let mastered = false, failed = false, since: string | null = null, reviews = 0;
   for (const a of mine) {
     const perfect = a.correct === a.total;

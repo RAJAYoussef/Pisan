@@ -13,7 +13,7 @@ function Shell({ title, children, print = false }: { title: string; children: Re
   return <main className="legal-page">
     <div className="legal-bar report-toolbar">
       <Link to="/" className="legal-back">← Retour à PiSan</Link>
-      <nav className="legal-nav" aria-label="Informations"><Link to="/confidentialite">Confidentialité</Link><Link to="/familles">Note aux familles</Link></nav>
+      <nav className="legal-nav" aria-label="Informations"><Link to="/coach">Coach Pi</Link><Link to="/confidentialite">Confidentialité</Link><Link to="/familles">Note aux familles</Link></nav>
       {print && <Button size="sm" onClick={() => window.print()}><Printer />Imprimer / PDF</Button>}
     </div>
     <article className="legal-doc">
@@ -54,7 +54,7 @@ export function PrivacyPage() {
     <p>Base légale : la mission éducative de l’établissement qui utilise PiSan (intérêt public ou intérêt légitime selon le statut de l’établissement).</p>
 
     <h2 id="coach">5. Coach Pi (assistant d’aide)</h2>
-    <p>Lorsqu’il est activé pour la classe, le coach reformule des indices à partir de l’exercice en cours. Le message de l’élève est transmis, via la passerelle d’IA de Lovable, à un fournisseur de modèle de langue (OpenAI) avec une demande de non-conservation. <strong>PiSan n’enregistre pas les conversations.</strong> Le coach est désactivé pendant les tests et le diagnostic. Les élèves ne doivent pas y écrire d’informations personnelles.</p>
+    <p>Lorsqu’il est activé pour la classe, le coach reformule des indices à partir de l’exercice en cours. Le message de l’élève est transmis, via la passerelle d’IA de Lovable, à un fournisseur de modèle de langue (OpenAI) avec une demande de non-conservation. <strong>PiSan n’enregistre pas les conversations.</strong> Le coach est désactivé pendant les tests et le diagnostic. Les élèves ne doivent pas y écrire d’informations personnelles. Voir aussi <Link to="/coach">ce que fait le coach, et ses limites</Link>.</p>
 
     <h2 id="signalements">6. Signalements d’erreurs</h2>
     <p>Le bouton « Signaler une erreur » envoie uniquement la question concernée, le motif choisi et le message facultatif, sans aucun identifiant de l’élève.</p>
@@ -122,9 +122,42 @@ export function FamilyNote() {
   </Shell>;
 }
 
+export function CoachPage() {
+  return <Shell title="Coach Pi : ce qu’il fait, et ses limites">
+    <p className="legal-lead">Coach Pi est l’assistant de PiSan. Il s’appuie sur un modèle d’intelligence artificielle : il aide à chercher, il ne remplace ni ta réflexion, ni ton professeur. <strong>Comme toute IA, il peut se tromper.</strong> Voici, en toute transparence, comment il fonctionne.</p>
+
+    <h2>Ce que Coach Pi fait</h2>
+    <ul>
+      <li>Il t’aide sur <strong>l’exercice que tu es en train de faire</strong>, en suivant la démarche de PiSan : dire le problème avec tes mots, manipuler, faire un schéma, puis calculer.</li>
+      <li>Il donne <strong>des indices et des questions</strong>, une étape à la fois, adaptés à ta classe et dans ta langue.</li>
+      <li>Si tu proposes une réponse, il t’aide à <strong>vérifier ta démarche</strong> sans te dire directement si le résultat est juste.</li>
+    </ul>
+
+    <h2>Ce qu’il ne fait pas, volontairement</h2>
+    <ul>
+      <li><strong>Il ne donne pas la réponse.</strong> C’est une consigne qu’il reçoit, et en plus le serveur relit chacune de ses réponses : si elle contient le résultat attendu, elle est remplacée par un simple indice.</li>
+      <li><strong>Il ne corrige pas tes exercices.</strong> La correction est faite par le serveur de PiSan, par un calcul exact, jamais par l’IA. Ta note ne peut donc pas dépendre d’une erreur du coach.</li>
+      <li><strong>Il se tait pendant les tests</strong> (test de positionnement, diagnostic) : ce que tu y fais doit refléter ce que tu sais seul.</li>
+      <li>Il ne répond qu’aux questions de maths liées à l’exercice, et il ne te demande jamais d’informations personnelles.</li>
+    </ul>
+
+    <h2>Ses limites</h2>
+    <ul>
+      <li><strong>Il peut se tromper</strong> : une erreur de calcul ou de signe dans un indice, une explication maladroite. Si quelque chose te paraît bizarre, demande-lui de réexpliquer, compare avec ta leçon, ou utilise « Signaler une erreur ».</li>
+      <li><strong>Comprendre une aide ne veut pas dire savoir refaire.</strong> Après un exercice où tu as eu besoin du coach, refais une série sans lui : niveau 2 « En autonomie », puis niveau 3 « Défi mélangé ».</li>
+      <li><strong>Ton professeur reste la référence</strong> pour la méthode et la rédaction attendues en classe.</li>
+      <li>Son nombre de messages est limité chaque jour, pour que tu cherches d’abord par toi-même.</li>
+    </ul>
+
+    <h2>Tes données</h2>
+    <p>Ton message et l’exercice en cours sont envoyés, sans ton pseudonyme, à un fournisseur de modèle d’IA (OpenAI) par la passerelle de Lovable, avec une demande de non-conservation. <strong>PiSan ne garde pas tes conversations.</strong> Le coach est accessible aux élèves d’une classe ou d’un établissement partenaire. Détails : <Link to="/confidentialite">confidentialité</Link>.</p>
+  </Shell>;
+}
+
 /** Liens vers les pages d'information (pieds de page de l'accueil, de l'espace enseignant et du compte). */
 export function LegalLinks({ lang, teacher = false }: { lang: 'fr' | 'en' | 'ar' | 'es'; teacher?: boolean }) {
   const privacy = { fr: 'Confidentialité et mentions légales', en: 'Privacy & legal notice', ar: 'الخصوصية والإشعار القانوني', es: 'Privacidad y aviso legal' }[lang];
   const families = { fr: 'Note aux familles', en: 'Note for families', ar: 'رسالة إلى الأسر', es: 'Nota para las familias' }[lang];
-  return <nav className="legal-links" aria-label={privacy}><Link to="/confidentialite">{privacy}</Link>{teacher && <Link to="/familles">{families}</Link>}</nav>;
+  const coach = { fr: 'Coach Pi et ses limites', en: 'Coach Pi and its limits', ar: 'المدرّب Pi وحدوده', es: 'Coach Pi y sus límites' }[lang];
+  return <nav className="legal-links" aria-label={privacy}><Link to="/confidentialite">{privacy}</Link><Link to="/coach">{coach}</Link>{teacher && <Link to="/familles">{families}</Link>}</nav>;
 }

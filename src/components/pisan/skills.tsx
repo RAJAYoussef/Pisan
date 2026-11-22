@@ -27,15 +27,16 @@ import { FractionAdditionLab, FractionEquivalenceLab, FractionNumberLineLab, typ
 import { readFractionSequence, verifyFractionHypothesis, type FractionReasoningEvent, type FractionSequenceAnalysis, type FractionWidgetSpec } from '@/lib/fraction-reasoning';
 import { buildFractionTransferTask, evaluateFractionTransfer } from '@/lib/fraction-transfer';
 import type { FractionJournalEventType } from '@/lib/fraction-journal';
-import type { SkillEngine, StepAnswer } from '@/lib/skill-session';
+import type { SeriesLevel, SkillEngine, StepAnswer } from '@/lib/skill-session';
+import { LevelPicker, seriesUnlocked } from './level-picker';
 
 type WidgetState = Extract<StepAnswer, { type: 'widget' }>['state'];
 
 export type FractionInteractionContext = FractionReasoningEvent;
-type Props = { lang: Lang; skill: Skill; engine: SkillEngine; onBack: () => void; /** Tentatives de l'élève : la première fois, le parcours commence par manipuler. */ attempts?: Attempt[] | undefined; onFractionInteraction?: (event: FractionInteractionContext) => void; onFractionAnalysis?: (analysis: FractionSequenceAnalysis) => void; onAdaptiveSkill?: (skillId: string | null) => void; onJournalEvent?: (event: { activityId: string; type: FractionJournalEventType; payload: Record<string, unknown>; clientOccurredAt?: string }) => void };
+type Props = { /** Ouvre une série de niveau 2 ou 3 (le sélecteur de niveau n'apparaît que si elle est fournie). */ onSeries?: ((level: SeriesLevel) => void) | undefined; lang: Lang; skill: Skill; engine: SkillEngine; onBack: () => void; /** Tentatives de l'élève : la première fois, le parcours commence par manipuler. */ attempts?: Attempt[] | undefined; onFractionInteraction?: (event: FractionInteractionContext) => void; onFractionAnalysis?: (analysis: FractionSequenceAnalysis) => void; onAdaptiveSkill?: (skillId: string | null) => void; onJournalEvent?: (event: { activityId: string; type: FractionJournalEventType; payload: Record<string, unknown>; clientOccurredAt?: string }) => void };
 
 /** Une compétence : les étapes s'enchaînent ; une étape ratée au premier essai ne compte pas comme réussie. */
-export function SkillActivity({ lang, skill, engine, onBack, attempts, onFractionInteraction, onFractionAnalysis, onAdaptiveSkill, onJournalEvent }: Props) {
+export function SkillActivity({ lang, skill, engine, onBack, attempts, onFractionInteraction, onFractionAnalysis, onAdaptiveSkill, onJournalEvent, onSeries }: Props) {
   // Le serveur tire l'énoncé et signe un jeton ; chaque vérification lui passe la réponse brute.
   const [seed, setSeed] = useState<number | null>(null);
   const [ticket, setTicket] = useState('');
@@ -147,6 +148,7 @@ export function SkillActivity({ lang, skill, engine, onBack, attempts, onFractio
     {back}
     <div className="section-heading"><span className="eyebrow">{say(lang, 'Parcours de compétences', 'Skill pathway', 'مسار الكفايات', 'Itinerario de competencias')}</span><h1>{show(activity.title)}</h1></div>
     {intro && <PhaseStepper lang={lang} phase="practice" onPhase={setPhase} manipulate={Boolean(intro.manip)} />}
+    {onSeries && <LevelPicker lang={lang} current={1} unlocked={seriesUnlocked(attempts, skill.id) || Boolean(done)} onPick={level => { if (level !== 1) onSeries(level); }} />}
     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
       <PointsBadge lang={lang} points={points} combo={streak} />
       {intro && !done && <Button variant="ghost" size="sm" aria-expanded={lessonOpen} onClick={() => setLessonOpen(o => !o)}><BookOpen />{lessonOpen ? say(lang, 'Masquer le cours', 'Hide the lesson', 'إخفاء الدرس', 'Ocultar la lección') : say(lang, 'Revoir le cours', 'See the lesson', 'مراجعة الدرس', 'Ver la lección')}</Button>}
