@@ -98,6 +98,7 @@ export function FamilyNote() {
       <li>Il reçoit un <strong>code de reprise</strong> de 12 caractères qui lui permet de retrouver sa progression sur un autre appareil. Conservez-le précieusement : c’est la seule clé de son profil. En cas de perte, l’enseignant peut en fournir un nouveau.</li>
       <li>Il rejoint la classe avec le code donné par l’enseignant, qui voit alors ses résultats.</li>
       <li>Un test de positionnement est proposé en début d’année puis en fin d’année, pour mesurer les progrès de la classe.</li>
+      <li>PiSan s’utilise dans le navigateur, sans rien télécharger dans un store. Sur téléphone, on peut l’<strong>ajouter à l’écran d’accueil</strong> (Android : menu du navigateur, « Installer l’application » ; iPhone : Safari, bouton Partager, « Sur l’écran d’accueil ») : il s’ouvre alors comme une application.</li>
     </ul>
 
     <h2>Les données</h2>

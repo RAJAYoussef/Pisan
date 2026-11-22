@@ -1,0 +1,20 @@
+{
+  "name": "PiSan — Les maths deviennent enfin visuelles",
+  "short_name": "PiSan",
+  "description": "Des mathématiques visuelles, un diagnostic et des parcours du collège au lycée.",
+  "id": "/",
+  "start_url": "/?source=app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "lang": "fr",
+  "dir": "auto",
+  "background_color": "#f7faf8",
+  "theme_color": "#ffffff",
+  "categories": ["education"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

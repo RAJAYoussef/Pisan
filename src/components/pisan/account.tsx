@@ -1,6 +1,7 @@
 // Profil élève : code de reprise, déconnexion de l'appareil, et reprise d'un profil existant.
 import { useEffect, useState } from 'react';
 import { LegalLinks } from './legal';
+import { InstallCard } from './install-app';
 import { useServerFn } from '@tanstack/react-start';
 import { switchRecovery } from '@/lib/session.functions';
 import { Copy, Eye, EyeOff, KeyRound, LogOut } from 'lucide-react';
@@ -52,6 +53,7 @@ export function AccountSection({ lang, token, onLogout, onKeyChange }: { lang: L
           <div className="mt-3 flex flex-wrap gap-2"><Button variant="destructive" onClick={onLogout}><LogOut />{say(lang, 'Se déconnecter', 'Log out', 'خروج', 'Cerrar sesión')}</Button><Button variant="ghost" onClick={() => setConfirm(false)}>{say(lang, 'Annuler', 'Cancel', 'إلغاء', 'Cancelar')}</Button></div>
         </div>}
     </div>
+    <div className="mt-4"><InstallCard lang={lang} /></div>
     <div className="mt-4"><LegalLinks lang={lang} /></div>
   </section>;
 }

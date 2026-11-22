@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { supabase } from '@/integrations/supabase/client';
 import { Splash } from '@/components/pisan/splash';
+import { startInstallSupport } from '@/lib/install';
 
 function NotFoundComponent() {
   return (
@@ -83,6 +84,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      // Application installable sur l'écran d'accueil (manifeste, icônes, barre d'état).
+      { name: "theme-color", content: "#ffffff" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: "PiSan" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { title: "PiSan — Les maths deviennent enfin visuelles" },
       { name: "description", content: "Des mathématiques visuelles, un diagnostic personnalisé et un parcours confiance du collège au lycée." },
       { name: "author", content: "Lovable" },
@@ -98,6 +105,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Fredoka:wght@400;500;600&family=Lilita+One&family=Tajawal:wght@400;500;700;800&display=swap" },
     ],
   }),
@@ -124,6 +133,7 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
+  useEffect(() => { startInstallSupport(import.meta.env.DEV); }, []);
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange(event => {
       if (event !== 'SIGNED_IN' && event !== 'SIGNED_OUT' && event !== 'USER_UPDATED') return;

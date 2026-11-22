@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ComponentPro
 import { ArrowRight, BookOpen, Brain, ChevronDown, ChevronRight, CircleUserRound, ClipboardCheck, Crown, Flame, GraduationCap, Home, LayoutDashboard, LogOut, Menu, RotateCcw, ShieldCheck, Sparkles, Star, TrendingUp, X } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import { LegalLinks } from './legal';
+import { InstallBanner } from './install-app';
 import { supabase } from '@/integrations/supabase/client';
 import { teacherText } from '@/lib/teacher-i18n';
 import { joinClass, leaveClass, studentAssignments, studentClasses } from '@/lib/teacher.functions';
@@ -274,6 +275,7 @@ function HomePage({ tests, onTest, assignments, session, token, onChallenge, lan
           {chapter.started ? <div className="mt-3 flex items-center gap-3"><div className="flex-1"><div className="h-2 overflow-hidden rounded-full bg-card"><div className={`h-full rounded-full bg-primary meter-${Math.round(chapter.mastery / 10)}`} /></div></div><span className="text-sm font-bold">{chapter.mastery} %</span></div> : <p className="mt-2 text-sm">{say(lang, 'Nouveau chapitre : on commence en douceur.', 'New chapter: we start gently.', 'فصل جديد: نبدأ بهدوء.', 'Capítulo nuevo: empezamos con calma.')}</p>}
           <div className="mt-4 flex flex-wrap items-center gap-3"><Button size="lg" className="w-full sm:w-auto" onClick={() => onPractice(notionToPractise(chapter, session.progress))}>{chapter.started ? say(lang, 'Continuer', 'Continue', 'متابعة', 'Continuar') : say(lang, 'Commencer ce chapitre', 'Start this chapter', 'ابدأ هذا الفصل', 'Empezar este capítulo')}<ArrowRight /></Button><Button variant="link" onClick={() => onNavigate('journey')}>{say(lang, 'Voir tout mon parcours', 'See my whole path', 'عرض مساري كاملًا', 'Ver todo mi recorrido')}</Button></div></>}
     </div>
+    <InstallBanner lang={lang} />
     <h2 className="ws-heading">{say(lang, 'Aujourd’hui', 'Today', 'اليوم', 'Hoy')}</h2>
     {due > 0 && <button type="button" className="ws-review" onClick={() => onNavigate('workshop')}>
       <RotateCcw className="h-5 w-5 shrink-0" aria-hidden />
