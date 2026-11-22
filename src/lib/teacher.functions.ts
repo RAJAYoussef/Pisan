@@ -66,10 +66,12 @@ export const reissueRecoveryCode = createServerFn({method:'POST'}).middleware([r
  const member=await supabaseAdmin.from('class_members').select('token_hash').eq('class_id',data.classId).eq('id',data.memberId).single();
  if(member.error || !member.data) throw new Error('Forbidden');
  const {sessionHash}=await import('./classroom.server');
- const token=Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
- const done=await supabaseAdmin.rpc('rekey_pisan_session',{p_old_hash:member.data.token_hash,p_new_hash:await sessionHash(token)});
+ // Code court (12 caractères) : la clé du profil en est calculée, comme dans l'appli de l'élève.
+ const {newShortCode,tokenFromShort}=await import('./recovery');
+ const code=newShortCode();
+ const done=await supabaseAdmin.rpc('rekey_pisan_session',{p_old_hash:member.data.token_hash,p_new_hash:await sessionHash(await tokenFromShort(code))});
  if(done.error || done.data!==true) throw new Error('Unavailable');
- return {token};
+ return {code};
 });
 
 export const classDashboard = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator(z.object({id:z.string().uuid()})).handler(async ({data,context}) => {

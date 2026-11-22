@@ -11,6 +11,8 @@ import type { Lang } from '@/lib/i18n';
 import { localizeMath } from '@/lib/curriculum';
 import { say } from '@/lib/pisan';
 import { StepView } from './skills';
+import { ReportQuestion } from './report-question';
+import { reviewIndex } from '@/lib/reports';
 import { Rich } from './math-text';
 import { CHAPTER_NAMES } from './chapter-names';
 
@@ -72,9 +74,10 @@ export function PlacementActivity({ lang, token, test, onClose }: { lang: Lang; 
     <div className="placement-progress" aria-hidden><span style={{ width: `${(at / steps.length) * 100}%` }} /></div>
     <div className="activity-panel mt-4">
       <p className="mb-5 text-lg font-semibold leading-snug"><Rich lang={lang} text={localizeMath(current.step.prompt[lang], lang)} /></p>
-      <StepView key={at} lang={lang} step={current.step} solved={false} onAnswer={value => reply(value)} />
+      <StepView key={at} lang={lang} step={current.step} solved={false} submitLabel={t('Valider', 'Confirm', 'تأكيد', 'Validar')} onAnswer={value => reply(value)} />
       {error && <p role="alert" className="mt-3 text-destructive">{error}</p>}
       <Button variant="ghost" className="mt-4" disabled={busy} onClick={() => reply(null)}>{t('Je ne sais pas', 'I don’t know', 'لا أعرف', 'No lo sé')}</Button>
+      <div><ReportQuestion key={`report-${at}`} lang={lang} skill={current.item.skill} seed={current.item.seed} step={reviewIndex(current.item.skill, current.item.seed)} context="placement" /></div>
     </div>
   </>);
 }

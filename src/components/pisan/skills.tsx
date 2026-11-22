@@ -1,6 +1,8 @@
 // Parcours de compétences : déroule les étapes d'une activité (src/lib/skills.ts) et dessine les figures.
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { ArrowRight, BookOpen, Check, CheckCircle2, Delete, RefreshCw, RotateCcw } from 'lucide-react';
+import { ReportQuestion } from './report-question';
+import { reviewIndex } from '@/lib/reports';
 import { Button } from '@/components/ui/button';
 import { INSCRIBED_SPAN, type FigureKind, type InscribedProblem, type ThalesProblem } from '@/lib/figures';
 import { localizeMath, type L } from '@/lib/curriculum';
@@ -194,6 +196,7 @@ export function SkillActivity({ lang, skill, engine, onBack, attempts, onFractio
           {solved && <Button className="mt-5 w-full" disabled={busy || pendingVerification} onClick={() => void next()}>{index + 1 < total ? say(lang, 'Étape suivante', 'Next step', 'المرحلة التالية', 'Paso siguiente') : say(lang, 'Terminer', 'Finish', 'إنهاء', 'Terminar')}<ArrowRight /></Button>}
           {hint && !solved && <div className="mt-4"><Tutor><Rich lang={lang} text={hint} /></Tutor></div>}
           {saveError && <p role="alert" className="mt-3 text-destructive">{saveError}</p>}
+          <ReportQuestion key={`report-${seed}-${index}`} lang={lang} skill={skill.id} seed={seed} step={index} context="pathway" />
         </>}
     </div>
   </section>;
@@ -263,6 +266,7 @@ export function ReviewActivity({ lang, skills, engine, onBack }: { lang: Lang; s
           {solved && <Button className="mt-5 w-full" disabled={busy} onClick={() => void next()}>{index + 1 < steps.length ? say(lang, 'Question suivante', 'Next question', 'السؤال التالي', 'Siguiente pregunta') : say(lang, 'Terminer', 'Finish', 'إنهاء', 'Terminar')}<ArrowRight /></Button>}
           {hint && !solved && <div className="mt-4"><Tutor><Rich lang={lang} text={hint} /></Tutor></div>}
           {saveError && <p role="alert" className="mt-3 text-destructive">{saveError}</p>}
+          <ReportQuestion key={`report-${seeds[index]}-${index}`} lang={lang} skill={skill.id} seed={seeds[index]!} step={reviewIndex(skill.id, seeds[index]!)} context="review" />
         </>}
     </div>
   </section>;
@@ -284,7 +288,7 @@ function Loading({ lang, failed, onBack, onRetry }: { lang: Lang; failed: boolea
 const checkLabel = (lang: Lang) => say(lang, 'Vérifier', 'Check', 'تحقق', 'Comprobar');
 const Solved = ({ lang }: { lang: Lang }) => <p role="status" className="mt-4 flex items-center justify-center gap-2 font-bold text-primary-deep"><Check className="h-5 w-5" />{say(lang, 'C’est juste !', 'That’s right!', 'صحيح!', '¡Correcto!')}</p>;
 
-export function StepView({ lang, step, solved, onAnswer, onFractionInteraction }: { lang: Lang; step: Step; solved: boolean; onAnswer: (reply: StepAnswer) => void; onFractionInteraction?: (event: FractionInteractionEvent, widget: FractionWidgetSpec) => void }) {
+export function StepView({ lang, step, solved, onAnswer, onFractionInteraction, submitLabel }: { lang: Lang; step: Step; solved: boolean; onAnswer: (reply: StepAnswer) => void; /** « Valider » pendant un test (pas de correction affichée) ; « Vérifier » sinon. */ submitLabel?: string; onFractionInteraction?: (event: FractionInteractionEvent, widget: FractionWidgetSpec) => void }) {
   const show = (l: L) => localizeMath(l[lang], lang);
   const [picked, setPicked] = useState<number | null>(null);
   const [tapped, setTapped] = useState<string | null>(null);
@@ -294,16 +298,20 @@ export function StepView({ lang, step, solved, onAnswer, onFractionInteraction }
   const [widgetState, setWidgetState] = useState<WidgetState>({});
   const [cursor, setCursor] = useState<P | null>(step.type === 'grid' ? step.start : null);
 
+  // En test : on choisit sans voir si c'est juste, puis on valide (rien n'est corrigé à l'écran).
+  const testMode = submitLabel !== undefined;
   switch (step.type) {
     case 'choice':
       return <>
         <Shown lang={lang} scene={step.scene} table={step.table} />
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">{step.options.map((o, i) => <Button key={i} variant={picked === i ? (i === step.answer ? 'default' : 'destructive') : 'soft'} className="h-auto min-h-11 whitespace-normal" disabled={solved} aria-pressed={picked === i} onClick={() => { setPicked(i); onAnswer({ type: 'choice', choice: i }); }}><Rich lang={lang} text={show(o)} /></Button>)}</div>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">{step.options.map((o, i) => <Button key={i} variant={picked === i ? (testMode || i === step.answer ? 'default' : 'destructive') : 'soft'} className="h-auto min-h-11 whitespace-normal" disabled={solved} aria-pressed={picked === i} onClick={() => { setPicked(i); if (!testMode) onAnswer({ type: 'choice', choice: i }); }}><Rich lang={lang} text={show(o)} /></Button>)}</div>
+        {testMode && <Button className="mt-4 w-full" disabled={picked === null} onClick={() => picked !== null && onAnswer({ type: 'choice', choice: picked })}>{submitLabel}<ArrowRight /></Button>}
         {solved && <Solved lang={lang} />}
       </>;
     case 'tap':
       return <>
-        <GeoScene lang={lang} scene={step.scene} tapped={tapped} answer={step.answer} locked={solved} onTap={id => { setTapped(id); onAnswer({ type: 'tap', id }); }} />
+        <GeoScene lang={lang} scene={step.scene} tapped={tapped} {...(testMode ? {} : { answer: step.answer })} locked={solved} onTap={id => { setTapped(id); if (!testMode) onAnswer({ type: 'tap', id }); }} />
+        {testMode && <Button className="mt-4 w-full" disabled={tapped === null} onClick={() => tapped !== null && onAnswer({ type: 'tap', id: tapped })}>{submitLabel}<ArrowRight /></Button>}
         {solved && <Solved lang={lang} />}
       </>;
     case 'chips': {
@@ -312,7 +320,7 @@ export function StepView({ lang, step, solved, onAnswer, onFractionInteraction }
         <Shown lang={lang} scene={step.scene} table={step.table} />
         <div className="chip-line" dir="ltr" aria-live="polite" aria-label={say(lang, 'Ton égalité', 'Your equality', 'متساويتك', 'Tu igualdad')}>{seq.length ? seq.map((i, k) => <span key={k} className="chip chip-placed"><Rich lang={lang} text={step.tokens[i]!} /></span>) : <span className="text-sm text-muted-foreground">{say(lang, 'Touche les étiquettes dans l’ordre.', 'Tap the labels in order.', 'المس البطاقات بالترتيب.', 'Toca las etiquetas en orden.')}</span>}</div>
         <div className="mt-3 flex flex-wrap justify-center gap-2" dir="ltr">{step.tokens.map((tok, i) => <button key={i} type="button" className="chip" disabled={solved || used.has(i)} onClick={() => setSeq([...seq, i])}><Rich lang={lang} text={tok} /></button>)}</div>
-        {!solved && <div className="mt-4 flex gap-2"><Button variant="ghost" disabled={!seq.length} onClick={() => setSeq(seq.slice(0, -1))}><Delete />{say(lang, 'Effacer', 'Undo', 'مسح', 'Borrar')}</Button><Button className="flex-1" disabled={!seq.length} onClick={() => onAnswer({ type: 'chips', tokens: seq.map(i => step.tokens[i]!) })}>{checkLabel(lang)}<ArrowRight /></Button></div>}
+        {!solved && <div className="mt-4 flex gap-2"><Button variant="ghost" disabled={!seq.length} onClick={() => setSeq(seq.slice(0, -1))}><Delete />{say(lang, 'Effacer', 'Undo', 'مسح', 'Borrar')}</Button><Button className="flex-1" disabled={!seq.length} onClick={() => onAnswer({ type: 'chips', tokens: seq.map(i => step.tokens[i]!) })}>{(submitLabel ?? checkLabel(lang))}<ArrowRight /></Button></div>}
         {solved && <Solved lang={lang} />}
       </>;
     }
@@ -322,7 +330,7 @@ export function StepView({ lang, step, solved, onAnswer, onFractionInteraction }
         <Shown lang={lang} scene={step.scene} table={step.table} />
         <label htmlFor="skill-answer" className="field-label mt-4">{say(lang, 'Ta réponse', 'Your answer', 'جوابك', 'Tu respuesta')}</label>
         <input id="skill-answer" dir="ltr" inputMode="decimal" className="form-input text-center font-display text-2xl" value={text} autoComplete="off" disabled={solved} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') check(); }} />
-        {!solved && <Button className="mt-4 w-full" disabled={!text.trim()} onClick={check}>{checkLabel(lang)}<ArrowRight /></Button>}
+        {!solved && <Button className="mt-4 w-full" disabled={!text.trim()} onClick={check}>{(submitLabel ?? checkLabel(lang))}<ArrowRight /></Button>}
         {solved && <Solved lang={lang} />}
       </>;
     }
@@ -339,7 +347,7 @@ export function StepView({ lang, step, solved, onAnswer, onFractionInteraction }
             {(part as Blank).options.map((o, j) => <option key={j} value={j}>{show(o)}</option>)}
           </select>;
         })}</p>
-        {!solved && <Button className="mt-4 w-full" disabled={blanks.filter(v => v !== undefined).length < count} onClick={() => onAnswer({ type: 'sentence', blanks })}>{checkLabel(lang)}<ArrowRight /></Button>}
+        {!solved && <Button className="mt-4 w-full" disabled={blanks.filter(v => v !== undefined).length < count} onClick={() => onAnswer({ type: 'sentence', blanks })}>{(submitLabel ?? checkLabel(lang))}<ArrowRight /></Button>}
         {solved && <Solved lang={lang} />}
       </>;
     }
@@ -348,7 +356,7 @@ export function StepView({ lang, step, solved, onAnswer, onFractionInteraction }
       return <>
         <GeoScene lang={lang} scene={step.scene} locked={solved} cursor={{ label: step.label, at, onMove: setCursor }} />
         <p className="mt-1 text-center text-xs text-muted-foreground" dir="ltr">{step.heightOnly ? `${say(lang, 'hauteur', 'height', 'الارتفاع', 'altura')} : ${minusSign(fmt(at.y))}` : <>{step.label} ({minusSign(fmt(at.x))} ; {minusSign(fmt(at.y))})</>} · {say(lang, 'touche le quadrillage ou utilise les flèches', 'tap the grid or use the arrow keys', 'المس الشبكة أو استعمل الأسهم', 'toca la cuadrícula o usa las flechas')}</p>
-        {!solved && <Button className="mt-4 w-full" onClick={() => onAnswer({ type: 'grid', x: at.x, y: at.y })}>{checkLabel(lang)}<ArrowRight /></Button>}
+        {!solved && <Button className="mt-4 w-full" onClick={() => onAnswer({ type: 'grid', x: at.x, y: at.y })}>{(submitLabel ?? checkLabel(lang))}<ArrowRight /></Button>}
         {solved && <Solved lang={lang} />}
       </>;
     }
@@ -367,7 +375,7 @@ export function StepView({ lang, step, solved, onAnswer, onFractionInteraction }
         {step.widget.kind === 'squares' && <SquaresWidget lang={lang} ab={step.widget.ab} ac={step.widget.ac} locked={solved} onState={setWidgetState} />}
         {step.widget.kind === 'thales' && <ThalesWidget lang={lang} problem={step.widget.problem} locked={solved} onState={setWidgetState} />}
         {step.widget.kind === 'inscribed' && <InscribedWidget lang={lang} problem={step.widget.problem} locked={solved} onState={setWidgetState} />}
-        {!solved && !['fraction-bars', 'fraction-equivalence', 'fraction-addition', 'fraction-numberline'].includes(step.widget.kind) && <Button className="mt-4 w-full" onClick={() => onAnswer({ type: 'widget', state: widgetState })}>{checkLabel(lang)}<ArrowRight /></Button>}
+        {!solved && !['fraction-bars', 'fraction-equivalence', 'fraction-addition', 'fraction-numberline'].includes(step.widget.kind) && <Button className="mt-4 w-full" onClick={() => onAnswer({ type: 'widget', state: widgetState })}>{(submitLabel ?? checkLabel(lang))}<ArrowRight /></Button>}
         {solved && <Solved lang={lang} />}
       </>;
     }

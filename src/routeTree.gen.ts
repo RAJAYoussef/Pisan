@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ConfidentialiteRouteImport } from './routes/confidentialite'
+import { Route as FamillesRouteImport } from './routes/familles'
 import { Route as AuthenticatedBilanRouteImport } from './routes/_authenticated/bilan'
 import { Route as AuthenticatedTeacherRouteImport } from './routes/_authenticated/teacher'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
@@ -28,6 +30,16 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfidentialiteRoute = ConfidentialiteRouteImport.update({
+  id: '/confidentialite',
+  path: '/confidentialite',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FamillesRoute = FamillesRouteImport.update({
+  id: '/familles',
+  path: '/familles',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedBilanRoute = AuthenticatedBilanRouteImport.update({
@@ -49,6 +61,8 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/confidentialite': typeof ConfidentialiteRoute
+  '/familles': typeof FamillesRoute
   '/bilan': typeof AuthenticatedBilanRoute
   '/teacher': typeof AuthenticatedTeacherRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -56,6 +70,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/confidentialite': typeof ConfidentialiteRoute
+  '/familles': typeof FamillesRoute
   '/bilan': typeof AuthenticatedBilanRoute
   '/teacher': typeof AuthenticatedTeacherRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -65,20 +81,38 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
+  '/confidentialite': typeof ConfidentialiteRoute
+  '/familles': typeof FamillesRoute
   '/_authenticated/bilan': typeof AuthenticatedBilanRoute
   '/_authenticated/teacher': typeof AuthenticatedTeacherRoute
   '/auth/callback': typeof AuthCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/bilan' | '/teacher' | '/auth/callback'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/confidentialite'
+    | '/familles'
+    | '/bilan'
+    | '/teacher'
+    | '/auth/callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/bilan' | '/teacher' | '/auth/callback'
+  to:
+    | '/'
+    | '/auth'
+    | '/confidentialite'
+    | '/familles'
+    | '/bilan'
+    | '/teacher'
+    | '/auth/callback'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/confidentialite'
+    | '/familles'
     | '/_authenticated/bilan'
     | '/_authenticated/teacher'
     | '/auth/callback'
@@ -88,6 +122,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
+  ConfidentialiteRoute: typeof ConfidentialiteRoute
+  FamillesRoute: typeof FamillesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -111,6 +147,20 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/confidentialite': {
+      id: '/confidentialite'
+      path: '/confidentialite'
+      fullPath: '/confidentialite'
+      preLoaderRoute: typeof ConfidentialiteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/familles': {
+      id: '/familles'
+      path: '/familles'
+      fullPath: '/familles'
+      preLoaderRoute: typeof FamillesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/bilan': {
@@ -164,6 +214,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
+  ConfidentialiteRoute: ConfidentialiteRoute,
+  FamillesRoute: FamillesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

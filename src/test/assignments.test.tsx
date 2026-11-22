@@ -161,7 +161,7 @@ describe('Devoirs ciblés et codes de reprise : accès', () => {
   it('a new recovery code needs the class to be the caller’s, and keeps the hash server-side', async () => {
     const notOwned = { select: () => notOwned, eq: () => notOwned, single: async () => ({ data: null, error: { message: 'missing' } }) };
     from.mockReturnValue(notOwned);
-    const reissue = fns.reissueRecoveryCode as unknown as (i: unknown) => Promise<{ token: string }>;
+    const reissue = fns.reissueRecoveryCode as unknown as (i: unknown) => Promise<{ code: string }>;
     await expect(reissue({ data: { classId: 'other', memberId: 'm1' }, context })).rejects.toThrow('Forbidden');
     expect(adminFrom).not.toHaveBeenCalled();
     const owned = { select: () => owned, eq: () => owned, single: async () => ({ data: { id: 'c1' }, error: null }) };
@@ -170,11 +170,13 @@ describe('Devoirs ciblés et codes de reprise : accès', () => {
     adminFrom.mockReturnValue(member);
     adminRpc.mockResolvedValue({ data: true, error: null });
     const r = await reissue({ data: { classId: 'c1', memberId: 'm1' }, context });
-    expect(r.token).toMatch(/^[a-f0-9]{64}$/);
+    expect(r.code).toMatch(/^[0-9A-HJKMNP-TV-Z]{12}$/);
+    const { tokenFromShort } = await import('@/lib/recovery');
+    const { sessionHash } = await import('@/lib/classroom.server');
     const call = adminRpc.mock.calls[0]!;
     expect(call[0]).toBe('rekey_pisan_session');
     expect(call[1].p_old_hash).toBe('f'.repeat(64));
     expect(call[1].p_new_hash).toMatch(/^[a-f0-9]{64}$/);
-    expect(call[1].p_new_hash).not.toBe(r.token); // la base ne voit jamais le code en clair
+    expect(call[1].p_new_hash).toBe(await sessionHash(await tokenFromShort(r.code))); // la base ne voit que l'empreinte de la clé
   });
 });

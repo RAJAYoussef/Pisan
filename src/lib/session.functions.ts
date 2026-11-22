@@ -190,3 +190,17 @@ export const getFractionJournal = createServerFn({ method: 'POST' })
     if (result.error) throw new Error('Le journal pédagogique est indisponible.');
     return (result.data ?? []).reverse();
   });
+
+/**
+ * Passer d'un code de reprise long à un code court : l'élève prouve qu'il a la clé actuelle, la nouvelle clé (calculée
+ * depuis le code court dans l'appli) la remplace. Progrès gardés ; l'ancien code long ne marche plus.
+ */
+export const switchRecovery = createServerFn({ method: 'POST' })
+  .inputValidator(z.object({ token: credential, newToken: credential }).strict())
+  .handler(async ({ data }) => {
+    if (data.token === data.newToken) return { ok: true };
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    const done = await supabaseAdmin.rpc('rekey_pisan_session', { p_old_hash: await hashToken(data.token), p_new_hash: await hashToken(data.newToken) });
+    if (done.error || done.data !== true) throw new Error('Changement impossible.');
+    return { ok: true };
+  });

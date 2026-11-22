@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useServerFn } from '@tanstack/react-start';
 import { useNavigate } from '@tanstack/react-router';
+import { LegalLinks } from './legal';
 import { ArrowLeft, Copy, Download, LogOut, Plus, Settings2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -19,7 +20,7 @@ import { BrandMark } from './brand';
 import { Dashboard } from './progress';
 import { ClassAssignments, ClassSkills, classSkillKinds } from './teacher-skills';
 import { whoAmI } from '@/lib/admin.functions';
-import { ChangePassword, TeacherAccounts } from './teacher-admin';
+import { ChangePassword, QuestionReports, TeacherAccounts } from './teacher-admin';
 import { RESET_FLAG } from './teacher-login';
 import { RecoveryButton } from './teacher-recovery';
 import { PlacementPanel } from './teacher-placement';
@@ -74,6 +75,8 @@ function TeacherSpace({admin,initialLang}:{admin:boolean;initialLang:Lang}) {
  </>}
  </>}
  {admin && teacher && <TeacherAccounts lang={lang} selfId={teacher.id} />}
+    {admin && teacher && <QuestionReports lang={lang} />}
+    <footer className="mt-10 border-t pt-4"><LegalLinks lang={lang} teacher /></footer>
  </main>{details.data && <Dialog open={editOpen} onOpenChange={setEditOpen}><DialogContent><DialogTitle>{say(lang,'Modifier la classe','Edit class','تعديل القسم','Editar la clase')}</DialogTitle><DialogDescription>{getCountry(details.data.classroom.country).name[lang]} · {getCountry(details.data.classroom.country).grades[details.data.classroom.grade]?.label[lang]}</DialogDescription><ClassEdit lang={lang} busy={busy} classroom={details.data.classroom} onSubmit={data=>run(async()=>{await updateClassFn({data:{id:selectedId,...data}});setEditOpen(false);})}/></DialogContent></Dialog>}<Dialog open={Boolean(removeId)} onOpenChange={open=>{if(!open)setRemoveId('');}}><DialogContent><DialogTitle>{d.remove}</DialogTitle><DialogDescription>{d.confirmRemove}</DialogDescription><Button disabled={busy} onClick={()=>remove(removeId)}>{d.remove}</Button></DialogContent></Dialog><Dialog open={profileOpen} onOpenChange={setProfileOpen}><DialogContent><DialogTitle>{d.profile}</DialogTitle><DialogDescription>{teacher?.school_name}</DialogDescription><TeacherProfile lang={lang} initial={teacher ?? undefined} busy={busy} onSubmit={data=>run(async()=>{await saveFn({data});setProfileOpen(false);})}/></DialogContent></Dialog><Dialog open={createOpen} onOpenChange={setCreateOpen}><DialogContent><DialogTitle>{d.newClass}</DialogTitle><DialogDescription>{teacher?.school_name}</DialogDescription><ClassForm lang={lang} busy={busy} onSubmit={data=>run(async()=>{const c=await createFn({data});if(c){setClassId(c.id);setStudentId('');setCreateOpen(false);}})}/></DialogContent></Dialog></div>;
 }
 function TeacherProfile({lang,initial,busy,onSubmit}:{lang:Lang;initial?:{display_name:string;school_name:string} | undefined;busy:boolean;onSubmit:(data:{display_name:string;school_name:string;code:string})=>Promise<void>}){const d=teacherText(lang);return <form className="mx-auto max-w-lg space-y-5" onSubmit={e=>{e.preventDefault();const f=new FormData(e.currentTarget);void onSubmit({display_name:String(f.get('display_name')),school_name:String(f.get('school_name')),code:String(f.get('code'))});}}><h2 className="text-2xl">{d.profile}</h2><label className="field-label">{d.name}<input name="display_name" className="form-input mt-2" defaultValue={initial?.display_name} required maxLength={80}/></label><label className="field-label">{d.school}<input name="school_name" className="form-input mt-2" defaultValue={initial?.school_name} required maxLength={120}/></label><label className="field-label">{d.partner}<input name="code" className="form-input mt-2" maxLength={100}/></label><Button type="submit" disabled={busy}>{d.save}</Button></form>;}

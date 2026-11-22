@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { formatRecovery, parseRecovery } from '@/lib/recovery';
+import { formatRecovery, formatShort, parseRecovery, tokenFromShort } from '@/lib/recovery';
+vi.mock('@tanstack/react-start', () => ({ createServerFn: () => { const b = { middleware: () => b, inputValidator: () => b, handler: (fn: unknown) => fn }; return b; }, useServerFn: (fn: unknown) => fn }));
+vi.mock('@tanstack/react-router', () => ({ Link: ({ to, children }: { to: string; children: React.ReactNode }) => <a href={to}>{children}</a> }));
 import { AccountSection, ResumeProfile } from '@/components/pisan/account';
 
 const TOKEN = '0123456789abcdef'.repeat(4);
@@ -38,7 +40,7 @@ describe('Reprendre un profil', () => {
     fireEvent.click(screen.getByRole('button', { name: /J’ai déjà un profil/ }));
     fireEvent.change(screen.getByLabelText('Ton code de reprise'), { target: { value: 'ABCD-1234' } });
     fireEvent.click(screen.getByRole('button', { name: 'Reprendre mon profil' }));
-    expect(screen.getByRole('alert').textContent).toMatch(/64 caractères/);
+    expect((await screen.findByRole('alert')).textContent).toMatch(/12/);
     expect(onResume).not.toHaveBeenCalled();
   });
   it('sends the clean code, and says when no profile matches', async () => {
@@ -47,7 +49,19 @@ describe('Reprendre un profil', () => {
     fireEvent.click(screen.getByRole('button', { name: /J’ai déjà un profil/ }));
     fireEvent.change(screen.getByLabelText('Ton code de reprise'), { target: { value: formatRecovery(TOKEN) } });
     fireEvent.click(screen.getByRole('button', { name: 'Reprendre mon profil' }));
-    await waitFor(() => expect(onResume).toHaveBeenCalledWith(TOKEN));
+    await waitFor(() => expect(onResume).toHaveBeenCalledWith(TOKEN, null));
     expect((await screen.findByRole('alert')).textContent).toMatch(/Aucun profil/);
+  });
+});
+
+describe('Reprendre avec le code court', () => {
+  it('turns the 12-character code into the profile key', async () => {
+    const onResume = vi.fn(async () => true);
+    render(<ResumeProfile lang="fr" onResume={onResume} />);
+    fireEvent.click(screen.getByRole('button', { name: /J’ai déjà un profil/ }));
+    fireEvent.change(screen.getByLabelText('Ton code de reprise'), { target: { value: formatShort('AB3DEF7HK9MN').toLowerCase() } });
+    fireEvent.click(screen.getByRole('button', { name: 'Reprendre mon profil' }));
+    const token = await tokenFromShort('AB3DEF7HK9MN');
+    await waitFor(() => expect(onResume).toHaveBeenCalledWith(token, 'AB3DEF7HK9MN'));
   });
 });

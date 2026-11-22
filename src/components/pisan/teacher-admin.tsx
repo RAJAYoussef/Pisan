@@ -2,11 +2,15 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useServerFn } from '@tanstack/react-start';
-import { Copy, KeyRound, Plus, UserCheck, UserX } from 'lucide-react';
+import { Check, Copy, Flag, KeyRound, Plus, RotateCcw, UserCheck, UserX } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { createTeacherAccount, listTeachers, passwordChanged, resetTeacherPassword, setTeacherActive } from '@/lib/admin.functions';
 import { PASSWORD_MIN, passwordOk } from '@/lib/teacher-accounts';
+import { listReports, setReportStatus } from '@/lib/reports.functions';
+import { expectedAnswer, reportedStep } from '@/lib/reports';
+import { getSkill } from '@/lib/skills';
+import { reasonLabel } from './report-question';
 import type { Lang } from '@/lib/i18n';
 import { say } from '@/lib/pisan';
 
@@ -96,5 +100,56 @@ export function TeacherAccounts({ lang, selfId }: { lang: Lang; selfId: string }
         {t.id !== selfId && <Button size="sm" variant="ghost" disabled={busy} onClick={() => void toggle(t.id, !t.active)} aria-label={`${t.active ? say(lang, 'Désactiver', 'Disable', 'تعطيل', 'Desactivar') : say(lang, 'Réactiver', 'Enable', 'تفعيل', 'Activar')} · ${t.email}`}>{t.active ? <UserX /> : <UserCheck />}</Button>}
       </span>
     </li>)}</ul>}
+  </section>;
+}
+
+const CONTEXT_LABEL: Record<string, [string, string, string, string]> = {
+  pathway: ['Parcours', 'Pathway', 'مسار', 'Itinerario'], review: ['Mini-contrôle', 'Quick check', 'مراقبة قصيرة', 'Mini control'],
+  placement: ['Test de positionnement', 'Placement test', 'اختبار تحديد المستوى', 'Prueba de nivel'], other: ['Autre', 'Other', 'آخر', 'Otro'],
+};
+
+/** Signalements d'erreurs envoyés depuis les questions (administrateur seulement). */
+export function QuestionReports({ lang }: { lang: Lang }) {
+  const qc = useQueryClient();
+  const listFn = useServerFn(listReports), statusFn = useServerFn(setReportStatus);
+  const [status, setStatus] = useState<'open' | 'done'>('open');
+  const list = useQuery({ queryKey: ['question-reports', status], queryFn: () => listFn({ data: { status } }) });
+  const [busy, setBusy] = useState(false), [error, setError] = useState('');
+  async function mark(id: string, next: 'open' | 'done') {
+    setBusy(true); setError('');
+    try { await statusFn({ data: { id, status: next } }); await qc.invalidateQueries({ queryKey: ['question-reports'] }); }
+    catch { setError(say(lang, 'Mise à jour impossible.', 'Could not update.', 'تعذر التحديث.', 'No se pudo actualizar.')); }
+    setBusy(false);
+  }
+  const rows = list.data ?? [];
+  return <section className="admin-accounts">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div><p className="eyebrow">{say(lang, 'Administration', 'Administration', 'الإدارة', 'Administración')}</p><h2 className="mt-1 text-2xl"><Flag className="me-2 inline h-5 w-5" aria-hidden />{say(lang, 'Erreurs signalées', 'Reported mistakes', 'الأخطاء المبلغ عنها', 'Errores señalados')}</h2></div>
+      <div className="flex gap-1" role="group">
+        <Button size="sm" variant={status === 'open' ? 'default' : 'ghost'} aria-pressed={status === 'open'} onClick={() => setStatus('open')}>{say(lang, 'À traiter', 'Open', 'مفتوحة', 'Pendientes')}</Button>
+        <Button size="sm" variant={status === 'done' ? 'default' : 'ghost'} aria-pressed={status === 'done'} onClick={() => setStatus('done')}>{say(lang, 'Traités', 'Done', 'معالجة', 'Resueltos')}</Button>
+      </div>
+    </div>
+    {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
+    {list.isPending ? <p className="mt-4 text-sm text-muted-foreground">…</p>
+      : list.isError ? <p role="alert" className="mt-4 text-sm text-destructive">{say(lang, 'Liste indisponible.', 'List unavailable.', 'القائمة غير متاحة.', 'Lista no disponible.')}</p>
+      : rows.length === 0 ? <p className="mt-4 text-sm text-muted-foreground">{say(lang, 'Aucun signalement.', 'No reports.', 'لا توجد بلاغات.', 'Sin avisos.')}</p>
+      : <ul className="mt-4 grid gap-2">{rows.map(r => {
+        const skill = getSkill(r.skill_id), step = reportedStep(r.skill_id, r.seed, r.step);
+        const show = (r.lang === 'fr' || r.lang === 'en' || r.lang === 'ar' || r.lang === 'es') ? r.lang : 'fr';
+        const ctx = CONTEXT_LABEL[r.context] ?? CONTEXT_LABEL['other']!;
+        return <li key={r.id} className="admin-row items-start">
+          <span className="min-w-0 flex-1">
+            <span className="block font-bold">{skill?.title[lang] ?? r.skill_id} <span className="pill ms-1">{say(lang, ...ctx)}</span></span>
+            <span className="block text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString(lang)} · {reasonLabel(lang, r.reason)} · {r.skill_id} / {r.seed} / {r.step + 1}</span>
+            {step && <span className="mt-2 block text-sm">{step.prompt[show]}</span>}
+            {step && <span className="mt-1 block text-sm"><strong>{say(lang, 'Réponse attendue', 'Expected answer', 'الإجابة المنتظرة', 'Respuesta esperada')} :</strong> {expectedAnswer(step, show)}</span>}
+            {r.message && <span className="mt-2 block whitespace-pre-wrap rounded bg-muted p-2 text-sm">« {r.message} »</span>}
+          </span>
+          {r.status === 'open'
+            ? <Button size="sm" variant="ghost" disabled={busy} onClick={() => void mark(r.id, 'done')}><Check />{say(lang, 'Traité', 'Done', 'تمت المعالجة', 'Resuelto')}</Button>
+            : <Button size="sm" variant="ghost" disabled={busy} onClick={() => void mark(r.id, 'open')}><RotateCcw />{say(lang, 'Rouvrir', 'Reopen', 'إعادة الفتح', 'Reabrir')}</Button>}
+        </li>;
+      })}</ul>}
   </section>;
 }

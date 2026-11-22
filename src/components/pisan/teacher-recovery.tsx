@@ -6,7 +6,7 @@ import { KeyRound, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { reissueRecoveryCode } from '@/lib/teacher.functions';
-import { formatRecovery } from '@/lib/recovery';
+import { formatShort } from '@/lib/recovery';
 import type { Lang } from '@/lib/i18n';
 import { say } from '@/lib/pisan';
 
@@ -39,7 +39,7 @@ export function RecoveryButton({ lang, classId, className, memberId, nickname, o
   const [error, setError] = useState('');
   async function issue() {
     setBusy(true); setError('');
-    try { const r = await issueFn({ data: { classId, memberId } }); setCode(formatRecovery(r.token)); onIssued?.(); }
+    try { const r = await issueFn({ data: { classId, memberId } }); setCode(formatShort(r.code)); onIssued?.(); }
     catch { setError(say(lang, 'Impossible de créer un nouveau code.', 'Could not create a new code.', 'تعذر إنشاء رمز جديد.', 'No se pudo crear un código.')); }
     setBusy(false);
   }
